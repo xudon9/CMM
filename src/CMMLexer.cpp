@@ -1,19 +1,16 @@
-#include <cctype>
-#include "CMMLexer.h"
 #include <iostream>
+// #include <cctype>
+#include "CMMLexer.h"
 
 using namespace cmm;
 
 bool Lexer::Error(LocTy ErrorLoc, const std::string &Msg) {
-  std::cout << std::flush;
-  std::cerr << Msg << std::endl;
-  // TODO
+  SrcMgr.Error(ErrorLoc, Msg);
   return true;
 }
 
 void Lexer::Warning(LocTy ErrorLoc, const std::string &Msg) {
-  std::cerr << Msg << std::endl;
-  // TODO
+  SrcMgr.Warning(ErrorLoc, Msg);
 }
 
 static int hexDigitValue(int C) {
@@ -52,6 +49,7 @@ static void UnEscapeLexed(std::string &Str) {
 }
 
 Token Lexer::LexToken() {
+  TokStartLoc = SrcMgr.getLoc();
   int CurChar = getNextChar();
   switch (CurChar) {
   default:
@@ -59,6 +57,7 @@ Token Lexer::LexToken() {
       ungetChar();
       return LexIdentifier();
     }
+    Error("unknown character " + std::string(1, static_cast<char>(CurChar)));
     return Token::Error;
   case std::char_traits<char>::eof():
     return Token::Eof;
@@ -153,6 +152,23 @@ Token Lexer::LexIdentifier() {
   do {
     StrVal.push_back(static_cast<char>(getNextChar()));
   } while (std::isalnum(peekNextChar()) || peekNextChar() == '_');
+#define KEYWORD(STR) do {                                                      \
+                       if (StrVal == #STR)                                     \
+                         return Token::Kw_##STR;                               \
+                     } while (0)
+  KEYWORD(if);
+  KEYWORD(else);
+  KEYWORD(for);
+  KEYWORD(while);
+  KEYWORD(do);
+  KEYWORD(break);
+  KEYWORD(continue);
+  KEYWORD(int);
+  KEYWORD(double);
+  KEYWORD(bool);
+#undef KEYWORD
+  if (StrVal.back() == '_')
+    Warning("identifier end with _");
   return Token::Identifier;
 }
 
@@ -162,8 +178,8 @@ Token Lexer::LexString() {
   for (;;) {
     int CurChar = getNextChar();
     if (CurChar == std::char_traits<char>::eof()) {
-      //TODO: 1. Loc 2. Escape for \"
-      Error({0,0}, "end of file in string constant");
+      //TODO: Escape for \"
+      Error("end of file in string constant");
       return Token::Error;
     }
     if (CurChar == '"') {
@@ -209,12 +225,13 @@ Token Lexer::LexDigit() {
 bool Lexer::SkipBlockComment() {
   int CurChar;
   do {
+    auto CurLoc = SrcMgr.getLoc();
     CurChar = getNextChar();
     if (CurChar == std::char_traits<char>::eof())
-      // TODO: LocTy
-      return Error({0, 0}, "unterminated /* comment");
+      return Error("unterminated /* comment");
+
     if (CurChar == '/' && peekNextChar() == '*') {
-      Error({0,0}, "block comments can't be nested");
+      Warning(CurLoc, "block comments can't be nested");
       getNextChar();
       SkipBlockComment();
     }

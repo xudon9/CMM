@@ -29,8 +29,8 @@ public:
     Equal, Percent, Exclaim, AmpAmp, PipePipe,
     Less, LessEqual, EqualEqual, Greater, GreaterEqual, ExclaimEqual,
     Amp, Pipe, LessLess, GreaterGreater, Caret, Tilde,
-    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do, Kw_break, Kw_continue,
-    Kw_int, Kw_double, Kw_bool
+    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do, Kw_break,
+    Kw_continue, Kw_int, Kw_double, Kw_bool
   };
 
 private:
@@ -39,7 +39,7 @@ private:
 public:
   Token(TokenKind K) : Kind(K) {}
   TokenKind getKind() const { return Kind; }
-  // is/isNot - Predicates to check if this token is a specific kind
+  /// is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }
   bool isOneOf(TokenKind K1, TokenKind K2) const {
@@ -52,11 +52,13 @@ public:
 };
 
 class Lexer {
+public:
+  using LocTy = SourceManager::LocTy;
 private:
   SourceManager &SrcMgr;
-  // Information about the current token.
-  struct LocTy { unsigned int line, col; };
+  /// Information about the current token.
   Token CurTok;
+  LocTy TokStartLoc;
   std::string StrVal;
   union {
     int IntVal;
@@ -69,15 +71,18 @@ public:
   Token Lex() {
     return CurTok = LexToken();
   }
-  // Getters
+  /// Getters
   Token::TokenKind getKind() const { return CurTok.getKind(); }
   const std::string &getStrVal() const { return StrVal; }
+  LocTy getLoc() const { return TokStartLoc; }
   int getIntVal() const { return IntVal; }
   double getDoubleVal() const { return DoubleVal; }
   bool getBoolVal() const { return BoolVal; }
 
   bool Error(LocTy ErrorLoc, const std::string &Msg);
+  bool Error(const std::string &Msg) { return Error(getLoc(), Msg); }
   void Warning(LocTy ErrorLoc, const std::string &Msg);
+  void Warning(const std::string &Msg) { Warning(getLoc(), Msg); }
 
 private:
   Token LexToken();

@@ -1,23 +1,17 @@
-#include <cstring>
 #include <iostream>
 #include <algorithm>
-#include <cassert>
+#include <cstring>
 #include "SourceManager.h"
 
 using namespace cmm;
 
-void SourceManager::DumpError(LocTy L, const std::string &Msg) {
-  auto it = std::lower_bound(LineNoOffsets.begin(), LineNoOffsets.end(), L);
-  if (*it > L) {
-    assert(it != LineNoOffsets.begin());
-    --it;
-  }
+void SourceManager::DumpError(LocTy L, ErrorKind K,
+                              const std::string &Msg) const {
+  auto LineCol = getLineColByLoc(L);
 
-  auto LineIndex = it - LineNoOffsets.begin();  // LineNo = LineIndex + 1
-  auto ColIndex = L - LineNoOffsets[LineIndex]; // ColNo = ColIndex + 1
-
-  std::cerr << "Error (Line " << LineIndex + 1 << ", Col)"
-            << ColIndex + 1 << ": " << Msg << std::endl;
+  std::cerr << (K == ErrorKind::Error ? "Error" : "Warning")
+            <<" at Line " << LineCol.first + 1 << ", Col "
+            << LineCol.second + 1 << ": " << Msg << std::endl;
 }
 
 SourceManager::SourceManager(const std::string &SourcePath,
@@ -40,17 +34,43 @@ int SourceManager::get() {
                                CurPos);
     if (*it != CurPos)
       LineNoOffsets.insert(it, CurPos);
+#if 0
+    std::cout << "--------------\n";
+    for (size_t i = 0; i < LineNoOffsets.size(); ++i)
+      std::cout << i << " " << LineNoOffsets[i] << std::endl;
+    std::cout << "----OWARI-----\n";
+#endif
   }
   return CurChar;
 }
 
 void SourceManager::Error(LocTy L, const std::string &Msg) {
   if (DumpInstantly)
-    DumpError(L, Msg);
+    DumpError(L, ErrorKind::Error, Msg);
   else
-    ErrorList.emplace_back(L, Msg);
+    ErrorList.emplace_back(L, ErrorKind::Error, Msg);
 }
 
 void SourceManager::Error(const std::string &Msg) {
   Error(SourceStream.tellg(), Msg);
+}
+
+void SourceManager::Warning(LocTy L, const std::string &Msg) {
+  if (DumpInstantly)
+    DumpError(L, ErrorKind::Warning, Msg);
+  else
+    ErrorList.emplace_back(L, ErrorKind::Warning, Msg);
+}
+
+void SourceManager::Warning(const std::string &Msg) {
+  Warning(SourceStream.tellg(), Msg);
+}
+
+std::pair<size_t, size_t> SourceManager::getLineColByLoc(LocTy L) const {
+  auto it = std::upper_bound(LineNoOffsets.cbegin(), LineNoOffsets.cend(), L);
+  return (it == LineNoOffsets.cend())
+      ? std::make_pair(static_cast<size_t>(LineNoOffsets.size() - 1),
+                       static_cast<size_t>(L - LineNoOffsets.back()))
+      : std::make_pair(static_cast<size_t>(it - LineNoOffsets.begin()),
+                       static_cast<size_t>(L - *it));
 }
