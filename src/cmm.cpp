@@ -8,25 +8,26 @@ int main(int argc, char *argv[])
 {
   if (argc < 2)
     return 1;
-  Lexer lexer(argv[1]);
-  while (lexer.Lex().isNot(Token::Eof)) {
-    switch (lexer.getKind()) {
+  SourceManager SrcMgr(argv[1]);
+  Lexer Lex(SrcMgr);
+  while (Lex.Lex().isNot(Token::Eof)) {
+    switch (Lex.getKind()) {
     default: cerr << "Unknown";
       break;
     case Token::Identifier:
-      cout << "Identifier: " << lexer.getStrVal() << endl;
+      cout << "Identifier: " << Lex.getStrVal() << endl;
       break;
     case Token::String:
-      cout << "String: " << lexer.getStrVal() << endl;
+      cout << "String: " << Lex.getStrVal() << endl;
       break;
     case Token::Integer:
-      cout << "Integer: " << lexer.getIntVal() << endl;
+      cout << "Integer: " << Lex.getIntVal() << endl;
       break;
     case Token::Double:
-      cout << "Double: " << lexer.getDoubleVal() << endl;
+      cout << "Double: " << Lex.getDoubleVal() << endl;
       break;
     case Token::Boolean:
-      cout << "Boolean: " << (lexer.getDoubleVal() ? "True" : "False") << endl;
+      cout << "Boolean: " << (Lex.getDoubleVal() ? "True" : "False") << endl;
       break;
     case Token::LParen:         cout << "LParen:      (" << endl;   break;
     case Token::RParen:         cout << "RParen:      )" << endl;   break;

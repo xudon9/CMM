@@ -17,3 +17,6 @@
 
 # build directory
 build
+
+# idea files
+.idea

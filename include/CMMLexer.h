@@ -2,9 +2,7 @@
 #define CMMLEXER_H
 
 #include <string>
-#include <fstream>
-
-void show(const std::string &s);
+#include "SourceManager.h"
 
 namespace cmm {
 
@@ -41,7 +39,7 @@ private:
 public:
   Token(TokenKind K) : Kind(K) {}
   TokenKind getKind() const { return Kind; }
-  /// is/isNot - Predicates to check if this token is a specific kind
+  // is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }
   bool isOneOf(TokenKind K1, TokenKind K2) const {
@@ -55,7 +53,7 @@ public:
 
 class Lexer {
 private:
-  std::ifstream SourceStream;
+  SourceManager &SrcMgr;
   // Information about the current token.
   struct LocTy { unsigned int line, col; };
   Token CurTok;
@@ -66,11 +64,12 @@ private:
     bool BoolVal;
   };
 public:
-  Lexer(const std::string &SourcePath) :
-      SourceStream(SourcePath), CurTok(Token::Boolean) {}
+  Lexer(SourceManager &SrcMgr) :
+      SrcMgr(SrcMgr), CurTok(Token::Boolean) {}
   Token Lex() {
     return CurTok = LexToken();
   }
+  // Getters
   Token::TokenKind getKind() const { return CurTok.getKind(); }
   const std::string &getStrVal() const { return StrVal; }
   int getIntVal() const { return IntVal; }

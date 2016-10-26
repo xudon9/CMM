@@ -230,13 +230,12 @@ bool Lexer::SkipBlockComment() {
 }
 
 int Lexer::peekNextChar() {
-  return SourceStream.peek();
+  return SrcMgr.peek();
 }
-
 int Lexer::getNextChar() {
-  return SourceStream.get();
+  return SrcMgr.get();
 }
 void Lexer::ungetChar() {
-  SourceStream.unget();
+  SrcMgr.unget();
 }
 
