@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include "SourceManager.h"
 
 using namespace cmm;
@@ -17,12 +18,13 @@ void SourceManager::DumpError(LocTy L, ErrorKind K,
 SourceManager::SourceManager(const std::string &SourcePath,
                              bool DumpInstantly)
     : SourceStream(SourcePath), DumpInstantly(DumpInstantly) {
+  LineNoOffsets.emplace_back(std::streampos(0));
   if (SourceStream.fail()) {
-    Error(strerror(errno));
+    Error(std::strerror(errno));
+    std::exit(EXIT_FAILURE);
     return;
   }
   LineNoOffsets.reserve(ReservedLineNo);
-  LineNoOffsets.emplace_back(std::streampos(0));
 }
 
 int SourceManager::get() {
@@ -32,7 +34,9 @@ int SourceManager::get() {
     auto it = std::lower_bound(LineNoOffsets.begin(),
                                LineNoOffsets.end(),
                                CurPos);
-    if (*it != CurPos)
+    if (it == LineNoOffsets.end())
+      LineNoOffsets.emplace_back(CurPos);
+    else if (*it != CurPos)
       LineNoOffsets.insert(it, CurPos);
 #if 0
     std::cout << "--------------\n";

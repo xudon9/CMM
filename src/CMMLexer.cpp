@@ -1,5 +1,5 @@
 #include <iostream>
-// #include <cctype>
+#include <cctype>
 #include "CMMLexer.h"
 
 using namespace cmm;
