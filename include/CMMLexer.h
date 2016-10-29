@@ -2,7 +2,7 @@
 #define CMMLEXER_H
 
 #include <string>
-#include "SourceManager.h"
+#include "SourceMgr.h"
 
 namespace cmm {
 
@@ -51,11 +51,11 @@ public:
   }
 };
 
-class Lexer {
+class CMMLexer {
 public:
-  using LocTy = SourceManager::LocTy;
+  using LocTy = SourceMgr::LocTy;
 private:
-  SourceManager &SrcMgr;
+  SourceMgr &SrcMgr;
   /// Information about the current token.
   Token CurTok;
   LocTy TokStartLoc;
@@ -66,7 +66,7 @@ private:
     bool BoolVal;
   };
 public:
-  Lexer(SourceManager &SrcMgr) :
+  CMMLexer(SourceMgr &SrcMgr) :
       SrcMgr(SrcMgr), CurTok(Token::Boolean) {}
   Token Lex() {
     return CurTok = LexToken();
@@ -99,4 +99,4 @@ private:
 };
 }
 
-#endif
+#endif // !CMMLEXER_H

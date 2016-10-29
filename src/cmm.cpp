@@ -3,34 +3,34 @@
 #include <cstdlib>
 
 using namespace cmm;
-using namespace std;
 
-static int AsLexInput(SourceManager &SrcMgr) {
-  Lexer Lex(SrcMgr);
+static int AsLexInput(SourceMgr &SrcMgr) {
+  CMMLexer Lexer(SrcMgr);
 
   bool Error = false;
-  while (Lex.Lex().isNot(Token::Eof)) {
-    auto LineCol = SrcMgr.getLineColByLoc(Lex.getLoc());
+  while (Lexer.Lex().isNot(Token::Eof)) {
+    using std::cout;
+    auto LineCol = SrcMgr.getLineColByLoc(Lexer.getLoc());
     cout << "(Line " << LineCol.first + 1 << ", Col "
          << LineCol.second + 1 << ") ";
-    switch (Lex.getKind()) {
+    switch (Lexer.getKind()) {
     default:
-      cout << "Unknown Token: " << Lex.getKind();
+      cout << "Unknown Token: " << Lexer.getKind();
       Error = true;
       break;
     case Token::Error:
       Error = true; // error already printed.
       break;
     case Token::Identifier:
-      cout << "Identifier: " << Lex.getStrVal(); break;
+      cout << "Identifier: " << Lexer.getStrVal(); break;
     case Token::String:
-      cout << "String: " << Lex.getStrVal(); break;
+      cout << "String: " << Lexer.getStrVal(); break;
     case Token::Integer:
-      cout << "Integer: " << Lex.getIntVal(); break;
+      cout << "Integer: " << Lexer.getIntVal(); break;
     case Token::Double:
-      cout << "Double: " << Lex.getDoubleVal(); break;
+      cout << "Double: " << Lexer.getDoubleVal(); break;
     case Token::Boolean:
-      cout << "Boolean: " << (Lex.getDoubleVal() ? "True" : "False");
+      cout << "Boolean: " << (Lexer.getDoubleVal() ? "True" : "False");
       break;
     case Token::LParen:         cout << "LParen: ("; break;
     case Token::RParen:         cout << "RParen: )"; break;
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
     std::cerr << "Usage: " << argv[0] << " file" << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  SourceManager SrcMgr(argv[1]);
+  SourceMgr SrcMgr(argv[1]);
   int Res = AsLexInput(SrcMgr);
   std::exit(Res);
 }

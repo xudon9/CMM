@@ -5,8 +5,8 @@
  * Email: hsu[AT]whu.edu.cn
  */
 
-#ifndef SOURCEMANAGER_H
-#define SOURCEMANAGER_H
+#ifndef SOURCEMGR_H
+#define SOURCEMGR_H
 
 #include <fstream>
 #include <string>
@@ -16,7 +16,7 @@
 
 namespace cmm {
 
-class SourceManager {
+class SourceMgr {
 public:
   using LocTy = std::streampos;
   enum class ErrorKind { Error, Warning };
@@ -32,7 +32,7 @@ private:
   void DumpError(LocTy L, ErrorKind K, const std::string &Msg) const;
 
 public:
-  SourceManager(const std::string &SourcePath,
+  SourceMgr(const std::string &SourcePath,
                 bool DumpInstantly = true);
 
   /// Functions that simulate memeber functions of std::fstream
@@ -52,4 +52,4 @@ public:
 
 }
 
-#endif /* SOURCEMANAGER_H */
+#endif // !SOURCEMGR_H

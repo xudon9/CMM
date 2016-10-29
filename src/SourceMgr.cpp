@@ -1,10 +1,10 @@
 #include <iostream>
 #include <algorithm>
-#include "SourceManager.h"
+#include "SourceMgr.h"
 
 using namespace cmm;
 
-void SourceManager::DumpError(LocTy L, ErrorKind K,
+void SourceMgr::DumpError(LocTy L, ErrorKind K,
                               const std::string &Msg) const {
   auto LineCol = getLineColByLoc(L);
 
@@ -13,7 +13,7 @@ void SourceManager::DumpError(LocTy L, ErrorKind K,
             << LineCol.second + 1 << "): " << Msg << std::endl;
 }
 
-SourceManager::SourceManager(const std::string &SourcePath,
+SourceMgr::SourceMgr(const std::string &SourcePath,
                              bool DumpInstantly)
   : SourceStream(SourcePath), DumpInstantly(DumpInstantly) {
   if (SourceStream.fail()) {
@@ -25,7 +25,7 @@ SourceManager::SourceManager(const std::string &SourcePath,
   LineNoOffsets.emplace_back(std::streampos(0));
 }
 
-int SourceManager::get() {
+int SourceMgr::get() {
   int CurChar = SourceStream.get();
   std::streampos CurPos = SourceStream.tellg();
   if (CurChar == '\n') {
@@ -38,29 +38,29 @@ int SourceManager::get() {
   return CurChar;
 }
 
-void SourceManager::Error(LocTy L, const std::string &Msg) {
+void SourceMgr::Error(LocTy L, const std::string &Msg) {
   if (DumpInstantly)
     DumpError(L, ErrorKind::Error, Msg);
   else
     ErrorList.emplace_back(L, ErrorKind::Error, Msg);
 }
 
-void SourceManager::Error(const std::string &Msg) {
+void SourceMgr::Error(const std::string &Msg) {
   Error(SourceStream.tellg(), Msg);
 }
 
-void SourceManager::Warning(LocTy L, const std::string &Msg) {
+void SourceMgr::Warning(LocTy L, const std::string &Msg) {
   if (DumpInstantly)
     DumpError(L, ErrorKind::Warning, Msg);
   else
     ErrorList.emplace_back(L, ErrorKind::Warning, Msg);
 }
 
-void SourceManager::Warning(const std::string &Msg) {
+void SourceMgr::Warning(const std::string &Msg) {
   Warning(SourceStream.tellg(), Msg);
 }
 
-std::pair<size_t, size_t> SourceManager::getLineColByLoc(LocTy L) const {
+std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
   auto It = std::upper_bound(LineNoOffsets.cbegin(),
                              LineNoOffsets.cend(), L) - 1;
   size_t LineIndex = It - LineNoOffsets.cbegin();

@@ -4,12 +4,12 @@
 
 using namespace cmm;
 
-bool Lexer::Error(LocTy ErrorLoc, const std::string &Msg) {
+bool CMMLexer::Error(LocTy ErrorLoc, const std::string &Msg) {
   SrcMgr.Error(ErrorLoc, Msg);
   return true;
 }
 
-void Lexer::Warning(LocTy ErrorLoc, const std::string &Msg) {
+void CMMLexer::Warning(LocTy ErrorLoc, const std::string &Msg) {
   SrcMgr.Warning(ErrorLoc, Msg);
 }
 
@@ -48,7 +48,7 @@ static void UnEscapeLexed(std::string &Str) {
   Str.resize(BOut - Buffer);
 }
 
-Token Lexer::LexToken() {
+Token CMMLexer::LexToken() {
   TokStartLoc = SrcMgr.getLoc();
   int CurChar = getNextChar();
   switch (CurChar) {
@@ -138,7 +138,7 @@ Token Lexer::LexToken() {
 }
 
 // Assume the '//' is eaten
-void Lexer::SkipLineComment() {
+void CMMLexer::SkipLineComment() {
   for (;;) {
     if (peekNextChar() == '\n' || peekNextChar() == '\r' ||
         peekNextChar() == std::char_traits<char>::eof())
@@ -147,7 +147,7 @@ void Lexer::SkipLineComment() {
   }
 }
 
-Token Lexer::LexIdentifier() {
+Token CMMLexer::LexIdentifier() {
   StrVal.clear();
   do {
     StrVal.push_back(static_cast<char>(getNextChar()));
@@ -173,7 +173,7 @@ Token Lexer::LexIdentifier() {
 }
 
 // Assume the first '"' is eaten
-Token Lexer::LexString() {
+Token CMMLexer::LexString() {
   StrVal.clear();
   for (;;) {
     int CurChar = getNextChar();
@@ -190,7 +190,7 @@ Token Lexer::LexString() {
   }
 }
 
-Token Lexer::LexDigit() {
+Token CMMLexer::LexDigit() {
   int HeadChar = getNextChar();
   IntVal = 0;
 
@@ -222,7 +222,7 @@ Token Lexer::LexDigit() {
 }
 
 // Assume the '/*' is eaten
-bool Lexer::SkipBlockComment() {
+bool CMMLexer::SkipBlockComment() {
   int CurChar;
   do {
     auto CurLoc = SrcMgr.getLoc();
@@ -246,13 +246,13 @@ bool Lexer::SkipBlockComment() {
   }
 }
 
-int Lexer::peekNextChar() {
+int CMMLexer::peekNextChar() {
   return SrcMgr.peek();
 }
-int Lexer::getNextChar() {
+int CMMLexer::getNextChar() {
   return SrcMgr.get();
 }
-void Lexer::ungetChar() {
+void CMMLexer::ungetChar() {
   SrcMgr.unget();
 }
 
