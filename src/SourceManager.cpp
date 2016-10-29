@@ -1,7 +1,5 @@
 #include <iostream>
 #include <algorithm>
-#include <cstring>
-#include <cstdlib>
 #include "SourceManager.h"
 
 using namespace cmm;
@@ -11,39 +9,31 @@ void SourceManager::DumpError(LocTy L, ErrorKind K,
   auto LineCol = getLineColByLoc(L);
 
   std::cerr << (K == ErrorKind::Error ? "Error" : "Warning")
-            <<" at Line " << LineCol.first + 1 << ", Col "
-            << LineCol.second + 1 << ": " << Msg << std::endl;
+            <<" at (Line " << LineCol.first + 1 << ", Col "
+            << LineCol.second + 1 << "): " << Msg << std::endl;
 }
 
 SourceManager::SourceManager(const std::string &SourcePath,
                              bool DumpInstantly)
-    : SourceStream(SourcePath), DumpInstantly(DumpInstantly) {
-  LineNoOffsets.emplace_back(std::streampos(0));
+  : SourceStream(SourcePath), DumpInstantly(DumpInstantly) {
   if (SourceStream.fail()) {
-    Error(std::strerror(errno));
+    std::cerr << "Fatal Error: Cannot open file '" << SourcePath
+              << "', exited." << std::endl;
     std::exit(EXIT_FAILURE);
-    return;
   }
   LineNoOffsets.reserve(ReservedLineNo);
+  LineNoOffsets.emplace_back(std::streampos(0));
 }
 
 int SourceManager::get() {
   int CurChar = SourceStream.get();
   std::streampos CurPos = SourceStream.tellg();
   if (CurChar == '\n') {
-    auto it = std::lower_bound(LineNoOffsets.begin(),
+    auto It = std::lower_bound(LineNoOffsets.begin(),
                                LineNoOffsets.end(),
                                CurPos);
-    if (it == LineNoOffsets.end())
-      LineNoOffsets.emplace_back(CurPos);
-    else if (*it != CurPos)
-      LineNoOffsets.insert(it, CurPos);
-#if 0
-    std::cout << "--------------\n";
-    for (size_t i = 0; i < LineNoOffsets.size(); ++i)
-      std::cout << i << " " << LineNoOffsets[i] << std::endl;
-    std::cout << "----OWARI-----\n";
-#endif
+    if (It == LineNoOffsets.cend() || *It != CurPos)
+      LineNoOffsets.insert(It, CurPos);
   }
   return CurChar;
 }
@@ -71,10 +61,9 @@ void SourceManager::Warning(const std::string &Msg) {
 }
 
 std::pair<size_t, size_t> SourceManager::getLineColByLoc(LocTy L) const {
-  auto it = std::upper_bound(LineNoOffsets.cbegin(), LineNoOffsets.cend(), L);
-  return (it == LineNoOffsets.cend())
-      ? std::make_pair(static_cast<size_t>(LineNoOffsets.size() - 1),
-                       static_cast<size_t>(L - LineNoOffsets.back()))
-      : std::make_pair(static_cast<size_t>(it - LineNoOffsets.begin()),
-                       static_cast<size_t>(L - *it));
+  auto It = std::upper_bound(LineNoOffsets.cbegin(),
+                             LineNoOffsets.cend(), L) - 1;
+  size_t LineIndex = It - LineNoOffsets.cbegin();
+  size_t ColIndex = static_cast<size_t>(L - *It);
+  return std::make_pair(LineIndex, ColIndex);
 }

@@ -178,7 +178,7 @@ Token Lexer::LexString() {
   for (;;) {
     int CurChar = getNextChar();
     if (CurChar == std::char_traits<char>::eof()) {
-      //TODO: Escape for \"
+      // TODO: Escape for \"
       Error("end of file in string constant");
       return Token::Error;
     }

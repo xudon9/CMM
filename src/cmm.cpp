@@ -1,23 +1,25 @@
 #include "CMMLexer.h"
 #include <iostream>
+#include <cstdlib>
 
 using namespace cmm;
 using namespace std;
 
-int main(int argc, char *argv[])
-{
-  if (argc < 2)
-    return 1;
-  SourceManager SrcMgr(argv[1]);
+static int AsLexInput(SourceManager &SrcMgr) {
   Lexer Lex(SrcMgr);
 
+  bool Error = false;
   while (Lex.Lex().isNot(Token::Eof)) {
     auto LineCol = SrcMgr.getLineColByLoc(Lex.getLoc());
     cout << "(Line " << LineCol.first + 1 << ", Col "
          << LineCol.second + 1 << ") ";
     switch (Lex.getKind()) {
     default:
-      cout << "Unknown Tag: " << Lex.getKind();
+      cout << "Unknown Token: " << Lex.getKind();
+      Error = true;
+      break;
+    case Token::Error:
+      Error = true; // error already printed.
       break;
     case Token::Identifier:
       cout << "Identifier: " << Lex.getStrVal(); break;
@@ -70,5 +72,17 @@ int main(int argc, char *argv[])
     }
     cout << "\n";
   }
-  return 0;
+
+  return Error;
+}
+
+int main(int argc, char *argv[])
+{
+  if (argc != 2) {
+    std::cerr << "Usage: " << argv[0] << " file" << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  SourceManager SrcMgr(argv[1]);
+  int Res = AsLexInput(SrcMgr);
+  std::exit(Res);
 }
