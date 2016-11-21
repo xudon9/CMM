@@ -224,7 +224,7 @@ class ContinueStatementAST : public StatementAST {
   // char *label? TODO
 };
 
-/***************/
+/*******************************************************/
 class CMMParser {
 public:
   using LocTy = CMMLexer::LocTy;
@@ -232,6 +232,7 @@ private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
   std::list<std::unique_ptr<StatementAST>> TopLevelStatements;
+  std::map<Token::TokenKind, char> BinOpPrecedence;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
