@@ -311,12 +311,27 @@ private:
 
   int8_t getBinOpPrecedence(Token::TokenKind Kind);
 
-  bool ParseExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool ParsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool ParseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
-  bool ParseParenExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool ParseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool ParseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parseToplevel();
+  bool parseFunctionDefinition();
+  bool parseStatement();
+  bool parseBlock();
+  bool parseTypeSpecifier();
+  bool parseParameterList();
+  bool parseArgumentList();
+  bool parseIfStatement();
+  bool parseWhileStatement();
+  bool parseForStatement();
+  bool parseReturnStatement();
+  bool parseBreakStatement();
+  bool parseContinueStatement();
+  bool parseDeclarationStatement();
+  // First: LParen,Id,Int,Double,Str,Bool,Plus,Minus,Tilde,Exclaim
+  bool parseExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
+  bool parseParenExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 public:
   CMMParser(SourceMgr &SrcMgr) : SrcMgr(SrcMgr), Lexer(SrcMgr) {
     BinOpPrecedence[Token::Equal] = 1;
