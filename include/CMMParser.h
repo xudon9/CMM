@@ -2,9 +2,11 @@
 #define CMMPARSER_H
 
 #include "CMMLexer.h"
+//#include <cstdint>
 #include <memory>
 #include <list>
 #include <map>
+#include <iostream>
 
 ///code.h
 namespace cvm {
@@ -43,8 +45,8 @@ class TypeSpecifier {
 
 class AST {
 public:
-  virtual ~AST();
-  virtual
+  virtual ~AST() {};
+  virtual void dump(const std::string &prefix = "") {};
 };
 
 class ExpressionAST : public AST {
@@ -92,28 +94,43 @@ class IntAST : public ExpressionAST {
   int Value;
 public:
   IntAST(int Value) : ExpressionAST(IntExpression), Value(Value) {}
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(int)" << Value << std::endl;
+  }
 };
 class DoubleAST : public ExpressionAST {
   double Value;
 public:
   DoubleAST(double Value) : ExpressionAST(DoubleExpression), Value(Value) {}
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(double)" << Value << std::endl;
+  }
 };
 class BoolAST : public ExpressionAST {
   bool Value;
 public:
   BoolAST(bool Value) : ExpressionAST(BoolExpression), Value(Value) {}
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(bool)" << (Value ? "true" : "false") << std::endl;
+  }
 };
 class StringAST : public ExpressionAST {
   std::string Value;
 public:
   StringAST(const std::string &Value)
     : ExpressionAST(StringExpression), Value(Value) {}
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(string)" << Value << std::endl;
+  }
 };
 class IdentifierAST : public ExpressionAST {
   std::string Name;
 public:
   IdentifierAST(const std::string &Name)
     : ExpressionAST(IdentifierExpression), Name(Name) {}
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(Id)" << Name << std::endl;
+  }
 };
 
 // It's a binary operator
@@ -152,6 +169,37 @@ public:
     , Kind(Kind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
   static std::unique_ptr<ExpressionAST> create(Token::TokenKind TokenKind,
     std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS);
+
+
+  void dump(const std::string &prefix = "") override {
+    std::string OperatorSymbol;
+    switch (Kind) {
+    default: break;
+    case Add:           OperatorSymbol = "Add"; break;
+    case Minus:         OperatorSymbol = "Sub"; break;
+    case Multiply:      OperatorSymbol = "Mul"; break;
+    case Division:      OperatorSymbol = "Div"; break;
+    case Modulo:        OperatorSymbol = "Mod"; break;
+    case LogicalAnd:    OperatorSymbol = "And"; break;
+    case LogicalOr:     OperatorSymbol = "Or"; break;
+    case Less:          OperatorSymbol = "<"; break;
+    case LessEqual:     OperatorSymbol = "<="; break;
+    case Equal:         OperatorSymbol = "=="; break;
+    case Greater:       OperatorSymbol = ">"; break;
+    case BitwiseAnd:    OperatorSymbol = "BitAnd"; break;
+    case BitwiseOr:     OperatorSymbol = "BitOr"; break;
+    case BitwiseXor:    OperatorSymbol = "Xor"; break;
+    case LeftShift:     OperatorSymbol = "<<"; break;
+    case RightShift:    OperatorSymbol = ">>"; break;
+    case Assign:        OperatorSymbol = "="; break;
+    case GreaterEqual:  OperatorSymbol = ">="; break;
+    }
+    std::cout << OperatorSymbol << std::endl;
+    std::cout << prefix << "|-- ";
+    LHS->dump(prefix + "|   ");
+    std::cout << prefix << "`-- ";
+    RHS->dump(prefix + "    ");
+  }
 };
 
 class UnaryOperatorAST : public ExpressionAST {
@@ -164,6 +212,20 @@ public:
   UnaryOperatorAST(OperatorKind Kind, std::unique_ptr<ExpressionAST> Operand)
     : ExpressionAST(UnaryOperatorExpression)
     , Kind(Kind), Operand(std::move(Operand)) {}
+
+  void dump(const std::string &prefix = "") override {
+    std::string OperatorSymbol;
+    switch (Kind) {
+    default: break;
+    case Plus:       OperatorSymbol = "+"; break;
+    case Minus:      OperatorSymbol = "-"; break;
+    case LogicalNot: OperatorSymbol = "!"; break;
+    case BitwiseNot: OperatorSymbol = "~"; break;
+    }
+    std::cout << "(" << OperatorSymbol << ")" << std::endl;
+    std::cout << prefix << "`-- ";
+    Operand->dump(prefix + "    ");
+  }
 };
 
 class DeclarationAST : public StatementAST {
@@ -256,7 +318,37 @@ private:
   bool ParseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
   bool ParseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 public:
-  CMMParser(SourceMgr &SrcMgr) : SrcMgr(SrcMgr), Lexer(SrcMgr) {}
+  CMMParser(SourceMgr &SrcMgr) : SrcMgr(SrcMgr), Lexer(SrcMgr) {
+    BinOpPrecedence[Token::Equal] = 1;
+
+    BinOpPrecedence[Token::PipePipe] = 2;
+
+    BinOpPrecedence[Token::AmpAmp] = 3;
+
+    BinOpPrecedence[Token::Pipe] = 4;
+
+    BinOpPrecedence[Token::Caret] = 5;
+
+    BinOpPrecedence[Token::Amp] = 6;
+
+    BinOpPrecedence[Token::EqualEqual] = 7;
+    BinOpPrecedence[Token::ExclaimEqual] = 7;
+
+    BinOpPrecedence[Token::Less] = 8;
+    BinOpPrecedence[Token::LessEqual] = 8;
+    BinOpPrecedence[Token::Greater] = 8;
+    BinOpPrecedence[Token::GreaterEqual] = 8;
+
+    BinOpPrecedence[Token::LessLess] = 9;
+    BinOpPrecedence[Token::GreaterGreater] = 9;
+
+    BinOpPrecedence[Token::Plus] = 10;
+    BinOpPrecedence[Token::Minus] = 10;
+
+    BinOpPrecedence[Token::Star] = 11;
+    BinOpPrecedence[Token::Slash] = 11;
+    BinOpPrecedence[Token::Percent] = 11;
+  }
   bool Parse();
 };
 }

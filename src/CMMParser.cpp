@@ -59,17 +59,20 @@ bool CMMParser::Parse() {
 #else
   std::unique_ptr<ExpressionAST> Expr;
   ParseExpression(Expr);
+  //TopLevelStatements.emplace_back(std::move(Expr));
+  //TopLevelStatements.front()->dump();
+  Expr->dump();
 #endif
   return false;
 }
 
 bool CMMParser::ParseExpression(std::unique_ptr<ExpressionAST> &Res) {
-  //TODO
+  return ParsePrimaryExpression(Res) || ParseBinOpRHS(1, Res);
 }
 
 int8_t CMMParser::getBinOpPrecedence(Token::TokenKind Kind) {
   //TODO
-  return 0;
+  return BinOpPrecedence[Kind];
 }
 
 /// \brief Parse a paren expression and return it.
@@ -165,5 +168,6 @@ bool CMMParser::ParseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
   case Token::Boolean:  Res.reset(new BoolAST(Lexer.getBoolVal())); break;
   case Token::String:   Res.reset(new StringAST(Lexer.getStrVal())); break;
   }
+  Lex(); // eat the string,bool,int,double.
   return false;
 }

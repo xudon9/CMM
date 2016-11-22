@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm>
+#include <cassert>
 #include "SourceMgr.h"
 
 using namespace cmm;
@@ -62,7 +63,9 @@ void SourceMgr::Warning(const std::string &Msg) {
 
 std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
   auto It = std::upper_bound(LineNoOffsets.cbegin(),
-                             LineNoOffsets.cend(), L) - 1;
+                             LineNoOffsets.cend(), L);
+  assert(It >= LineNoOffsets.begin() && It <= LineNoOffsets.end());
+  --It;
   size_t LineIndex = It - LineNoOffsets.cbegin();
   size_t ColIndex = static_cast<size_t>(L - *It);
   return std::make_pair(LineIndex, ColIndex);

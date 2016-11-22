@@ -1,8 +1,14 @@
 #include "CMMLexer.h"
+#include "CMMParser.h"
 #include <iostream>
 #include <cstdlib>
 
 using namespace cmm;
+
+static int AsParseInput(SourceMgr &SrcMgr) {
+  CMMParser Parser(SrcMgr);
+  return Parser.Parse();
+}
 
 static int AsLexInput(SourceMgr &SrcMgr) {
   CMMLexer Lexer(SrcMgr);
@@ -83,6 +89,7 @@ int main(int argc, char *argv[])
     std::exit(EXIT_FAILURE);
   }
   SourceMgr SrcMgr(argv[1]);
-  int Res = AsLexInput(SrcMgr);
+  int Res = AsParseInput(SrcMgr);
+  //int Res = AsLexInput(SrcMgr);
   std::exit(Res);
 }
