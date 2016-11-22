@@ -133,9 +133,9 @@ public:
   enum OperatorKind {
     Add, Minus, Multiply, Division, Modulo,
     LogicalAnd, LogicalOr,
-    Less, LessEqual, Equal, Greater, GeaterEqual,
+    Less, LessEqual, Equal, Greater, GreaterEqual,
     BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift,
-    Assign, Comma
+    Assign /**, Comma**/
   };
 private:
   OperatorKind Kind;
@@ -146,17 +146,18 @@ public:
                     std::unique_ptr<ExpressionAST> RHS)
     : ExpressionAST(BinaryOperatorExpression)
     , Kind(Kind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+  static std::unique_ptr<ExpressionAST> create(Token::TokenKind TokenKind,
+    std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS);
 };
 
 class UnaryOperatorAST : public ExpressionAST {
 public:
-  enum OperatorKind { Minus, LogicalNot, BitwiseNot };
+  enum OperatorKind { Plus, Minus, LogicalNot, BitwiseNot };
 private:
   OperatorKind Kind;
   std::unique_ptr<ExpressionAST> Operand;
 public:
-  UnaryOperatorAST(OperatorKind Kind,
-                   std::unique_ptr<ExpressionAST> Operand)
+  UnaryOperatorAST(OperatorKind Kind, std::unique_ptr<ExpressionAST> Operand)
     : ExpressionAST(UnaryOperatorExpression)
     , Kind(Kind), Operand(std::move(Operand)) {}
 };
@@ -166,9 +167,9 @@ class DeclarationAST : public StatementAST {
   std::unique_ptr<TypeSpecifier> Type;
   std::unique_ptr<ExpressionAST> Initializer;
   int VariableIndex;
-  bool isLocalVariable;
+  bool IsLocalVariable;
 public:
-  bool isLocal() { return isLocalVariable; }
+  bool isLocal() { return IsLocalVariable; }
 };
 
 class BlockAST : public StatementAST {
@@ -232,14 +233,26 @@ private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
   std::list<std::unique_ptr<StatementAST>> TopLevelStatements;
-  std::map<Token::TokenKind, char> BinOpPrecedence;
+  std::map<Token::TokenKind, int8_t> BinOpPrecedence;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
+
+  bool Error(LocTy Loc, const std::string &Msg) { return Lexer.Error(Loc, Msg);}
+  bool Error(const std::string &Msg) { return Lexer.Error(Msg); }
+  void Warning(LocTy Loc, const std::string &Msg) { Lexer.Warning(Loc, Msg); }
+  void Warning(const std::string &Msg) { Lexer.Warning(Msg); }
+
+  int8_t getBinOpPrecedence(Token::TokenKind Kind);
+
   bool ParseExpression();
-  bool ParsePrimaryExpression();
-  bool ParseBinOpExpression();
+  bool ParsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool ParseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
+  bool ParseParenExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool ParseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool ParseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 public:
+  CMMParser(SourceMgr &SrcMgr) : SrcMgr(SrcMgr), Lexer(SrcMgr) {}
   bool Parse();
 };
 }
