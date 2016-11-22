@@ -79,6 +79,9 @@ public:
   double getDoubleVal() const { return DoubleVal; }
   bool getBoolVal() const { return BoolVal; }
 
+  bool is(Token::TokenKind K) const { return CurTok.is(K); }
+  bool isNot(Token::TokenKind K) const { return CurTok.isNot(K); }
+
   bool Error(LocTy ErrorLoc, const std::string &Msg);
   bool Error(const std::string &Msg) { return Error(getLoc(), Msg); }
   void Warning(LocTy ErrorLoc, const std::string &Msg);

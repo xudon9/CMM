@@ -1,11 +1,11 @@
 #include "CMMParser.h"
+#include <cassert>
 
 using namespace cmm;
 
 std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
-  Token::TokenKind TokenKind,
-  std::unique_ptr<ExpressionAST> LHS,
-  std::unique_ptr<ExpressionAST> RHS) {
+    Token::TokenKind TokenKind,
+    std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS) {
 
   BinaryOperatorAST::OperatorKind OpKind;
   switch (TokenKind) {
@@ -30,8 +30,9 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   case Token::Equal:          OpKind = BinaryOperatorAST::Assign; break;
   }
 
-  return std::unique_ptr<ExpressionAST>(
-    new BinaryOperatorAST(OpKind, std::move(LHS), std::move(RHS)));
+  return std::unique_ptr<ExpressionAST>(new BinaryOperatorAST(OpKind,
+                                                              std::move(LHS),
+                                                              std::move(RHS)));
 }
 
 bool CMMParser::Parse() {
@@ -56,14 +57,31 @@ bool CMMParser::Parse() {
     }
   }
 #else
-  ParseExpression();
+  std::unique_ptr<ExpressionAST> Expr;
+  ParseExpression(Expr);
 #endif
   return false;
-} 
+}
 
+bool CMMParser::ParseExpression(std::unique_ptr<ExpressionAST> &Res) {
+  //TODO
+}
 
 int8_t CMMParser::getBinOpPrecedence(Token::TokenKind Kind) {
+  //TODO
   return 0;
+}
+
+/// \brief Parse a paren expression and return it.
+/// parenExpr ::= (expr)
+bool CMMParser::ParseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
+  Lex(); // eat the '('.
+  if (ParseExpression(Res))
+    return true;
+  if (Lexer.isNot(Token::RParen))
+     return Error("expected ')' in parentheses expression");
+  Lex(); // eat the ')'.
+  return false;
 }
 
 /// \brief Parse a primary expression and return it.
@@ -71,10 +89,10 @@ int8_t CMMParser::getBinOpPrecedence(Token::TokenKind Kind) {
 ///  primaryexpr ::= identifierExpr
 ///  primaryexpr ::= constantExpr
 ///  primaryexpr ::= ~,+,-,! primaryexpr
-//bool AsmParser::parsePrimaryExpr(const MCExpr *&Res, SMLoc &EndLoc) {
 bool CMMParser::ParsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   UnaryOperatorAST::OperatorKind UnaryOpKind;
   std::unique_ptr<ExpressionAST> Operand;
+
   switch (getKind()) {
   default:
     return Error("unknown token in expression");
@@ -87,26 +105,22 @@ bool CMMParser::ParsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   case Token::String:
   case Token::Boolean:
     return ParseConstantExpression(Res);
-  case Token::Plus:
-    UnaryOpKind = UnaryOperatorAST::Plus;
-  case Token::Minus:
-    UnaryOpKind = UnaryOperatorAST::Minus;
-  case Token::Tilde:
-    UnaryOpKind = UnaryOperatorAST::BitwiseNot;
-  case Token::Exclaim:
-    UnaryOpKind = UnaryOperatorAST::LogicalNot;
-
-    Lex(); // Eat the operator: +,-,~,!
-    if (ParsePrimaryExpression(Operand))
-      return true;
-    Res.reset(new UnaryOperatorAST(UnaryOpKind, std::move(Operand)));
-    return false;
+  case Token::Plus:     UnaryOpKind = UnaryOperatorAST::Plus; break;
+  case Token::Minus:    UnaryOpKind = UnaryOperatorAST::Minus; break;
+  case Token::Tilde:    UnaryOpKind = UnaryOperatorAST::BitwiseNot; break;
+  case Token::Exclaim:  UnaryOpKind = UnaryOperatorAST::LogicalNot; break;
   }
+
+  Lex(); // Eat the operator: +,-,~,!
+  if (ParsePrimaryExpression(Operand))
+    return true;
+  Res.reset(new UnaryOperatorAST(UnaryOpKind, std::move(Operand)));
+  return false;
 }
 
 bool CMMParser::ParseBinOpRHS(int8_t ExprPrec,
                               std::unique_ptr<ExpressionAST> &Res) {
-  // If this is a binop, find its precedence.
+  // If this is a binOp, find its precedence.
   for (;;) {
     int8_t TokPrec = getBinOpPrecedence(getKind());
 
@@ -126,10 +140,30 @@ bool CMMParser::ParseBinOpRHS(int8_t ExprPrec,
     // If BinOp binds less tightly with RHS than the operator after RHS, let
     // the pending operator take RHS as its LHS.
     int8_t NextPrec = getBinOpPrecedence(getKind());
-    if (TokPrec < NextPrec && ParseBinOpRHS(TokPrec + 1, RHS))
+    if (TokPrec < NextPrec && ParseBinOpRHS(++TokPrec, RHS))
       return true;
     
     // Merge LHS and RHS according to operator.
     Res = BinaryOperatorAST::create(TokenKind, std::move(Res), std::move(RHS));
   }
+}
+
+bool CMMParser::ParseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
+  // TODO: handle function call in this function
+  assert(Lexer.is(Token::Identifier));
+  Res.reset(new IdentifierAST(Lexer.getStrVal()));
+  Lex(); // eat the identifier
+  return false;
+}
+
+
+bool CMMParser::ParseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
+  switch (getKind()) {
+  default:  return Error("unknown token in literal constant expression");
+  case Token::Integer:  Res.reset(new IntAST(Lexer.getIntVal())); break;
+  case Token::Double:   Res.reset(new DoubleAST(Lexer.getDoubleVal())); break;
+  case Token::Boolean:  Res.reset(new BoolAST(Lexer.getBoolVal())); break;
+  case Token::String:   Res.reset(new StringAST(Lexer.getStrVal())); break;
+  }
+  return false;
 }

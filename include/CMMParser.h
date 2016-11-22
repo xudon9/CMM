@@ -41,7 +41,11 @@ class TypeSpecifier {
   DerivedType *Derived;
 };
 
-class AST { public: virtual ~AST(); };
+class AST {
+public:
+  virtual ~AST();
+  virtual
+};
 
 class ExpressionAST : public AST {
 protected:
@@ -225,7 +229,7 @@ class ContinueStatementAST : public StatementAST {
   // char *label? TODO
 };
 
-/*******************************************************/
+/************************** Parser class ****************************/
 class CMMParser {
 public:
   using LocTy = CMMLexer::LocTy;
@@ -245,7 +249,7 @@ private:
 
   int8_t getBinOpPrecedence(Token::TokenKind Kind);
 
-  bool ParseExpression();
+  bool ParseExpression(std::unique_ptr<ExpressionAST> &Res);
   bool ParsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
   bool ParseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
   bool ParseParenExpression(std::unique_ptr<ExpressionAST> &Res);
