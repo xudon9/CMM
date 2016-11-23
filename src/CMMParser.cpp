@@ -66,6 +66,46 @@ bool CMMParser::Parse() {
   return false;
 }
 
+bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
+  switch (getKind()) {
+  default:                return Error("Unknown type specifier");
+  case Token::Kw_bool:    Type = cvm::BoolType; break;
+  case Token::Kw_int:     Type = cvm::IntType; break;
+  case Token::Kw_double:  Type = cvm::DoubleType; break;
+  case Token::Kw_void:    Type = cvm::VoidType; break;
+  }
+}
+
+bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
+  switch (getKind()) {
+  default:
+    return Error("unexpected token in statement");
+  case Token::Kw_if:        return parseIfStatement(Res);
+  case Token::Kw_while:     return parseWhileStatement(Res);
+  case Token::Kw_for:       return parseForStatement(Res);
+  case Token::Kw_return:    return parseReturnStatement(Res);
+  case Token::Kw_break:     return parseBreakStatement(Res);
+  case Token::Kw_continue:  return parseContinueStatement(Res);
+  case Token::Kw_bool:
+  case Token::Kw_int:
+  case Token::Kw_double:
+    return parseDeclarationStatement(Res);
+  case Token::LParen:   case Token::Identifier:
+  case Token::Double:   case Token::String:
+  case Token::Boolean:  case Token::Integer:
+  case Token::Plus:     case Token::Minus:
+  case Token::Tilde:    case Token::Exclaim: {
+    std::unique_ptr<ExpressionAST> Expression;
+    if (parseExpression(Expression))
+      return true;
+    if (Lexer.isNot(Token::Semicolon))
+      return Error("missing ';' after an expression in statement");
+    Res.reset(new ExprStatementAST(std::move(Expression)));
+    return false;
+  }
+  }
+}
+
 bool CMMParser::parseExpression(std::unique_ptr<ExpressionAST> &Res) {
   return parsePrimaryExpression(Res) || parseBinOpRHS(1, Res);
 }
@@ -98,7 +138,7 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
 
   switch (getKind()) {
   default:
-    return Error("unknown token in expression");
+    return Error("unexpected token in expression");
   case Token::LParen:
     return parseParenExpression(Res);
   case Token::Identifier:
@@ -123,8 +163,19 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
 
 bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
                               std::unique_ptr<ExpressionAST> &Res) {
-  // If this is a binOp, find its precedence.
   for (;;) {
+    std::unique_ptr<ExpressionAST> RHS;
+
+    // Handle assignment expression first.
+    if (Lexer.getTok().is(Token::Equal)) {
+      Lex();
+      if (parseExpression(RHS))
+        return true;
+      Res = BinaryOperatorAST::create(Token::Equal, std::move(Res),
+                                      std::move(RHS));
+      return false;
+    }
+    // If this is a binOp, find its precedence.
     int8_t TokPrec = getBinOpPrecedence(getKind());
 
     // If the next token is lower precedence than we are allowed to eat,
@@ -136,7 +187,6 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     Lex();
 
     // Eat the next primary expression.
-    std::unique_ptr<ExpressionAST> RHS;
     if (parsePrimaryExpression(RHS))
       return true;
 
@@ -151,6 +201,9 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
   }
 }
 
+/// \brief Parse an identifier expression
+/// identifierExpression ::= identifier
+/// identifierExpression ::= identifier '(' [argumentList] ')'
 bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   // TODO: handle function call in this function
   assert(Lexer.is(Token::Identifier));
@@ -159,7 +212,11 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   return false;
 }
 
-
+/// \brief Parse a constant expression.
+/// constantExpr ::= IntExpression
+/// constantExpr ::= DoubleExpression
+/// constantExpr ::= BoolExpression
+/// constantExpr ::= StringExpression
 bool CMMParser::parseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
   switch (getKind()) {
   default:  return Error("unknown token in literal constant expression");
@@ -170,4 +227,21 @@ bool CMMParser::parseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
   }
   Lex(); // eat the string,bool,int,double.
   return false;
+}
+
+bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
+  std::unique_ptr<ExpressionAST> Condition;
+  std::unique_ptr<StatementAST> StatementThen, StatementElse;
+
+  assert(Lexer.is(Token::Kw_if));
+  Lex(); // eat 'if'.
+  if (Lexer.isNot(Token::LParen))
+    return Error("left parenthesis expected");
+  Lex(); // eat '('.
+  if (parseExpression(Condition)) // parse condition.
+    return true;
+  if (Lexer.isNot(Token::RParen))
+    return Error("left parenthesis expected");
+  Lex(); // eat '('.
+  //Hey!
 }

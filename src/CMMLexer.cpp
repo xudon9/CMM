@@ -66,11 +66,11 @@ Token CMMLexer::LexToken() {
   case '/': {
     int NextChar = getNextChar();
     if (NextChar == '/') {
-      SkipLineComment();
+      skipLineComment();
       return LexToken();
     }
     if (NextChar == '*') {
-      SkipBlockComment();
+      skipBlockComment();
       return LexToken();
     }
     ungetChar();
@@ -138,7 +138,7 @@ Token CMMLexer::LexToken() {
 }
 
 // Assume the '//' is eaten
-void CMMLexer::SkipLineComment() {
+void CMMLexer::skipLineComment() {
   for (;;) {
     if (peekNextChar() == '\n' || peekNextChar() == '\r' ||
         peekNextChar() == std::char_traits<char>::eof())
@@ -163,10 +163,15 @@ Token CMMLexer::LexIdentifier() {
   KEYWORD(do);
   KEYWORD(break);
   KEYWORD(continue);
+  KEYWORD(return);
   KEYWORD(int);
   KEYWORD(double);
   KEYWORD(bool);
+  KEYWORD(void);
 #undef KEYWORD
+  if (StrVal == "true")  { BoolVal = true;  return Token::Boolean; }
+  if (StrVal == "false") { BoolVal = false; return Token::Boolean; }
+
   if (StrVal.back() == '_')
     Warning("identifier end with _");
   return Token::Identifier;
@@ -222,7 +227,7 @@ Token CMMLexer::LexDigit() {
 }
 
 // Assume the '/*' is eaten
-bool CMMLexer::SkipBlockComment() {
+bool CMMLexer::skipBlockComment() {
   int CurChar;
   do {
     auto CurLoc = SrcMgr.getLoc();
@@ -233,7 +238,7 @@ bool CMMLexer::SkipBlockComment() {
     if (CurChar == '/' && peekNextChar() == '*') {
       Warning(CurLoc, "block comments can't be nested");
       getNextChar();
-      SkipBlockComment();
+      skipBlockComment();
     }
   } while (CurChar != '*');
 
@@ -242,7 +247,7 @@ bool CMMLexer::SkipBlockComment() {
     getNextChar();
     return false;
   } else {
-    return SkipBlockComment();
+    return skipBlockComment();
   }
 }
 

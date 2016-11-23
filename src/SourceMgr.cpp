@@ -5,7 +5,7 @@
 
 using namespace cmm;
 
-void SourceMgr::DumpError(LocTy L, ErrorKind K,
+void SourceMgr::dumpError(LocTy L, ErrorKind K,
                               const std::string &Msg) const {
   auto LineCol = getLineColByLoc(L);
 
@@ -30,8 +30,7 @@ int SourceMgr::get() {
   int CurChar = SourceStream.get();
   std::streampos CurPos = SourceStream.tellg();
   if (CurChar == '\n') {
-    auto It = std::lower_bound(LineNoOffsets.begin(),
-                               LineNoOffsets.end(),
+    auto It = std::lower_bound(LineNoOffsets.begin(), LineNoOffsets.end(),
                                CurPos);
     if (It == LineNoOffsets.cend() || *It != CurPos)
       LineNoOffsets.insert(It, CurPos);
@@ -41,7 +40,7 @@ int SourceMgr::get() {
 
 void SourceMgr::Error(LocTy L, const std::string &Msg) {
   if (DumpInstantly)
-    DumpError(L, ErrorKind::Error, Msg);
+    dumpError(L, ErrorKind::Error, Msg);
   else
     ErrorList.emplace_back(L, ErrorKind::Error, Msg);
 }
@@ -52,7 +51,7 @@ void SourceMgr::Error(const std::string &Msg) {
 
 void SourceMgr::Warning(LocTy L, const std::string &Msg) {
   if (DumpInstantly)
-    DumpError(L, ErrorKind::Warning, Msg);
+    dumpError(L, ErrorKind::Warning, Msg);
   else
     ErrorList.emplace_back(L, ErrorKind::Warning, Msg);
 }
@@ -62,8 +61,7 @@ void SourceMgr::Warning(const std::string &Msg) {
 }
 
 std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
-  auto It = std::upper_bound(LineNoOffsets.cbegin(),
-                             LineNoOffsets.cend(), L);
+  auto It = std::upper_bound(LineNoOffsets.cbegin(), LineNoOffsets.cend(), L);
   assert(It >= LineNoOffsets.begin() && It <= LineNoOffsets.end());
   --It;
   size_t LineIndex = It - LineNoOffsets.cbegin();

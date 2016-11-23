@@ -29,8 +29,9 @@ public:
     Equal, Percent, Exclaim, AmpAmp, PipePipe,
     Less, LessEqual, EqualEqual, Greater, GreaterEqual, ExclaimEqual,
     Amp, Pipe, LessLess, GreaterGreater, Caret, Tilde,
-    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do, Kw_break,
-    Kw_continue, Kw_int, Kw_double, Kw_bool
+    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do,
+    Kw_break, Kw_continue, Kw_return,
+    Kw_int, Kw_double, Kw_bool, Kw_void
   };
 
 private:
@@ -72,6 +73,7 @@ public:
     return CurTok = LexToken();
   }
   /// Getters
+  Token getTok() const { return CurTok; }
   Token::TokenKind getKind() const { return CurTok.getKind(); }
   const std::string &getStrVal() const { return StrVal; }
   LocTy getLoc() const { return TokStartLoc; }
@@ -81,6 +83,9 @@ public:
 
   bool is(Token::TokenKind K) const { return CurTok.is(K); }
   bool isNot(Token::TokenKind K) const { return CurTok.isNot(K); }
+
+  /// State change
+  void seekLoc(LocTy Loc) { SrcMgr.seekLoc(Loc); }
 
   bool Error(LocTy ErrorLoc, const std::string &Msg);
   bool Error(const std::string &Msg) { return Error(getLoc(), Msg); }
@@ -97,8 +102,8 @@ private:
   Token LexIdentifier();
   Token LexString();
   Token LexDigit();
-  void SkipLineComment();
-  bool SkipBlockComment();
+  void skipLineComment();
+  bool skipBlockComment();
 };
 }
 

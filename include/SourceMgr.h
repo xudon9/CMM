@@ -29,7 +29,7 @@ private:
   std::vector<ErrorTy> ErrorList;
   bool DumpInstantly : 1;
 
-  void DumpError(LocTy L, ErrorKind K, const std::string &Msg) const;
+  void dumpError(LocTy L, ErrorKind K, const std::string &Msg) const;
 
 public:
   SourceMgr(const std::string &SourcePath,
@@ -41,6 +41,7 @@ public:
   int peek() { return SourceStream.peek(); };
   void unget() { SourceStream.unget(); }
   LocTy getLoc() { return SourceStream.tellg(); }
+  void seekLoc(LocTy Loc) { SourceStream.seekg(Loc); }
 
   void Error(LocTy L, const std::string &Msg);
   void Error(const std::string &Msg);

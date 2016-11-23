@@ -10,7 +10,7 @@
 
 ///code.h
 namespace cvm {
-enum BasicType { BoolType, IntType, DoubleType, StringType };
+enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
 }
 ///
 
@@ -74,6 +74,7 @@ public:
 class StatementAST : public AST {
 protected:
   enum StatementKind {
+    ExprStatement,
     BlockStatement,
     IfStatement,
     WhileStatement,
@@ -244,6 +245,13 @@ class BlockAST : public StatementAST {
   std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
 };
 
+class ExprStatementAST : public StatementAST {
+  std::unique_ptr<ExpressionAST> Expression;
+public:
+  ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
+    : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
+};
+
 class StatementBlockAST : public BlockAST {
   // TODO? Statement   *statement;
   size_t ContinueLabel;
@@ -262,8 +270,16 @@ class FunctionBlock : public BlockAST {
 
 class IfStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Condition;
-  std::unique_ptr<BlockAST> BlockThen;
-  std::unique_ptr<BlockAST> BlockElse;
+  std::unique_ptr<StatementAST> StatementThen;
+  std::unique_ptr<StatementAST> StatementElse;
+public:
+  IfStatementAST(std::unique_ptr<ExpressionAST> Condition,
+                 std::unique_ptr<StatementAST> StatementThen,
+                 std::unique_ptr<StatementAST> StatementElse)
+    : StatementAST(IfStatement)
+    , Condition(std::move(Condition))
+    , StatementThen(std::move(StatementThen))
+    , StatementElse(std::move(StatementElse)) {}
 };
 
 class WhileStatementAST : public StatementAST {
@@ -298,7 +314,7 @@ public:
 private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
-  std::list<std::unique_ptr<StatementAST>> TopLevelStatements;
+  BlockAST TopLevelBlock;
   std::map<Token::TokenKind, int8_t> BinOpPrecedence;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
@@ -313,18 +329,20 @@ private:
 
   bool parseToplevel();
   bool parseFunctionDefinition();
-  bool parseStatement();
+  bool parseStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBlock();
-  bool parseTypeSpecifier();
+  bool parseTypeSpecifier(cvm::BasicType &Type);
   bool parseParameterList();
   bool parseArgumentList();
-  bool parseIfStatement();
-  bool parseWhileStatement();
-  bool parseForStatement();
-  bool parseReturnStatement();
-  bool parseBreakStatement();
-  bool parseContinueStatement();
-  bool parseDeclarationStatement();
+  bool parseIfStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseWhileStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseForStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseReturnStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseBreakStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseContinueStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseDeclarationStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseDeclarationStatement(cvm::BasicType Type,
+                                 std::unique_ptr<StatementAST> &Res);
   // First: LParen,Id,Int,Double,Str,Bool,Plus,Minus,Tilde,Exclaim
   bool parseExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
