@@ -255,6 +255,43 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse a for statement
+/// forStatement ::= for ( expr;expr;expr ) statement
+bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
+  std::unique_ptr<ExpressionAST> Init, Condition, Post;
+  std::unique_ptr<StatementAST> Statement;
+
+  assert(Lexer.is(Token::Kw_for));
+  Lex();  // eat the 'for'.
+  if (Lexer.isNot(Token::LParen))
+    return Error("left parenthesis expected in for loop");
+  Lex();  // eat the LParen '('.
+
+  if (parseExpression(Init))
+    return true;
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("missing semicolon for initial expression in for loop");
+  Lex();  // eat the semicolon.
+
+  if (parseExpression(Condition))
+    return true;
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("missing semicolon for conditional expression in for loop");
+  Lex();  // eat the semicolon.
+
+  if (parseExpression(Post))
+    return true;
+  if (Lexer.isNot(Token::RParen))
+    return Error("missing semicolon for post expression in for loop");
+  Lex();  // eat the ')'.
+
+  if (parseStatement(Statement))
+    return true;
+  Res.reset(new ForStatementAST(std::move(Init), std::move(Condition),
+                                std::move(Post), std::move(Statement)));
+  return false;
+}
+
 /// \brief Parse a while statement.
 /// whileStatement ::= while ( expr ) statement
 bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
@@ -264,12 +301,12 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   assert(Lexer.is(Token::Kw_while));
   Lex();  // eat 'while'
   if (Lexer.isNot(Token::LParen))
-    return Error("left parenthesis expected");
+    return Error("left parenthesis expected in while loop");
   Lex();  // eat LParen '('.
   if (parseExpression(Condition))
     return true;
   if (Lexer.isNot(Token::RParen))
-    return Error("right parenthesis expected");
+    return Error("right parenthesis expected in while loop");
   Lex();  // eat RParen ')'.
   if (parseStatement(Statement))
     return true;
@@ -288,20 +325,19 @@ bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
-bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
-  //TODO
-  return false;
-}
-
+/// returnStatement ::= return;
+/// returnStatement ::= return Expr;
 bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
+  std::unique_ptr<ExpressionAST> ReturnValue;
+
   assert(Lexer.is(Token::Kw_return));
   Lex();  // eat the 'return'.
-  std::unique_ptr<ExpressionAST> ReturnValue;
-  if (parseExpression(ReturnValue))
-    return true;
+
+  if (Lexer.isNot(Token::Semicolon) && parseExpression(ReturnValue))
+      return true;
   if (Lexer.isNot(Token::Semicolon))
     return Error("unexpected token after return value");
-  Lex();  // eat the semicolon
+  Lex();  // eat the semicolon.
   Res.reset(new ReturnStatementAST(std::move(ReturnValue)));
   return false;
 }
@@ -311,7 +347,7 @@ bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
   Lex();  // eat the 'break'.
   if (Lexer.isNot(Token::Semicolon))
     return Error("unexpected token after break");
-  Lex();  // eat the semicolon
+  Lex();  // eat the semicolon.
   Res.reset(new BreakStatementAST);
   return false;
 }

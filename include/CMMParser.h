@@ -332,6 +332,26 @@ class ForStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<ExpressionAST> Post;
   std::unique_ptr<StatementAST> Statement;
+public:
+  ForStatementAST(std::unique_ptr<ExpressionAST> Init,
+                  std::unique_ptr<ExpressionAST> Condition,
+                  std::unique_ptr<ExpressionAST> Post,
+                  std::unique_ptr<StatementAST> Statement)
+    : StatementAST(ForStatement)
+    , Init(std::move(Init)), Condition(std::move(Condition))
+    , Post(std::move(Post)), Statement(std::move(Statement)) {}
+
+  void dump(const std::string &prefix) override {
+    std::cout << "(for)" << std::endl;
+    std::cout << prefix << "|-- ";
+    Init->dump(prefix + "|   ");
+    std::cout << prefix << "|-- ";
+    Condition->dump(prefix + "|   ");
+    std::cout << prefix << "|-- ";
+    Post->dump(prefix + "|   ");
+    std::cout << prefix << "`-- ";
+    Statement->dump(prefix + "    ");
+  }
 };
 
 class ReturnStatementAST : public StatementAST {
@@ -342,6 +362,8 @@ public:
 
   void dump(const std::string &prefix = "") override {
     std::cout << "(return)" << std::endl;
+    if (!ReturnValue)
+      return;
     std::cout << prefix << "`-- ";
     ReturnValue->dump(prefix + "    ");
   }
