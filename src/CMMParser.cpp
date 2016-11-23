@@ -67,6 +67,26 @@ bool CMMParser::Parse() {
   return false;
 }
 
+bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
+  CurrentBlock = new BlockAST(CurrentBlock);
+  Res.reset(CurrentBlock);
+
+  assert(Lexer.is(Token::LCurly) && "first token in parseBlock()");
+  Lex(); // eat the LCurly '{'
+
+  while (Lexer.isNot(Token::RCurly)) {
+    std::unique_ptr<StatementAST> Statement;
+    if (parseStatement(Statement))
+      return true;
+    CurrentBlock->addStatement(std::move(Statement));
+  }
+
+  assert(CurrentBlock == Res.get() && "block mismatch");
+  CurrentBlock = CurrentBlock->getOuterBlock();
+
+  Lex(); // eat the RCurly '}'
+}
+
 bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   switch (getKind()) {
   default:                return Error("Unknown type specifier");
@@ -82,6 +102,7 @@ bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   switch (getKind()) {
   default:
     return Error("unexpected token in statement");
+  case Token::LCurly:       return parseBlock(Res);
   case Token::Kw_if:        return parseIfStatement(Res);
   case Token::Kw_while:     return parseWhileStatement(Res);
   case Token::Kw_for:       return parseForStatement(Res);
@@ -159,18 +180,18 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
 
 bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
                               std::unique_ptr<ExpressionAST> &Res) {
-  for (;;) {
-    std::unique_ptr<ExpressionAST> RHS;
+  std::unique_ptr<ExpressionAST> RHS;
 
-    // Handle assignment expression first.
-    if (Lexer.getTok().is(Token::Equal)) {
-      Lex();
-      if (parseExpression(RHS))
-        return true;
-      Res = BinaryOperatorAST::create(Token::Equal, std::move(Res),
-                                      std::move(RHS));
-      return false;
-    }
+  // Handle assignment expression first.
+  if (Lexer.getTok().is(Token::Equal)) {
+    Lex();
+    if (parseExpression(RHS))
+      return true;
+    Res = BinaryOperatorAST::create(Token::Equal, std::move(Res),
+      std::move(RHS));
+    return false;
+  }
+  for (;;) {
     // If this is a binOp, find its precedence.
     int8_t TokPrec = getBinOpPrecedence(getKind());
 

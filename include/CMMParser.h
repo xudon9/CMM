@@ -2,7 +2,6 @@
 #define CMMPARSER_H
 
 #include "CMMLexer.h"
-//#include <cstdint>
 #include <memory>
 #include <list>
 #include <map>
@@ -242,9 +241,37 @@ public:
 };
 
 class BlockAST : public StatementAST {
-  std::shared_ptr<BlockAST> OuterBlock;
+public:
+  enum BlockKind { UndefinedBlock, FunctionBlock, NormalBlock };
+private:
+  BlockAST *OuterBlock;
   std::list<std::unique_ptr<StatementAST>> StatementList;
   std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
+public:
+  BlockAST(BlockAST *OuterBlock = nullptr)
+    : StatementAST(BlockStatement), OuterBlock(OuterBlock) {}
+  void addStatement(std::unique_ptr<StatementAST> Statement) {
+    StatementList.push_back(std::move(Statement));
+  }
+  void addDeclaration(std::unique_ptr<DeclarationAST> Declaration) {
+    DeclarationList.push_back(std::move(Declaration));
+  }
+  const decltype(StatementList) &getStatementList() const {
+    return StatementList;
+  }
+  const decltype(DeclarationList) &getDeclarationList() const {
+    return DeclarationList;
+  }
+  BlockAST *getOuterBlock() const { return OuterBlock; }
+
+  void dump(const std::string &prefix = "") {
+    std::cout << "(Block) {\n";
+    for (const auto &Statement : StatementList) {
+      std::cout << prefix << "|-- ";
+      Statement->dump(prefix + "|    ");
+    }
+    std::cout << "`-- }\n";
+  }
 };
 
 class ExprStatementAST : public StatementAST {
@@ -253,7 +280,7 @@ public:
   ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
     : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
 
-  void dump(const std::string &prefix) {
+  void dump(const std::string &prefix) const {
     std::cout << "(ExprStmt)" << std::endl;
     std::cout << prefix << "`-- ";
     Expression->dump(prefix + "    ");
@@ -394,7 +421,8 @@ public:
 private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
-  //BlockAST TopLevelBlock;
+  BlockAST TopLevelBlock;
+  BlockAST *CurrentBlock;
   std::map<Token::TokenKind, int8_t> BinOpPrecedence;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
@@ -407,13 +435,13 @@ private:
 
   int8_t getBinOpPrecedence(Token::TokenKind Kind);
 
-  bool parseToplevel();
-  bool parseFunctionDefinition();
+  bool parseToplevel(); //TODO
+  bool parseFunctionDefinition(); //TODO
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
-  bool parseBlock();
-  bool parseTypeSpecifier(cvm::BasicType &Type);
-  bool parseParameterList();
-  bool parseArgumentList();
+  bool parseBlock(std::unique_ptr<StatementAST> &Res);  //TODO
+  bool parseTypeSpecifier(cvm::BasicType &Type); //?
+  bool parseParameterList();  //TODO
+  bool parseArgumentList(); //TODO
   bool parseExprStatement(std::unique_ptr<StatementAST> &Res);
   bool parseIfStatement(std::unique_ptr<StatementAST> &Res);
   bool parseWhileStatement(std::unique_ptr<StatementAST> &Res);
@@ -421,18 +449,19 @@ private:
   bool parseReturnStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBreakStatement(std::unique_ptr<StatementAST> &Res);
   bool parseContinueStatement(std::unique_ptr<StatementAST> &Res);
-  bool parseDeclarationStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseDeclarationStatement(std::unique_ptr<StatementAST> &Res); //TODO
   bool parseDeclarationStatement(cvm::BasicType Type,
-                                 std::unique_ptr<StatementAST> &Res);
+                                 std::unique_ptr<StatementAST> &Res); //TODO
   // First: LParen,Id,Int,Double,Str,Bool,Plus,Minus,Tilde,Exclaim
   bool parseExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
   bool parseParenExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
+  bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res); //TODO
   bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 public:
-  CMMParser(SourceMgr &SrcMgr) : SrcMgr(SrcMgr), Lexer(SrcMgr) {
+  CMMParser(SourceMgr &SrcMgr)
+    : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {
     BinOpPrecedence[Token::Equal] = 1;
 
     BinOpPrecedence[Token::PipePipe] = 2;
