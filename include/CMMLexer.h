@@ -43,9 +43,7 @@ public:
   /// is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }
-  bool isOneOf(TokenKind K1, TokenKind K2) const {
-    return is(K1) || is(K2);
-  }
+  bool isOneOf(TokenKind K1, TokenKind K2) const { return is(K1) || is(K2); }
   template <typename... Ts>
   bool isOneOf(TokenKind K1, TokenKind K2, Ts... Ks) const {
     return is(K1) || isOneOf(K2, Ks...);

@@ -57,11 +57,12 @@ bool CMMParser::Parse() {
     }
   }
 #else
-  std::unique_ptr<ExpressionAST> Expr;
-  parseExpression(Expr);
-  //TopLevelStatements.emplace_back(std::move(Expr));
-  //TopLevelStatements.front()->dump();
-  Expr->dump();
+  std::unique_ptr<StatementAST> Statement;
+  while (Lexer.isNot(Token::Eof)) {
+    if (parseStatement(Statement))
+      return true;
+    Statement->dump(" ");
+  }
 #endif
   return false;
 }
@@ -74,6 +75,7 @@ bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   case Token::Kw_double:  Type = cvm::DoubleType; break;
   case Token::Kw_void:    Type = cvm::VoidType; break;
   }
+  return false;
 }
 
 bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
@@ -89,20 +91,14 @@ bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   case Token::Kw_bool:
   case Token::Kw_int:
   case Token::Kw_double:
+  case Token::Kw_void:
     return parseDeclarationStatement(Res);
   case Token::LParen:   case Token::Identifier:
   case Token::Double:   case Token::String:
   case Token::Boolean:  case Token::Integer:
   case Token::Plus:     case Token::Minus:
-  case Token::Tilde:    case Token::Exclaim: {
-    std::unique_ptr<ExpressionAST> Expression;
-    if (parseExpression(Expression))
-      return true;
-    if (Lexer.isNot(Token::Semicolon))
-      return Error("missing ';' after an expression in statement");
-    Res.reset(new ExprStatementAST(std::move(Expression)));
-    return false;
-  }
+  case Token::Tilde:    case Token::Exclaim: 
+    return parseExprStatement(Res);
   }
 }
 
@@ -131,7 +127,7 @@ bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
 ///  primaryexpr ::= parenExpr
 ///  primaryexpr ::= identifierExpr
 ///  primaryexpr ::= constantExpr
-///  primaryexpr ::= ~,+,-,! primaryexpr
+///  primaryexpr ::= ~,+,-,! primaryExpr
 bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   UnaryOperatorAST::OperatorKind UnaryOpKind;
   std::unique_ptr<ExpressionAST> Operand;
@@ -229,19 +225,107 @@ bool CMMParser::parseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
   return false;
 }
 
+/// \brief Parse an if statement.
+/// ifStatement ::= if ( expr ) statement
+/// ifStatement ::= if ( expr ) statement else statement
 bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> StatementThen, StatementElse;
 
   assert(Lexer.is(Token::Kw_if));
-  Lex(); // eat 'if'.
+  Lex();  // eat 'if'.
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected");
-  Lex(); // eat '('.
-  if (parseExpression(Condition)) // parse condition.
+  Lex();  // eat LParen '('.
+  if (parseExpression(Condition))
     return true;
   if (Lexer.isNot(Token::RParen))
+    return Error("right parenthesis expected");
+  Lex();  // eat RParen ')'.
+  if (parseStatement(StatementThen))
+    return true;
+  // Parse the else brach is there is one.
+  if (Lexer.is(Token::Kw_else)) {
+    Lex();  // eat 'else'
+    if (parseStatement(StatementElse))
+      return true;
+  }
+  Res.reset(new IfStatementAST(std::move(Condition), std::move(StatementThen),
+                               std::move(StatementElse)));
+  return false;
+}
+
+/// \brief Parse a while statement.
+/// whileStatement ::= while ( expr ) statement
+bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
+  std::unique_ptr<ExpressionAST> Condition;
+  std::unique_ptr<StatementAST> Statement;
+
+  assert(Lexer.is(Token::Kw_while));
+  Lex();  // eat 'while'
+  if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected");
-  Lex(); // eat '('.
-  //Hey!
+  Lex();  // eat LParen '('.
+  if (parseExpression(Condition))
+    return true;
+  if (Lexer.isNot(Token::RParen))
+    return Error("right parenthesis expected");
+  Lex();  // eat RParen ')'.
+  if (parseStatement(Statement))
+    return true;
+  Res.reset(new WhileStatementAST(std::move(Condition), std::move(Statement)));
+  return false;
+}
+
+bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
+  std::unique_ptr<ExpressionAST> Expression;
+  if (parseExpression(Expression))
+    return true;
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("missing semicolon in statement");
+  Lex();  // eat the semicolon
+  Res.reset(new ExprStatementAST(std::move(Expression)));
+  return false;
+}
+
+bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
+  //TODO
+  return false;
+}
+
+bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
+  assert(Lexer.is(Token::Kw_return));
+  Lex();  // eat the 'return'.
+  std::unique_ptr<ExpressionAST> ReturnValue;
+  if (parseExpression(ReturnValue))
+    return true;
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("unexpected token after return value");
+  Lex();  // eat the semicolon
+  Res.reset(new ReturnStatementAST(std::move(ReturnValue)));
+  return false;
+}
+
+bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
+  assert(Lexer.is(Token::Kw_break));
+  Lex();  // eat the 'break'.
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("unexpected token after break");
+  Lex();  // eat the semicolon
+  Res.reset(new BreakStatementAST);
+  return false;
+}
+
+bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
+  assert(Lexer.is(Token::Kw_continue));
+  Lex();  // eat the 'continue'.
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("unexpected token after continue");
+  Lex();  // eat the semicolon
+  Res.reset(new ContinueStatementAST);
+  return false;
+}
+
+bool CMMParser::parseDeclarationStatement(std::unique_ptr<StatementAST> &Res) {
+  return false;
 }

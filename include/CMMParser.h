@@ -80,7 +80,8 @@ protected:
     WhileStatement,
     ForStatement,
     ReturnStatement,
-    ContinueStatement
+    ContinueStatement,
+    BreakStatement
   };
 private:
   StatementKind Kind;
@@ -99,6 +100,7 @@ public:
     std::cout << "(int)" << Value << std::endl;
   }
 };
+
 class DoubleAST : public ExpressionAST {
   double Value;
 public:
@@ -107,6 +109,7 @@ public:
     std::cout << "(double)" << Value << std::endl;
   }
 };
+
 class BoolAST : public ExpressionAST {
   bool Value;
 public:
@@ -115,27 +118,26 @@ public:
     std::cout << "(bool)" << (Value ? "true" : "false") << std::endl;
   }
 };
+
 class StringAST : public ExpressionAST {
   std::string Value;
 public:
   StringAST(const std::string &Value)
     : ExpressionAST(StringExpression), Value(Value) {}
   void dump(const std::string &prefix = "") override {
-    std::cout << "(string)" << Value << std::endl;
+    std::cout << "(str)" << Value << std::endl;
   }
 };
+
 class IdentifierAST : public ExpressionAST {
   std::string Name;
 public:
   IdentifierAST(const std::string &Name)
     : ExpressionAST(IdentifierExpression), Name(Name) {}
   void dump(const std::string &prefix = "") override {
-    std::cout << "(Id)" << Name << std::endl;
+    std::cout << "(id)" << Name << std::endl;
   }
 };
-
-// It's a binary operator
-//class AssignmentAST : public ExpreesionAST {};
 
 class FunctionCallAST : public ExpressionAST {
   std::string Callee;
@@ -192,7 +194,7 @@ public:
     case BitwiseXor:    OperatorSymbol = "Xor"; break;
     case LeftShift:     OperatorSymbol = "<<"; break;
     case RightShift:    OperatorSymbol = ">>"; break;
-    case Assign:        OperatorSymbol = "="; break;
+    case Assign:        OperatorSymbol = "Assign"; break;
     case GreaterEqual:  OperatorSymbol = ">="; break;
     }
     std::cout << OperatorSymbol << std::endl;
@@ -250,13 +252,19 @@ class ExprStatementAST : public StatementAST {
 public:
   ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
     : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
+
+  void dump(const std::string &prefix) {
+    std::cout << "(ExprStmt)" << std::endl;
+    std::cout << prefix << "`-- ";
+    Expression->dump(prefix + "    ");
+  }
 };
 
-class StatementBlockAST : public BlockAST {
-  // TODO? Statement   *statement;
-  size_t ContinueLabel;
-  size_t BreakLabel;
-};
+// class StatementBlockAST : public BlockAST {
+//   // TODO? Statement   *statement;
+//   size_t ContinueLabel;
+//   size_t BreakLabel;
+// };
 
 class FunctionDefinitionAST : public StatementAST {
   std::string Name;
@@ -280,12 +288,42 @@ public:
     , Condition(std::move(Condition))
     , StatementThen(std::move(StatementThen))
     , StatementElse(std::move(StatementElse)) {}
+
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(if)" << std::endl;
+    std::cout << prefix << "|-- ";
+    Condition->dump(prefix + "|   ");
+    if (StatementElse) {
+      std::cout << prefix << "|-- ";
+      StatementThen->dump(prefix + "|   ");
+      std::cout << prefix << "`-- ";
+      StatementElse->dump(prefix + "    ");
+    } else {
+      std::cout << prefix << "`-- ";
+      StatementThen->dump(prefix + "    ");
+    }
+  }
 };
 
 class WhileStatementAST : public StatementAST {
   // char *label? TODO
   std::unique_ptr<ExpressionAST> Condition;
-  std::unique_ptr<BlockAST> Block;
+  std::unique_ptr<StatementAST> Statement;
+public:
+  WhileStatementAST(std::unique_ptr<ExpressionAST> Condition,
+                    std::unique_ptr<StatementAST> Statement)
+    : StatementAST(WhileStatement)
+    , Condition(std::move(Condition))
+    , Statement(std::move(Statement)) {}
+
+
+  void dump(const std::string &prefix) override {
+    std::cout << "(while)" << std::endl;
+    std::cout << prefix << "|-- ";
+    Condition->dump(prefix + "|   ");
+    std::cout << prefix << "`-- ";
+    Statement->dump(prefix + "    ");
+  }
 };
 
 class ForStatementAST : public StatementAST {
@@ -293,18 +331,38 @@ class ForStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Init;
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<ExpressionAST> Post;
-  std::unique_ptr<BlockAST> Block;
+  std::unique_ptr<StatementAST> Statement;
 };
 
 class ReturnStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> ReturnValue;
+public:
+  ReturnStatementAST(std::unique_ptr<ExpressionAST> ReturnValue)
+    : StatementAST(ReturnStatement), ReturnValue(std::move(ReturnValue)) {}
+
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(return)" << std::endl;
+    std::cout << prefix << "`-- ";
+    ReturnValue->dump(prefix + "    ");
+  }
 };
 
 class BreakStatementAST : public StatementAST {
-  // char *label? TODO
+public:
+  BreakStatementAST() : StatementAST(BreakStatement) {}
+
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(break)" << std::endl;
+  }
 };
+
 class ContinueStatementAST : public StatementAST {
-  // char *label? TODO
+public:
+  ContinueStatementAST() : StatementAST(ContinueStatement) {}
+
+  void dump(const std::string &prefix = "") override {
+    std::cout << "(continue)" << std::endl;
+  }
 };
 
 /************************** Parser class ****************************/
@@ -314,7 +372,7 @@ public:
 private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
-  BlockAST TopLevelBlock;
+  //BlockAST TopLevelBlock;
   std::map<Token::TokenKind, int8_t> BinOpPrecedence;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
@@ -334,6 +392,7 @@ private:
   bool parseTypeSpecifier(cvm::BasicType &Type);
   bool parseParameterList();
   bool parseArgumentList();
+  bool parseExprStatement(std::unique_ptr<StatementAST> &Res);
   bool parseIfStatement(std::unique_ptr<StatementAST> &Res);
   bool parseWhileStatement(std::unique_ptr<StatementAST> &Res);
   bool parseForStatement(std::unique_ptr<StatementAST> &Res);

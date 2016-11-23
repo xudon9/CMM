@@ -19,6 +19,7 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     auto LineCol = SrcMgr.getLineColByLoc(Lexer.getLoc());
     cout << "(Line " << LineCol.first + 1 << ", Col "
          << LineCol.second + 1 << ") ";
+
     switch (Lexer.getKind()) {
     default:
       cout << "Unknown Token: " << Lexer.getKind();
@@ -75,10 +76,11 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     case Token::Kw_int:         cout << "Keyword: int"; break;
     case Token::Kw_double:      cout << "Keyword: double"; break;
     case Token::Kw_bool:        cout << "Keyword: bool"; break;
+    case Token::Kw_void:        cout << "Keyword: void"; break;
+    case Token::Kw_return:      cout << "Keyword: return"; break;
     }
     cout << "\n";
   }
-
   return Error;
 }
 
@@ -89,7 +91,10 @@ int main(int argc, char *argv[])
     std::exit(EXIT_FAILURE);
   }
   SourceMgr SrcMgr(argv[1]);
+#if 1
   int Res = AsParseInput(SrcMgr);
-  //int Res = AsLexInput(SrcMgr);
+#else
+  int Res = AsLexInput(SrcMgr);
+#endif
   std::exit(Res);
 }
