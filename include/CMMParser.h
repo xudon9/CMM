@@ -184,17 +184,17 @@ public:
     case Modulo:        OperatorSymbol = "Mod"; break;
     case LogicalAnd:    OperatorSymbol = "And"; break;
     case LogicalOr:     OperatorSymbol = "Or"; break;
-    case Less:          OperatorSymbol = "<"; break;
-    case LessEqual:     OperatorSymbol = "<="; break;
-    case Equal:         OperatorSymbol = "=="; break;
-    case Greater:       OperatorSymbol = ">"; break;
+    case Less:          OperatorSymbol = "Less"; break;
+    case LessEqual:     OperatorSymbol = "LessEq"; break;
+    case Equal:         OperatorSymbol = "Equal"; break;
+    case Greater:       OperatorSymbol = "Greater"; break;
     case BitwiseAnd:    OperatorSymbol = "BitAnd"; break;
     case BitwiseOr:     OperatorSymbol = "BitOr"; break;
     case BitwiseXor:    OperatorSymbol = "Xor"; break;
-    case LeftShift:     OperatorSymbol = "<<"; break;
-    case RightShift:    OperatorSymbol = ">>"; break;
+    case LeftShift:     OperatorSymbol = "LShift"; break;
+    case RightShift:    OperatorSymbol = "RShift"; break;
     case Assign:        OperatorSymbol = "Assign"; break;
-    case GreaterEqual:  OperatorSymbol = ">="; break;
+    case GreaterEqual:  OperatorSymbol = "GreaterEq"; break;
     }
     std::cout << OperatorSymbol << std::endl;
     std::cout << prefix << "|-- ";
@@ -219,10 +219,10 @@ public:
     std::string OperatorSymbol;
     switch (Kind) {
     default: break;
-    case Plus:       OperatorSymbol = "+"; break;
-    case Minus:      OperatorSymbol = "-"; break;
-    case LogicalNot: OperatorSymbol = "!"; break;
-    case BitwiseNot: OperatorSymbol = "~"; break;
+    case Plus:       OperatorSymbol = "Positive"; break;
+    case Minus:      OperatorSymbol = "Negative"; break;
+    case LogicalNot: OperatorSymbol = "Not"; break;
+    case BitwiseNot: OperatorSymbol = "BitNot"; break;
     }
     std::cout << "(" << OperatorSymbol << ")" << std::endl;
     std::cout << prefix << "`-- ";
@@ -265,7 +265,7 @@ public:
   BlockAST *getOuterBlock() const { return OuterBlock; }
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << "(Block) {\n";
+    std::cout << "(Block)\n";
     for (const auto &Statement : StatementList) {
       if (Statement != StatementList.back()) {
         std::cout << prefix << "|-- ";
