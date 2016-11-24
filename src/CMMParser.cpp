@@ -85,6 +85,7 @@ bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
   CurrentBlock = CurrentBlock->getOuterBlock();
 
   Lex(); // eat the RCurly '}'
+  return false;
 }
 
 bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {

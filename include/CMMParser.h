@@ -45,7 +45,7 @@ class TypeSpecifier {
 class AST {
 public:
   virtual ~AST() {};
-  virtual void dump(const std::string &prefix = "") {};
+  virtual void dump(const std::string &prefix = "") const {};
 };
 
 class ExpressionAST : public AST {
@@ -95,7 +95,7 @@ class IntAST : public ExpressionAST {
   int Value;
 public:
   IntAST(int Value) : ExpressionAST(IntExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(int)" << Value << std::endl;
   }
 };
@@ -104,7 +104,7 @@ class DoubleAST : public ExpressionAST {
   double Value;
 public:
   DoubleAST(double Value) : ExpressionAST(DoubleExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(double)" << Value << std::endl;
   }
 };
@@ -113,7 +113,7 @@ class BoolAST : public ExpressionAST {
   bool Value;
 public:
   BoolAST(bool Value) : ExpressionAST(BoolExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(bool)" << (Value ? "true" : "false") << std::endl;
   }
 };
@@ -123,7 +123,7 @@ class StringAST : public ExpressionAST {
 public:
   StringAST(const std::string &Value)
     : ExpressionAST(StringExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(str)" << Value << std::endl;
   }
 };
@@ -133,7 +133,7 @@ class IdentifierAST : public ExpressionAST {
 public:
   IdentifierAST(const std::string &Name)
     : ExpressionAST(IdentifierExpression), Name(Name) {}
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(id)" << Name << std::endl;
   }
 };
@@ -173,7 +173,7 @@ public:
     std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS);
 
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::string OperatorSymbol;
     switch (Kind) {
     default: break;
@@ -215,7 +215,7 @@ public:
     : ExpressionAST(UnaryOperatorExpression)
     , Kind(Kind), Operand(std::move(Operand)) {}
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::string OperatorSymbol;
     switch (Kind) {
     default: break;
@@ -264,13 +264,17 @@ public:
   }
   BlockAST *getOuterBlock() const { return OuterBlock; }
 
-  void dump(const std::string &prefix = "") {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(Block) {\n";
     for (const auto &Statement : StatementList) {
-      std::cout << prefix << "|-- ";
-      Statement->dump(prefix + "|    ");
+      if (Statement != StatementList.back()) {
+        std::cout << prefix << "|-- ";
+        Statement->dump(prefix + "|   ");
+      } else {
+        std::cout << prefix << "`-- ";
+        Statement->dump(prefix + "    ");
+      }
     }
-    std::cout << "`-- }\n";
   }
 };
 
@@ -280,7 +284,7 @@ public:
   ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
     : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
 
-  void dump(const std::string &prefix) const {
+  void dump(const std::string &prefix) const override {
     std::cout << "(ExprStmt)" << std::endl;
     std::cout << prefix << "`-- ";
     Expression->dump(prefix + "    ");
@@ -316,7 +320,7 @@ public:
     , StatementThen(std::move(StatementThen))
     , StatementElse(std::move(StatementElse)) {}
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(if)" << std::endl;
     std::cout << prefix << "|-- ";
     Condition->dump(prefix + "|   ");
@@ -344,7 +348,7 @@ public:
     , Statement(std::move(Statement)) {}
 
 
-  void dump(const std::string &prefix) override {
+  void dump(const std::string &prefix) const override {
     std::cout << "(while)" << std::endl;
     std::cout << prefix << "|-- ";
     Condition->dump(prefix + "|   ");
@@ -368,7 +372,7 @@ public:
     , Init(std::move(Init)), Condition(std::move(Condition))
     , Post(std::move(Post)), Statement(std::move(Statement)) {}
 
-  void dump(const std::string &prefix) override {
+  void dump(const std::string &prefix) const override {
     std::cout << "(for)" << std::endl;
     std::cout << prefix << "|-- ";
     Init->dump(prefix + "|   ");
@@ -387,7 +391,7 @@ public:
   ReturnStatementAST(std::unique_ptr<ExpressionAST> ReturnValue)
     : StatementAST(ReturnStatement), ReturnValue(std::move(ReturnValue)) {}
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(return)" << std::endl;
     if (!ReturnValue)
       return;
@@ -400,7 +404,7 @@ class BreakStatementAST : public StatementAST {
 public:
   BreakStatementAST() : StatementAST(BreakStatement) {}
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(break)" << std::endl;
   }
 };
@@ -409,7 +413,7 @@ class ContinueStatementAST : public StatementAST {
 public:
   ContinueStatementAST() : StatementAST(ContinueStatement) {}
 
-  void dump(const std::string &prefix = "") override {
+  void dump(const std::string &prefix = "") const override {
     std::cout << "(continue)" << std::endl;
   }
 };
