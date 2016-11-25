@@ -168,6 +168,7 @@ Token CMMLexer::LexIdentifier() {
   KEYWORD(double);
   KEYWORD(bool);
   KEYWORD(void);
+  KEYWORD(string);
 #undef KEYWORD
   if (StrVal == "true")  { BoolVal = true;  return Token::Boolean; }
   if (StrVal == "false") { BoolVal = false; return Token::Boolean; }

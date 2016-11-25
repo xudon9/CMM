@@ -31,7 +31,7 @@ public:
     Amp, Pipe, LessLess, GreaterGreater, Caret, Tilde,
     Kw_if, Kw_else, Kw_for, Kw_while, Kw_do,
     Kw_break, Kw_continue, Kw_return,
-    Kw_int, Kw_double, Kw_bool, Kw_void
+    Kw_string, Kw_int, Kw_double, Kw_bool, Kw_void
   };
 
 private:
@@ -43,11 +43,11 @@ public:
   /// is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }
-  bool isOneOf(TokenKind K1, TokenKind K2) const { return is(K1) || is(K2); }
-  template <typename... Ts>
-  bool isOneOf(TokenKind K1, TokenKind K2, Ts... Ks) const {
-    return is(K1) || isOneOf(K2, Ks...);
-  }
+  //bool isOneOf(TokenKind K1, TokenKind K2) const { return is(K1) || is(K2); }
+  //template <typename... Ts>
+  //bool isOneOf(TokenKind K1, TokenKind K2, Ts... Ks) const {
+  //  return is(K1) || isOneOf(K2, Ks...);
+  //}
 };
 
 class CMMLexer {
@@ -81,6 +81,13 @@ public:
 
   bool is(Token::TokenKind K) const { return CurTok.is(K); }
   bool isNot(Token::TokenKind K) const { return CurTok.isNot(K); }
+  bool isOneOf(Token::TokenKind K1, Token::TokenKind K2) const {
+    return is(K1) || is(K2);
+  }
+  template <typename... Ts>
+  bool isOneOf(Token::TokenKind K1, Token::TokenKind K2, Ts... Ks) const {
+    return is(K1) || isOneOf(K2, Ks...);
+  }
 
   /// State change
   void seekLoc(LocTy Loc) { SrcMgr.seekLoc(Loc); }

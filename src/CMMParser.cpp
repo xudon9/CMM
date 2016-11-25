@@ -38,13 +38,72 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
 bool CMMParser::Parse() {
   // TODO: temp code.
   Lex();
-  std::unique_ptr<StatementAST> Statement;
+//  std::unique_ptr<StatementAST> Statement;
+//  while (Lexer.isNot(Token::Eof)) {
+//    if (parseStatement(Statement))
+//      return true;
+//    Statement->dump();
+//  }
   while (Lexer.isNot(Token::Eof)) {
-    if (parseStatement(Statement))
-      return true;
-    Statement->dump(" ");
+    parseFunctionDefinition(cvm::VoidType, "foo");
   }
   return false;
+}
+
+/// \brief Parse a function definition
+/// functionDefinition ::= ( ) Statement
+/// functionDefinition ::= ( parameterList ) Statement
+bool CMMParser::parseFunctionDefinition(cvm::BasicType Type,
+                                        const std::string &Name) {
+  assert(Lexer.is(Token::LParen));
+  Lex();  // Eat LParen '('.
+
+  std::list<Parameter> ParameterList;
+  if (Lexer.isNot(Token::RParen))
+    parseParameterList(ParameterList);
+  if (Lexer.isNot(Token::RParen))
+    return Error("right parenthesis expected");
+  Lex();  // Eat RParen ')'.
+
+  std::unique_ptr<StatementAST> Statement;
+  if (parseStatement(Statement))
+    return true;
+
+  for (auto &P : ParameterList) {
+    std::cout << P.toString() << std::endl;
+  }
+  Statement->dump();
+  return false;
+}
+
+/// \brief Parse a parameter list
+/// parameterList ::= void
+/// parameterList ::= TypeSpecifier Identifier (, TypeSpecifier Identifier)*
+bool CMMParser::parseParameterList(std::list<Parameter> &ParameterList) {
+  if (Lexer.is(Token::Kw_void)) {
+    Lex();
+    return false;
+  }
+  for (;;) {
+    std::string Identifier;
+    cvm::BasicType Type;
+    LocTy Loc;
+    if (parseTypeSpecifier(Type))
+      return true;
+    Loc = Lexer.getLoc();
+    if (Lexer.is(Token::Identifier)) {
+      Identifier = Lexer.getStrVal();
+      Lex();
+    } else {
+      Warning("missing identifier after type");
+    }
+
+    ParameterList.emplace_back(Identifier, Type, Loc);
+
+    if (Lexer.isNot(Token::Comma))
+      break;
+    Lex();  // Eat the comma.
+  }
 }
 
 /// \brief Parse a block as a statement
@@ -72,12 +131,13 @@ bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
 
 bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   switch (getKind()) {
-  default:                return Error("Unknown type specifier");
+  default:                return Error("unknown type specifier");
   case Token::Kw_bool:    Type = cvm::BoolType; break;
   case Token::Kw_int:     Type = cvm::IntType; break;
   case Token::Kw_double:  Type = cvm::DoubleType; break;
   case Token::Kw_void:    Type = cvm::VoidType; break;
   }
+  Lex();
   return false;
 }
 

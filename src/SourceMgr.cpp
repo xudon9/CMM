@@ -10,7 +10,7 @@ void SourceMgr::dumpError(LocTy L, ErrorKind K,
   auto LineCol = getLineColByLoc(L);
 
   std::cerr << (K == ErrorKind::Error ? "Error" : "Warning")
-            <<" at (Line " << LineCol.first + 1 << ", Col "
+            << " at (Line " << LineCol.first + 1 << ", Col "
             << LineCol.second + 1 << "): " << Msg << std::endl;
 }
 

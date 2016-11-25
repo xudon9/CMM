@@ -14,7 +14,6 @@ enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
 ///
 
 namespace cmm {
-
 class DerivedType {
 protected:
   enum DerivedKind {
@@ -27,19 +26,43 @@ public:
   bool isFunction() { return Kind == FunctionDerive; }
 };
 
-class FunctionType : public DerivedType {
-  class TypeSpecifier;
-  struct Parameter {
-    std::string Name;
-    std::unique_ptr<TypeSpecifier> Type;
-    size_t LineNo;
-  };
-  std::list<Parameter> ParameterList;
-};
-
 class TypeSpecifier {
   cvm::BasicType BasicType;
   DerivedType *Derived;
+public:
+  TypeSpecifier(cvm::BasicType BasicType)
+    : BasicType(BasicType), Derived(nullptr) {}
+
+  std::string toString() const {
+    std::string Res;
+    switch (BasicType) {
+    default:                Res = "UnknownT"; break;
+    case cvm::BoolType:     Res = "BoolT"; break;
+    case cvm::IntType:      Res = "IntT"; break;
+    case cvm::DoubleType:   Res = "DoubleT"; break;
+    case cvm::StringType:   Res = "StringT"; break;
+    case cvm::VoidType:     Res = "VoidT";  break;
+    }
+    return Res;
+  }
+};
+
+class Parameter {
+  std::string Name;
+  std::unique_ptr<TypeSpecifier> Type;
+  SourceMgr::LocTy Loc;
+public:
+  Parameter(const std::string &Name, cvm::BasicType Type, SourceMgr::LocTy Loc)
+    : Name(Name), Type(new TypeSpecifier(Type)), Loc(Loc) {}
+
+  std::string toString() const {
+    return "Para: " + Name + ":" + Type->toString();
+  }
+};
+
+class FunctionType : public DerivedType {
+  class TypeSpecifier;
+  std::list<Parameter> ParameterList;
 };
 
 class AST {
@@ -197,9 +220,9 @@ public:
     case GreaterEqual:  OperatorSymbol = "GreaterEq"; break;
     }
     std::cout << OperatorSymbol << std::endl;
-    std::cout << prefix << "|-- ";
+    std::cout << prefix << "|---";
     LHS->dump(prefix + "|   ");
-    std::cout << prefix << "`-- ";
+    std::cout << prefix << "`---";
     RHS->dump(prefix + "    ");
   }
 };
@@ -225,7 +248,7 @@ public:
     case BitwiseNot: OperatorSymbol = "BitNot"; break;
     }
     std::cout << "(" << OperatorSymbol << ")" << std::endl;
-    std::cout << prefix << "`-- ";
+    std::cout << prefix << "`---";
     Operand->dump(prefix + "    ");
   }
 };
@@ -268,10 +291,10 @@ public:
     std::cout << "(Block)\n";
     for (const auto &Statement : StatementList) {
       if (Statement != StatementList.back()) {
-        std::cout << prefix << "|-- ";
+        std::cout << prefix << "|---";
         Statement->dump(prefix + "|   ");
       } else {
-        std::cout << prefix << "`-- ";
+        std::cout << prefix << "`---";
         Statement->dump(prefix + "    ");
       }
     }
@@ -286,7 +309,7 @@ public:
 
   void dump(const std::string &prefix) const override {
     std::cout << "(ExprStmt)" << std::endl;
-    std::cout << prefix << "`-- ";
+    std::cout << prefix << "`---";
     Expression->dump(prefix + "    ");
   }
 };
@@ -321,16 +344,16 @@ public:
     , StatementElse(std::move(StatementElse)) {}
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << "(if)" << std::endl;
-    std::cout << prefix << "|-- ";
+    std::cout << "if" << std::endl;
+    std::cout << prefix << "|---";
     Condition->dump(prefix + "|   ");
     if (StatementElse) {
-      std::cout << prefix << "|-- ";
+      std::cout << prefix << "|---";
       StatementThen->dump(prefix + "|   ");
-      std::cout << prefix << "`-- ";
+      std::cout << prefix << "`---";
       StatementElse->dump(prefix + "    ");
     } else {
-      std::cout << prefix << "`-- ";
+      std::cout << prefix << "`---";
       StatementThen->dump(prefix + "    ");
     }
   }
@@ -349,10 +372,10 @@ public:
 
 
   void dump(const std::string &prefix) const override {
-    std::cout << "(while)" << std::endl;
-    std::cout << prefix << "|-- ";
+    std::cout << "while" << std::endl;
+    std::cout << prefix << "|---";
     Condition->dump(prefix + "|   ");
-    std::cout << prefix << "`-- ";
+    std::cout << prefix << "`---";
     Statement->dump(prefix + "    ");
   }
 };
@@ -373,15 +396,11 @@ public:
     , Post(std::move(Post)), Statement(std::move(Statement)) {}
 
   void dump(const std::string &prefix) const override {
-    std::cout << "(for)" << std::endl;
-    std::cout << prefix << "|-- ";
-    Init->dump(prefix + "|   ");
-    std::cout << prefix << "|-- ";
-    Condition->dump(prefix + "|   ");
-    std::cout << prefix << "|-- ";
-    Post->dump(prefix + "|   ");
-    std::cout << prefix << "`-- ";
-    Statement->dump(prefix + "    ");
+    std::cout << "for" << std::endl;
+    std::cout << prefix << "|---"; Init->dump(prefix + "|   ");
+    std::cout << prefix << "|---"; Condition->dump(prefix + "|   ");
+    std::cout << prefix << "|---"; Post->dump(prefix + "|   ");
+    std::cout << prefix << "`---"; Statement->dump(prefix + "    ");
   }
 };
 
@@ -392,10 +411,10 @@ public:
     : StatementAST(ReturnStatement), ReturnValue(std::move(ReturnValue)) {}
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << "(return)" << std::endl;
+    std::cout << "return" << std::endl;
     if (!ReturnValue)
       return;
-    std::cout << prefix << "`-- ";
+    std::cout << prefix << "`---";
     ReturnValue->dump(prefix + "    ");
   }
 };
@@ -405,7 +424,7 @@ public:
   BreakStatementAST() : StatementAST(BreakStatement) {}
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << "(break)" << std::endl;
+    std::cout << "break" << std::endl;
   }
 };
 
@@ -414,7 +433,7 @@ public:
   ContinueStatementAST() : StatementAST(ContinueStatement) {}
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << "(continue)" << std::endl;
+    std::cout << "continue" << std::endl;
   }
 };
 
@@ -440,11 +459,11 @@ private:
   int8_t getBinOpPrecedence(Token::TokenKind Kind);
 
   bool parseToplevel(); //TODO
-  bool parseFunctionDefinition(); //TODO
+  bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name); //TODO
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBlock(std::unique_ptr<StatementAST> &Res);  //TODO
   bool parseTypeSpecifier(cvm::BasicType &Type); //?
-  bool parseParameterList();  //TODO
+  bool parseParameterList(std::list<Parameter> &ParameterList);
   bool parseArgumentList(); //TODO
   bool parseExprStatement(std::unique_ptr<StatementAST> &Res);
   bool parseIfStatement(std::unique_ptr<StatementAST> &Res);
