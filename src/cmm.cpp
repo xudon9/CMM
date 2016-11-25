@@ -1,7 +1,7 @@
+#include <cstdlib>
+#include <iostream>
 #include "CMMLexer.h"
 #include "CMMParser.h"
-#include <iostream>
-#include <cstdlib>
 
 using namespace cmm;
 

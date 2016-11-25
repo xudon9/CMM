@@ -36,37 +36,19 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
 }
 
 bool CMMParser::Parse() {
+  // TODO: temp code.
   Lex();
-#if 0
-  for (;;) {
-    switch (getKind()) {
-    default:
-      break;
-    case Token::Kw_if:
-      break;
-    case Token::Kw_while:
-      break;
-    case Token::Kw_for:
-      break;
-    case Token::Kw_do:
-      break;
-    case Token::Kw_bool:
-    case Token::Kw_int:
-    case Token::Kw_double:
-      break;
-    }
-  }
-#else
   std::unique_ptr<StatementAST> Statement;
   while (Lexer.isNot(Token::Eof)) {
     if (parseStatement(Statement))
       return true;
     Statement->dump(" ");
   }
-#endif
   return false;
 }
 
+/// \brief Parse a block as a statement
+/// block ::= { statement* } ;
 bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
   CurrentBlock = new BlockAST(CurrentBlock);
   Res.reset(CurrentBlock);
@@ -96,6 +78,10 @@ bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   case Token::Kw_double:  Type = cvm::DoubleType; break;
   case Token::Kw_void:    Type = cvm::VoidType; break;
   }
+  return false;
+}
+
+bool CMMParser::parseArgumentList() {
   return false;
 }
 
@@ -146,10 +132,10 @@ bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
 }
 
 /// \brief Parse a primary expression and return it.
-///  primaryexpr ::= parenExpr
-///  primaryexpr ::= identifierExpr
-///  primaryexpr ::= constantExpr
-///  primaryexpr ::= ~,+,-,! primaryExpr
+///  primaryExpr ::= parenExpr
+///  primaryExpr ::= identifierExpr
+///  primaryExpr ::= constantExpr
+///  primaryExpr ::= ~,+,-,! primaryExpr
 bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   UnaryOperatorAST::OperatorKind UnaryOpKind;
   std::unique_ptr<ExpressionAST> Operand;
@@ -193,17 +179,17 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     return false;
   }
   for (;;) {
-    // If this is a binOp, find its precedence.
-    int8_t TokPrec = getBinOpPrecedence(getKind());
+    Token::TokenKind TokenKind = getKind();
 
+    // If this is a binOp, find its precedence.
+    int8_t TokPrec = getBinOpPrecedence(TokenKind);
     // If the next token is lower precedence than we are allowed to eat,
     // return successfully with what we ate already.
     if (TokPrec < ExprPrec)
       return false;
 
-    Token::TokenKind TokenKind = getKind();
+    // Eat the binary operator.
     Lex();
-
     // Eat the next primary expression.
     if (parsePrimaryExpression(RHS))
       return true;
@@ -266,7 +252,7 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   Lex();  // eat RParen ')'.
   if (parseStatement(StatementThen))
     return true;
-  // Parse the else brach is there is one.
+  // Parse the else branch is there is one.
   if (Lexer.is(Token::Kw_else)) {
     Lex();  // eat 'else'
     if (parseStatement(StatementElse))
@@ -336,6 +322,8 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse an expression statement.
+/// exprStatement ::= expression ;
 bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Expression;
   if (parseExpression(Expression))
@@ -347,8 +335,9 @@ bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
-/// returnStatement ::= return;
-/// returnStatement ::= return Expr;
+/// \brief Parse a return statement.
+/// returnStatement ::= return ;
+/// returnStatement ::= return Expr ;
 bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> ReturnValue;
 
@@ -364,6 +353,8 @@ bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse a break statement.
+/// breakStatement ::= break ;
 bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
   assert(Lexer.is(Token::Kw_break));
   Lex();  // eat the 'break'.
@@ -374,6 +365,8 @@ bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse a continue statement.
+/// continueStatement ::= continue ;
 bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
   assert(Lexer.is(Token::Kw_continue));
   Lex();  // eat the 'continue'.
