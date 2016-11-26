@@ -104,6 +104,7 @@ bool CMMParser::parseParameterList(std::list<Parameter> &ParameterList) {
       break;
     Lex();  // Eat the comma.
   }
+  return false;
 }
 
 /// \brief Parse a block as a statement
