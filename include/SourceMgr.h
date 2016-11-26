@@ -35,11 +35,14 @@ public:
   SourceMgr(const std::string &SourcePath,
                 bool DumpInstantly = true);
 
-  /// Functions that simulate memeber functions of std::fstream
+  /// Functions that simulate member functions of std::fstream
   bool fail() const { return SourceStream.fail(); };
   int get();
   int peek() { return SourceStream.peek(); };
-  void unget() { SourceStream.unget(); }
+  void unget() {
+    //SourceStream.unget();
+    SourceStream.seekg(-1, SourceStream.cur);
+  }
   LocTy getLoc() { return SourceStream.tellg(); }
   void seekLoc(LocTy Loc) { SourceStream.seekg(Loc); }
 
