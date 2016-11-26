@@ -62,7 +62,8 @@ void SourceMgr::Warning(const std::string &Msg) {
 
 std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
   auto It = std::upper_bound(LineNoOffsets.cbegin(), LineNoOffsets.cend(), L);
-  assert(It >= LineNoOffsets.begin() && It <= LineNoOffsets.end());
+  assert(It >= LineNoOffsets.begin() && It <= LineNoOffsets.end() && 
+         "getLineColByLoc: iterator out of bound");
   --It;
   size_t LineIndex = It - LineNoOffsets.cbegin();
   size_t ColIndex = static_cast<size_t>(L - *It);

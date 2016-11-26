@@ -50,12 +50,54 @@ bool CMMParser::Parse() {
   return false;
 }
 
+bool CMMParser::parseToplevel() {
+  switch (getKind()) {
+  default: {
+  std::unique_ptr<StatementAST> Statement;
+    if (parseExprStatement(Statement))
+      return true;
+    TopLevelBlock.addStatement(std::move(Statement));
+    return false;
+  }
+  case Token::Kw_void:
+    return parseFunctionDefinition();
+  case Token::Kw_int: case Token::Kw_bool:
+  case Token::Kw_double: case Token::Kw_string: {
+    cvm::BasicType Type;
+    std::string Name;
+    if (parseTypeSpecifier(Type))
+      return true;
+    if (Lexer.isNot(Token::Identifier))
+      return Error("expect identifier after type");
+    Lex();  // eat the identifier.
+    if (Lexer.is(Token::LParen))
+      return parseFunctionDefinition(Type, Name);
+    //return parseDeclarationStatement(Type)
+    return false;
+  }
+  }
+}
+
+/// \brief Parse a function definition
+/// functionDefinition ::= type identifier ( ) Statement
+/// functionDefinition ::= type identifier ( parameterList ) Statement
+bool CMMParser::parseFunctionDefinition() {
+  cvm::BasicType RetType;
+  if (parseTypeSpecifier(RetType))
+    return true;
+  if (Lexer.isNot(Token::Identifier))
+    return Error("expect identifier in function definition");
+  std::string Identifier = Lexer.getStrVal();
+  Lex();  // eat the identifier of function.
+  return parseFunctionDefinition(RetType, Identifier);
+}
+
 /// \brief Parse a function definition
 /// functionDefinition ::= ( ) Statement
 /// functionDefinition ::= ( parameterList ) Statement
-bool CMMParser::parseFunctionDefinition(cvm::BasicType Type,
+bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
                                         const std::string &Name) {
-  assert(Lexer.is(Token::LParen));
+  assert(Lexer.is(Token::LParen) && "parseFunctionDefinition: unknown token");
   Lex();  // Eat LParen '('.
 
   std::list<Parameter> ParameterList;
@@ -69,10 +111,19 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType Type,
   if (parseStatement(Statement))
     return true;
 
-  for (auto &P : ParameterList) {
-    std::cout << P.toString() << std::endl;
-  }
-  Statement->dump();
+  // for (auto &P : ParameterList) {
+  //   std::cout << P.toString() << std::endl;
+  // }
+  // Statement->dump();
+
+  // Try to create the function.
+  if (FunctionDefinition.find(Name) != FunctionDefinition.end())
+    Warning("'" + Name + "' overrides an existing function");
+
+  std::unique_ptr<TypeSpecifier> Type(new TypeSpecifier(RetType));
+  //FunctionDefinition[Name] = FunctionDefinitionAST(Name, std::move(Type),
+  //                                                 std::move(ParameterList),
+  //                                                 std::move(Statement));
   return false;
 }
 
@@ -175,9 +226,38 @@ bool CMMParser::parseExpression(std::unique_ptr<ExpressionAST> &Res) {
   return parsePrimaryExpression(Res) || parseBinOpRHS(1, Res);
 }
 
-int8_t CMMParser::getBinOpPrecedence(Token::TokenKind Kind) {
-  //TODO
-  return BinOpPrecedence[Kind];
+int8_t CMMParser::getBinOpPrecedence() {
+  switch (getKind()) {
+  default:              return -1;
+  case Token::Equal:    return 1;
+  case Token::PipePipe: return 2;
+  case Token::AmpAmp:   return 3;
+  case Token::Pipe:     return 4;
+  case Token::Caret:    return 5;
+  case Token::Amp:      return 6;
+  case Token::EqualEqual:
+  case Token::ExclaimEqual:
+    return 7;
+  case Token::Less:
+  case Token::LessEqual:
+  case Token::Greater:
+  case Token::GreaterEqual:
+    return 8;
+  case Token::LessLess:
+  case Token::GreaterGreater:
+    return 9;
+  case Token::Plus:
+  case Token::Minus:
+    return 10;
+  case Token::Star:
+  case Token::Slash:
+  case Token::Percent:
+    return 11;
+  case Token::Operator: break;
+  }
+
+  auto It = BinOpPrecedence.find(Lexer.getStrVal());
+  return It == BinOpPrecedence.end() ? -1 : It->second;
 }
 
 /// \brief Parse a paren expression and return it.
@@ -243,7 +323,7 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     Token::TokenKind TokenKind = getKind();
 
     // If this is a binOp, find its precedence.
-    int8_t TokPrec = getBinOpPrecedence(TokenKind);
+    int8_t TokPrec = getBinOpPrecedence();
     // If the next token is lower precedence than we are allowed to eat,
     // return successfully with what we ate already.
     if (TokPrec < ExprPrec)
@@ -257,7 +337,7 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
 
     // If BinOp binds less tightly with RHS than the operator after RHS, let
     // the pending operator take RHS as its LHS.
-    int8_t NextPrec = getBinOpPrecedence(getKind());
+    int8_t NextPrec = getBinOpPrecedence();
     if (TokPrec < NextPrec && parseBinOpRHS(++TokPrec, RHS))
       return true;
     
@@ -271,7 +351,8 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
 /// identifierExpression ::= identifier '(' [argumentList] ')'
 bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   // TODO: handle function call in this function
-  assert(Lexer.is(Token::Identifier));
+  assert(Lexer.is(Token::Identifier) &&
+         "parseIdentifierExpression: unkown token");
   Res.reset(new IdentifierAST(Lexer.getStrVal()));
   Lex(); // eat the identifier
   return false;
@@ -301,7 +382,7 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> StatementThen, StatementElse;
 
-  assert(Lexer.is(Token::Kw_if));
+  assert(Lexer.is(Token::Kw_if) && "parseIfStatement: unknown token");
   Lex();  // eat 'if'.
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected");
@@ -330,7 +411,7 @@ bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Init, Condition, Post;
   std::unique_ptr<StatementAST> Statement;
 
-  assert(Lexer.is(Token::Kw_for));
+  assert(Lexer.is(Token::Kw_for) && "parseIfStatement: unknown token");
   Lex();  // eat the 'for'.
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected in for loop");
@@ -367,7 +448,7 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
 
-  assert(Lexer.is(Token::Kw_while));
+  assert(Lexer.is(Token::Kw_while) && "parseIfStatement: unknown token");
   Lex();  // eat 'while'
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected in while loop");
@@ -402,7 +483,7 @@ bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
 bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> ReturnValue;
 
-  assert(Lexer.is(Token::Kw_return));
+  assert(Lexer.is(Token::Kw_return) && "parseIfStatement: unknown token");
   Lex();  // eat the 'return'.
 
   if (Lexer.isNot(Token::Semicolon) && parseExpression(ReturnValue))
@@ -417,7 +498,7 @@ bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
 /// \brief Parse a break statement.
 /// breakStatement ::= break ;
 bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
-  assert(Lexer.is(Token::Kw_break));
+  assert(Lexer.is(Token::Kw_break) && "parseIfStatement: unknown token");
   Lex();  // eat the 'break'.
   if (Lexer.isNot(Token::Semicolon))
     return Error("unexpected token after break");
@@ -429,7 +510,7 @@ bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
 /// \brief Parse a continue statement.
 /// continueStatement ::= continue ;
 bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
-  assert(Lexer.is(Token::Kw_continue));
+  assert(Lexer.is(Token::Kw_continue) && "parseIfStatement: unknown token");
   Lex();  // eat the 'continue'.
   if (Lexer.isNot(Token::Semicolon))
     return Error("unexpected token after continue");

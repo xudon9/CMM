@@ -61,7 +61,7 @@ public:
 };
 
 class FunctionType : public DerivedType {
-  class TypeSpecifier;
+  std::unique_ptr<TypeSpecifier> Type;
   std::list<Parameter> ParameterList;
 };
 
@@ -320,9 +320,20 @@ public:
 //   size_t BreakLabel;
 // };
 
-class FunctionDefinitionAST : public StatementAST {
+class FunctionDefinitionAST /*: public StatementAST*/ {
   std::string Name;
-  TypeSpecifier *Type;
+  std::unique_ptr<TypeSpecifier> Type;
+  std::list<Parameter> ParameterList;
+  std::unique_ptr<StatementAST> Statement;
+  std::list<std::unique_ptr<DeclarationAST>> LocalVariableList;
+  // int Index;
+public:
+  FunctionDefinitionAST(const std::string Name,
+                        std::unique_ptr<TypeSpecifier> Type,
+                        std::list<Parameter> &&ParameterList,
+                        std::unique_ptr<StatementAST> Statement)
+    : Name(Name), Type(std::move(Type)), ParameterList(ParameterList)
+    , Statement(std::move(Statement)) {}
 };
 
 class FunctionBlock : public BlockAST {
@@ -446,7 +457,9 @@ private:
   CMMLexer Lexer;
   BlockAST TopLevelBlock;
   BlockAST *CurrentBlock;
-  std::map<Token::TokenKind, int8_t> BinOpPrecedence;
+
+  std::map<std::string, int8_t> BinOpPrecedence;
+  std::map<std::string, FunctionDefinitionAST> FunctionDefinition;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
@@ -456,10 +469,11 @@ private:
   void Warning(LocTy Loc, const std::string &Msg) { Lexer.Warning(Loc, Msg); }
   void Warning(const std::string &Msg) { Lexer.Warning(Msg); }
 
-  int8_t getBinOpPrecedence(Token::TokenKind Kind);
+  int8_t getBinOpPrecedence();
 
   bool parseToplevel(); //TODO
-  bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name); //TODO
+  bool parseFunctionDefinition();
+  bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBlock(std::unique_ptr<StatementAST> &Res);  //TODO
   bool parseTypeSpecifier(cvm::BasicType &Type); //?
@@ -485,35 +499,6 @@ private:
 public:
   CMMParser(SourceMgr &SrcMgr)
     : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {
-    BinOpPrecedence[Token::Equal] = 1;
-
-    BinOpPrecedence[Token::PipePipe] = 2;
-
-    BinOpPrecedence[Token::AmpAmp] = 3;
-
-    BinOpPrecedence[Token::Pipe] = 4;
-
-    BinOpPrecedence[Token::Caret] = 5;
-
-    BinOpPrecedence[Token::Amp] = 6;
-
-    BinOpPrecedence[Token::EqualEqual] = 7;
-    BinOpPrecedence[Token::ExclaimEqual] = 7;
-
-    BinOpPrecedence[Token::Less] = 8;
-    BinOpPrecedence[Token::LessEqual] = 8;
-    BinOpPrecedence[Token::Greater] = 8;
-    BinOpPrecedence[Token::GreaterEqual] = 8;
-
-    BinOpPrecedence[Token::LessLess] = 9;
-    BinOpPrecedence[Token::GreaterGreater] = 9;
-
-    BinOpPrecedence[Token::Plus] = 10;
-    BinOpPrecedence[Token::Minus] = 10;
-
-    BinOpPrecedence[Token::Star] = 11;
-    BinOpPrecedence[Token::Slash] = 11;
-    BinOpPrecedence[Token::Percent] = 11;
   }
   bool Parse();
 };

@@ -13,6 +13,7 @@ public:
     // String values.
     Identifier,
     String,
+    Operator,
 
     // Integer values.
     Integer,
