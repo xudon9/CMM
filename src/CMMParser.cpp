@@ -36,7 +36,6 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
 }
 
 bool CMMParser::Parse() {
-  // TODO: temp code.
   Lex();
 //  std::unique_ptr<StatementAST> Statement;
 //  while (Lexer.isNot(Token::Eof)) {
@@ -44,9 +43,8 @@ bool CMMParser::Parse() {
 //      return true;
 //    Statement->dump();
 //  }
-  while (Lexer.isNot(Token::Eof)) {
-    parseFunctionDefinition(cvm::VoidType, "foo");
-  }
+  while (Lexer.isNot(Token::Eof))
+    parseToplevel();
   return false;
 }
 
@@ -64,16 +62,17 @@ bool CMMParser::parseToplevel() {
   case Token::Kw_int: case Token::Kw_bool:
   case Token::Kw_double: case Token::Kw_string: {
     cvm::BasicType Type;
-    std::string Name;
     if (parseTypeSpecifier(Type))
       return true;
+
     if (Lexer.isNot(Token::Identifier))
       return Error("expect identifier after type");
+    std::string Name = Lexer.getStrVal();
     Lex();  // eat the identifier.
+
     if (Lexer.is(Token::LParen))
       return parseFunctionDefinition(Type, Name);
-    //return parseDeclarationStatement(Type)
-    return false;
+    return parseDeclarationStatement(Type);
   }
   }
 }
@@ -117,13 +116,15 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
   // Statement->dump();
 
   // Try to create the function.
-  if (FunctionDefinition.find(Name) != FunctionDefinition.end())
+  auto It = FunctionDefinition.find(Name);
+  if (It != FunctionDefinition.end())
     Warning("'" + Name + "' overrides an existing function");
 
   std::unique_ptr<TypeSpecifier> Type(new TypeSpecifier(RetType));
-  //FunctionDefinition[Name] = FunctionDefinitionAST(Name, std::move(Type),
-  //                                                 std::move(ParameterList),
-  //                                                 std::move(Statement));
+  FunctionDefinition[Name] = FunctionDefinitionAST(Name,
+                                                   std::move(Type),
+                                                   std::move(ParameterList),
+                                                   std::move(Statement));
   return false;
 }
 

@@ -56,7 +56,7 @@ public:
     : Name(Name), Type(new TypeSpecifier(Type)), Loc(Loc) {}
 
   std::string toString() const {
-    return "Para: " + Name + ":" + Type->toString();
+    return Name + ":" + Type->toString();
   }
 };
 
@@ -328,12 +328,21 @@ class FunctionDefinitionAST /*: public StatementAST*/ {
   std::list<std::unique_ptr<DeclarationAST>> LocalVariableList;
   // int Index;
 public:
-  FunctionDefinitionAST(const std::string Name,
+  FunctionDefinitionAST() = default;
+  FunctionDefinitionAST(const std::string &Name,
                         std::unique_ptr<TypeSpecifier> Type,
                         std::list<Parameter> &&ParameterList,
                         std::unique_ptr<StatementAST> Statement)
-    : Name(Name), Type(std::move(Type)), ParameterList(ParameterList)
+    : Name(Name), Type(std::move(Type)), ParameterList(std::move(ParameterList))
     , Statement(std::move(Statement)) {}
+
+  void dump() const {
+    std::cout << "Func: " << Name << "\nPara: ";
+    for (auto &P : ParameterList)
+      std::cout << P.toString() << ", ";
+    std::cout << "\n";
+    Statement->dump();
+  }
 };
 
 class FunctionBlock : public BlockAST {
