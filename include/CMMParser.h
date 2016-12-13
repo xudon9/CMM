@@ -10,6 +10,7 @@
 ///code.h
 namespace cvm {
 enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
+const char *TypeToStr(BasicType Type);
 }
 ///
 
@@ -103,7 +104,9 @@ protected:
     ForStatement,
     ReturnStatement,
     ContinueStatement,
-    BreakStatement
+    BreakStatement,
+    DeclarationStatement,
+    DeclarationListStatement
   };
 private:
   StatementKind Kind;
@@ -181,7 +184,7 @@ public:
     LogicalAnd, LogicalOr,
     Less, LessEqual, Equal, Greater, GreaterEqual,
     BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift,
-    Assign /**, Comma**/
+    Assign /**, Comma**/, Index
   };
 private:
   OperatorKind Kind;
@@ -218,6 +221,7 @@ public:
     case RightShift:    OperatorSymbol = "RShift"; break;
     case Assign:        OperatorSymbol = "Assign"; break;
     case GreaterEqual:  OperatorSymbol = "GreaterEq"; break;
+    case Index:         OperatorSymbol = "At"; break;
     }
     std::cout << OperatorSymbol << std::endl;
     std::cout << prefix << "|---";
@@ -255,12 +259,50 @@ public:
 
 class DeclarationAST : public StatementAST {
   std::string Name;
-  std::unique_ptr<TypeSpecifier> Type;
+  //std::unique_ptr<TypeSpecifier> Type;
+  cvm::BasicType Type;
   std::unique_ptr<ExpressionAST> Initializer;
-  int VariableIndex;
-  bool IsLocalVariable;
+  std::list<std::unique_ptr<ExpressionAST>> ElementCountList;
 public:
-  bool isLocal() { return IsLocalVariable; }
+  DeclarationAST(const std::string &Name, cvm::BasicType Type,
+                 std::unique_ptr<ExpressionAST> Initializer,
+                 std::list<std::unique_ptr<ExpressionAST>> ElementCountList)
+    : StatementAST(DeclarationStatement), Name(Name), Type(Type)
+    , Initializer(std::move(Initializer))
+    , ElementCountList(std::move(ElementCountList)) {}
+
+  bool isArray() const { return !ElementCountList.empty(); }
+  const std::string &getName() const { return Name; }
+  cvm::BasicType getType() const { return Type; }
+
+  void dump(const std::string &prefix = "") const override {
+    std::cout << cvm::TypeToStr(Type) << " " << Name;
+    if (Initializer) {
+      std::cout << " =\n" << prefix;
+      Initializer->dump(prefix + "    ");
+    } else if (!ElementCountList.empty()) {
+      for (auto &E : ElementCountList) {
+        std::cout << "[]\n" << prefix;
+        E->dump(prefix + "    ");
+      }
+    } else {
+      std::cout << "\n";
+    }
+  }
+};
+
+class DeclarationListAST : public StatementAST {
+  cvm::BasicType Type;
+  std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
+public:
+  DeclarationListAST(cvm::BasicType Type)
+    : StatementAST(DeclarationListStatement), Type(Type) {}
+  void addDeclaration(const std::string &Name,
+                      std::unique_ptr<ExpressionAST> I,
+                      std::list<std::unique_ptr<ExpressionAST>> C) {
+    DeclarationList.emplace_back(new DeclarationAST(Name, Type, std::move(I),
+                                                                std::move(C)));
+  }
 };
 
 class BlockAST : public StatementAST {
@@ -337,10 +379,10 @@ public:
     , Statement(std::move(Statement)) {}
 
   void dump() const {
-    std::cout << "Func: " << Name << "\nPara: ";
+    std::cout << Type->toString() << "  " << Name << "(Para: ";
     for (auto &P : ParameterList)
-      std::cout << P.toString() << ", ";
-    std::cout << "\n";
+      std::cout << "    " << P.toString() << ", ";
+    std::cout << ")\n";
     Statement->dump();
   }
 };
@@ -401,7 +443,6 @@ public:
 };
 
 class ForStatementAST : public StatementAST {
-  // char *label? TODO
   std::unique_ptr<ExpressionAST> Init;
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<ExpressionAST> Post;
@@ -495,9 +536,9 @@ private:
   bool parseReturnStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBreakStatement(std::unique_ptr<StatementAST> &Res);
   bool parseContinueStatement(std::unique_ptr<StatementAST> &Res);
-  bool parseDeclarationStatement(std::unique_ptr<StatementAST> &Res); //TODO
+  bool parseDeclarationStatement(std::unique_ptr<StatementAST> &Res);
   bool parseDeclarationStatement(cvm::BasicType Type,
-                                 std::unique_ptr<StatementAST> &Res); //TODO
+                                 std::unique_ptr<StatementAST> &Res);
   // First: LParen,Id,Int,Double,Str,Bool,Plus,Minus,Tilde,Exclaim
   bool parseExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);

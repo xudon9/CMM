@@ -3,6 +3,17 @@
 
 using namespace cmm;
 
+const char *cvm::TypeToStr(BasicType Type) {
+  switch (Type) {
+  case BoolType:    return "bool";
+  case IntType:     return "int";
+  case DoubleType:  return "double";
+  case StringType:  return "string";
+  case VoidType:    return "void";
+  default:          return "UnkownType";
+  }
+}
+
 std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
     Token::TokenKind TokenKind,
     std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS) {
@@ -29,7 +40,6 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   case Token::GreaterGreater: OpKind = BinaryOperatorAST::RightShift; break;
   case Token::Equal:          OpKind = BinaryOperatorAST::Assign; break;
   }
-
   return std::unique_ptr<ExpressionAST>(new BinaryOperatorAST(OpKind,
                                                               std::move(LHS),
                                                               std::move(RHS)));
@@ -37,14 +47,15 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
 
 bool CMMParser::Parse() {
   Lex();
-//  std::unique_ptr<StatementAST> Statement;
-//  while (Lexer.isNot(Token::Eof)) {
-//    if (parseStatement(Statement))
-//      return true;
-//    Statement->dump();
-//  }
   while (Lexer.isNot(Token::Eof))
-    parseToplevel();
+    if (parseToplevel())
+      break;
+  std::cout << "************ StatementList:\n";
+  for (auto &S : TopLevelBlock.getStatementList())
+    S->dump();
+  std::cout << "------------ Function Definitions:\n";
+  for (auto &F : FunctionDefinition)
+    F.second.dump();
   return false;
 }
 
@@ -61,18 +72,29 @@ bool CMMParser::parseToplevel() {
     return parseFunctionDefinition();
   case Token::Kw_int: case Token::Kw_bool:
   case Token::Kw_double: case Token::Kw_string: {
+    // We don't know if it's a function definition or variable declaration.
+    // They all start with Type Identifier
     cvm::BasicType Type;
     if (parseTypeSpecifier(Type))
       return true;
 
+    LocTy Loc = Lexer.getLoc();
+
     if (Lexer.isNot(Token::Identifier))
       return Error("expect identifier after type");
     std::string Name = Lexer.getStrVal();
-    Lex();  // eat the identifier.
+    Lex();  // Eat the identifier.
 
     if (Lexer.is(Token::LParen))
-      return parseFunctionDefinition(Type, Name);
-    return parseDeclarationStatement(Type);
+      return parseFunctionDefinition(Type, Name); // It's function def.
+    // It's variable decl.
+    Lexer.seekLoc(Loc);
+    Lex();
+    std::unique_ptr<StatementAST> DeclStatement;
+    if (parseDeclarationStatement(Type, DeclStatement))
+      return true;
+    TopLevelBlock.addStatement(std::move(DeclStatement));
+    return false;
   }
   }
 }
@@ -189,6 +211,7 @@ bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   case Token::Kw_int:     Type = cvm::IntType; break;
   case Token::Kw_double:  Type = cvm::DoubleType; break;
   case Token::Kw_void:    Type = cvm::VoidType; break;
+  case Token::Kw_string:  Type = cvm::StringType; break;
   }
   Lex();
   return false;
@@ -276,6 +299,7 @@ bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
 /// \brief Parse a primary expression and return it.
 ///  primaryExpr ::= parenExpr
 ///  primaryExpr ::= identifierExpr
+///  primaryExpr ::= identifierExpr [Expr]*
 ///  primaryExpr ::= constantExpr
 ///  primaryExpr ::= ~,+,-,! primaryExpr
 bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
@@ -288,7 +312,21 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   case Token::LParen:
     return parseParenExpression(Res);
   case Token::Identifier:
-    return parseIdentifierExpression(Res);
+    if (parseIdentifierExpression(Res))
+      return true;
+    while (Lexer.is(Token::LBrac)) {
+      Lex(); // Eat the LBrac.
+      std::unique_ptr<ExpressionAST> IndexExpr, TmpRHS;
+      if (parseExpression(IndexExpr))
+        return true;
+      if (Lexer.isNot(Token::RBrac))
+        return Error("RBrac ']' expected in index expression");
+      Lex(); // Eat the RBrac.
+      std::swap(Res, TmpRHS);
+      Res.reset(new BinaryOperatorAST(
+        BinaryOperatorAST::Index, std::move(TmpRHS), std::move(IndexExpr)));
+    }
+    return false;
   case Token::Integer:
   case Token::Double:
   case Token::String:
@@ -521,5 +559,50 @@ bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 bool CMMParser::parseDeclarationStatement(std::unique_ptr<StatementAST> &Res) {
+  cvm::BasicType Type;
+  if (parseTypeSpecifier(Type))
+    return true;
+  return parseDeclarationStatement(Type, Res);
+}
+
+bool CMMParser::parseDeclarationStatement(cvm::BasicType Type,
+                                          std::unique_ptr<StatementAST> &Res) {
+  auto DeclList = new DeclarationListAST(Type);
+
+  for (;;) {
+    if (Lexer.isNot(Token::Identifier))
+      return Error("identifier expected");
+    std::string Name = Lexer.getStrVal();
+    Lex(); // eat the identifier
+
+    std::unique_ptr<ExpressionAST> InitExpr;
+    std::list<std::unique_ptr<ExpressionAST>> CountExprList;
+    while (Lexer.is(Token::LBrac)) {
+      Lex(); // eat the '['
+      std::unique_ptr<ExpressionAST> CountExpr;
+      if (parseExpression(CountExpr))
+        return true;
+      if (Lexer.isNot(Token::RBrac))
+        return Error("RBrac ']' expected in array declaration");
+      Lex(); // eat the ']'
+      CountExprList.emplace_back(std::move(CountExpr));
+    }
+    if (Lexer.is(Token::Equal)) {
+      Lex(); // eat the '='
+      if (parseExpression(InitExpr))
+        return true;
+    }
+
+    // Emit
+    DeclList->addDeclaration(Name, std::move(InitExpr), std::move(CountExprList));
+
+    if (Lexer.isNot(Token::Comma))
+      break;
+    Lex(); // Eat the ','
+  }
+  if (Lexer.isNot(Token::Semicolon))
+    return Error("expected semicolon in the declaration");
+  Lex(); // Eat the semicolon
+  Res.reset(DeclList);
   return false;
 }
