@@ -142,9 +142,8 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
   if (It != FunctionDefinition.end())
     Warning("'" + Name + "' overrides an existing function");
 
-  std::unique_ptr<TypeSpecifier> Type(new TypeSpecifier(RetType));
-  FunctionDefinition[Name] = FunctionDefinitionAST(Name,
-                                                   std::move(Type),
+  //std::unique_ptr<TypeSpecifier> Type(new TypeSpecifier(RetType));
+  FunctionDefinition[Name] = FunctionDefinitionAST(Name, RetType,
                                                    std::move(ParameterList),
                                                    std::move(Statement));
   return false;
@@ -217,7 +216,24 @@ bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   return false;
 }
 
-bool CMMParser::parseArgumentList() {
+bool CMMParser::parseOptionalArgList(std::list<std::unique_ptr<ExpressionAST>>
+  &ArgList) {
+  if (Lexer.is(Token::RParen))
+    return false;
+  return parseArgumentList(ArgList);
+}
+
+bool CMMParser::parseArgumentList(std::list<std::unique_ptr<ExpressionAST>>
+                                                                    &ArgList) {
+  for (;;) {
+    std::unique_ptr<ExpressionAST> Expression;
+    if (parseExpression(Expression))
+      return true;
+    ArgList.emplace_back(std::move(Expression));
+    if (Lexer.isNot(Token::Comma))
+      break;
+    Lex(); // Eat the comma.
+  }
   return false;
 }
 
@@ -392,8 +408,20 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   // TODO: handle function call in this function
   assert(Lexer.is(Token::Identifier) &&
          "parseIdentifierExpression: unkown token");
-  Res.reset(new IdentifierAST(Lexer.getStrVal()));
+  std::string Identifier = Lexer.getStrVal();
   Lex(); // eat the identifier
+  if (Lexer.is(Token::LParen)) {
+    Lex(); // eat the '('
+    std::list<std::unique_ptr<ExpressionAST>> Args;
+    if (parseOptionalArgList(Args))
+      return true;
+    if (Lexer.isNot(Token::RParen))
+      return Error("expect ')' in function call");
+    Lex(); // eat the ')'
+    Res.reset(new FunctionCallAST(Identifier, std::move(Args)));
+  } else {
+    Res.reset(new IdentifierAST(Identifier));
+  }
   return false;
 }
 

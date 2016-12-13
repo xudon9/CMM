@@ -57,7 +57,7 @@ public:
     : Name(Name), Type(new TypeSpecifier(Type)), Loc(Loc) {}
 
   std::string toString() const {
-    return Name + ":" + Type->toString();
+    return  Type->toString() + " " + Name;
   }
 };
 
@@ -166,12 +166,25 @@ public:
 
 class FunctionCallAST : public ExpressionAST {
   std::string Callee;
-  std::vector<std::unique_ptr<ExpressionAST>> Arguments;
+  std::list<std::unique_ptr<ExpressionAST>> Arguments;
 public:
   FunctionCallAST(const std::string &Callee,
-                  std::vector<std::unique_ptr<ExpressionAST>> Arguments)
+                  std::list<std::unique_ptr<ExpressionAST>> Arguments)
     : ExpressionAST(FunctionCallExpression), Callee(Callee)
     , Arguments(std::move(Arguments)) {}
+
+  void dump(const std::string &prefix = "") const override {
+    std::cout << "(call)" << Callee << std::endl;
+    for (const auto &Arg : Arguments) {
+      if (Arg != Arguments.back()) {
+        std::cout << prefix << "|---";
+        Arg->dump(prefix + "|   ");
+      } else {
+        std::cout << prefix << "`---";
+        Arg->dump(prefix + "    ");
+      }
+    }
+  }
 };
 
 // Unary operator
@@ -276,17 +289,20 @@ public:
   cvm::BasicType getType() const { return Type; }
 
   void dump(const std::string &prefix = "") const override {
-    std::cout << cvm::TypeToStr(Type) << " " << Name;
+    std::cout << cvm::TypeToStr(Type) << " " << Name << std::endl;
     if (Initializer) {
-      std::cout << " =\n" << prefix;
+      std::cout << prefix << " `==";
       Initializer->dump(prefix + "    ");
-    } else if (!ElementCountList.empty()) {
-      for (auto &E : ElementCountList) {
-        std::cout << "[]\n" << prefix;
-        E->dump(prefix + "    ");
+    } else if (isArray()) {
+      for (const auto &E : ElementCountList) {
+        if (E != ElementCountList.back()) {
+          std::cout << prefix << "|-[]";
+          E->dump(prefix + "|   ");
+        } else {
+          std::cout << prefix << "`-[]";
+          E->dump(prefix + "    ");
+        }
       }
-    } else {
-      std::cout << "\n";
     }
   }
 };
@@ -302,6 +318,19 @@ public:
                       std::list<std::unique_ptr<ExpressionAST>> C) {
     DeclarationList.emplace_back(new DeclarationAST(Name, Type, std::move(I),
                                                                 std::move(C)));
+  }
+
+  void dump(const std::string &prefix = "") const override {
+    std::cout << "(Decl)" << cvm::TypeToStr(Type) << std::endl;
+    for (const auto &Declare : DeclarationList) {
+      if (Declare != DeclarationList.back()) {
+        std::cout << prefix << "|---";
+        Declare->dump(prefix + "|   ");
+      } else {
+        std::cout << prefix << "`---";
+        Declare->dump(prefix + "    ");
+      }
+    }
   }
 };
 
@@ -364,7 +393,7 @@ public:
 
 class FunctionDefinitionAST /*: public StatementAST*/ {
   std::string Name;
-  std::unique_ptr<TypeSpecifier> Type;
+  cvm::BasicType Type;
   std::list<Parameter> ParameterList;
   std::unique_ptr<StatementAST> Statement;
   std::list<std::unique_ptr<DeclarationAST>> LocalVariableList;
@@ -372,17 +401,18 @@ class FunctionDefinitionAST /*: public StatementAST*/ {
 public:
   FunctionDefinitionAST() = default;
   FunctionDefinitionAST(const std::string &Name,
-                        std::unique_ptr<TypeSpecifier> Type,
+                        cvm::BasicType Type,
                         std::list<Parameter> &&ParameterList,
                         std::unique_ptr<StatementAST> Statement)
-    : Name(Name), Type(std::move(Type)), ParameterList(std::move(ParameterList))
+    : Name(Name), Type(Type), ParameterList(std::move(ParameterList))
     , Statement(std::move(Statement)) {}
 
   void dump() const {
-    std::cout << Type->toString() << "  " << Name << "(Para: ";
-    for (auto &P : ParameterList)
-      std::cout << "    " << P.toString() << ", ";
-    std::cout << ")\n";
+    std::cout << cvm::TypeToStr(Type) << " " << Name << "(";
+    for (const auto &P : ParameterList) {
+      std::cout << P.toString() << ", ";
+    }
+    std::cout << "\b)\n";
     Statement->dump();
   }
 };
@@ -525,10 +555,11 @@ private:
   bool parseFunctionDefinition();
   bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
-  bool parseBlock(std::unique_ptr<StatementAST> &Res);  //TODO
+  bool parseBlock(std::unique_ptr<StatementAST> &Res);
   bool parseTypeSpecifier(cvm::BasicType &Type); //?
   bool parseParameterList(std::list<Parameter> &ParameterList);
-  bool parseArgumentList(); //TODO
+  bool parseOptionalArgList(std::list<std::unique_ptr<ExpressionAST>> &ArgList);
+  bool parseArgumentList(std::list<std::unique_ptr<ExpressionAST>> &ArgList);
   bool parseExprStatement(std::unique_ptr<StatementAST> &Res);
   bool parseIfStatement(std::unique_ptr<StatementAST> &Res);
   bool parseWhileStatement(std::unique_ptr<StatementAST> &Res);
