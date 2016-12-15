@@ -1,13 +1,13 @@
-#include "CMMIntepreter.h"
+#include "CMMInterpreter.h"
 
 using namespace cmm;
 
-void CMMIntepreter::intepret() {
+void CMMInterpreter::interpret() {
   executeBlock(nullptr, &TopLevelBlock);
 }
 
-CMMIntepreter::ExecutionResult
-CMMIntepreter::executeBlock(VariableEnv *OuterEnv, BlockAST *Block) {
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeBlock(VariableEnv *OuterEnv, BlockAST *Block) {
   ExecutionResult Res;
   VariableEnv CurrentEnv(OuterEnv);
 
@@ -20,8 +20,8 @@ CMMIntepreter::executeBlock(VariableEnv *OuterEnv, BlockAST *Block) {
   return Res;
 }
 
-CMMIntepreter::ExecutionResult
-CMMIntepreter::executeStatement(VariableEnv *Env, StatementAST *Stmt) {
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeStatement(VariableEnv *Env, StatementAST *Stmt) {
   ExecutionResult Res;
 
   switch (Stmt->getKind()) {
@@ -47,22 +47,26 @@ CMMIntepreter::executeStatement(VariableEnv *Env, StatementAST *Stmt) {
     std::cerr << "unimplemented kind\n";
     exit(-1);
   }
+
+  if (Res.Kind != ExecutionResult::NormalStatementResult) {
+    //todo
+  }
 }
 
-CMMIntepreter::ExecutionResult
-CMMIntepreter::executeIfStatement(VariableEnv *Env, IfStatementAST *Stmt) {
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeIfStatement(VariableEnv *Env, IfStatementAST *Stmt) {
   // todo
   return ExecutionResult();
 }
 
-CMMIntepreter::ExecutionResult
-CMMIntepreter::executeExprStatement(VariableEnv *Env, ExprStatementAST *Stmt) {
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeExprStatement(VariableEnv *Env, ExprStatementAST *Stmt) {
   evaluateExpression(Env, Stmt->getExpression());
   return ExecutionResult();
 }
 
 cvm::BasicValue
-CMMIntepreter::evaluateExpression(VariableEnv *Env, ExpressionAST *Expr) {
+CMMInterpreter::evaluateExpression(VariableEnv *Env, ExpressionAST *Expr) {
   cvm::BasicValue Value;
 
   switch (Expr->getKind()) {
@@ -86,7 +90,7 @@ CMMIntepreter::evaluateExpression(VariableEnv *Env, ExpressionAST *Expr) {
   }
 }
 cvm::BasicValue
-CMMIntepreter::evaluateIdentifierExpr(VariableEnv *Env, IdentifierAST *IdExpr) {
+CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env, IdentifierAST *IdExpr) {
   for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
     const auto &VarMap = E->VarMap;
     auto It = VarMap.find(IdExpr->getName());

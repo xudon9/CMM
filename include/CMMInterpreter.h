@@ -1,11 +1,11 @@
-#ifndef CMMINTEPRETER_H
-#define CMMINTEPRETER_H
+#ifndef CMMINTERPRETER_H
+#define CMMINTERPRETER_H
 
 #include "AST.h"
 #include <map>
 
 namespace cmm {
-class CMMIntepreter {
+class CMMInterpreter {
   struct ExecutionResult {
     enum ExecutionResultKind {
       NormalStatementResult,
@@ -30,11 +30,11 @@ class CMMIntepreter {
   std::map<std::string, FunctionDefinitionAST> &FunctionDefinition;
 
 public:
-  CMMIntepreter(BlockAST &Block,
+  CMMInterpreter(BlockAST &Block,
                 std::map<std::string, FunctionDefinitionAST> &FD)
     : TopLevelBlock(Block), FunctionDefinition(FD) {}
 
-  void intepret();
+  void interpret();
 
 private:
   ExecutionResult executeBlock(VariableEnv *OuterEnv, BlockAST *Block);
