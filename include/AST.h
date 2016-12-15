@@ -13,6 +13,23 @@
 namespace cvm {
 enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
 const char *TypeToStr(BasicType Type);
+
+struct BasicValue {
+  BasicType Type;
+
+  std::string StrVal;
+  union {
+    int IntVal;
+    double DoubleVal;
+    bool BoolVal;
+  };
+
+  BasicValue(const std::string &S) : Type(StringType), StrVal(S) {}
+  BasicValue(int I) : Type(IntType), IntVal(I) {}
+  BasicValue(double D) : Type(DoubleType), DoubleVal(D) {}
+  BasicValue(bool B) : Type(BoolType), BoolVal(B) {}
+  BasicValue() : Type(VoidType) {}
+};
 }
 ///
 
@@ -75,7 +92,7 @@ public:
 };
 
 class ExpressionAST : public AST {
-protected:
+public:
   enum ExpressionKind {
     IntExpression,
     DoubleExpression,
@@ -90,6 +107,7 @@ private:
   ExpressionKind Kind;
 public:
   ExpressionAST(ExpressionKind Kind) : Kind(Kind) {}
+  ExpressionKind getKind() const { return Kind; }
   bool isInt() { return Kind == IntExpression; }
   bool isDouble() { return Kind == DoubleExpression; }
   bool isBool() { return Kind == BoolExpression; }
@@ -97,7 +115,7 @@ public:
   bool isNumeric() { return isInt() || isDouble(); }
 };
 class StatementAST : public AST {
-protected:
+public:
   enum StatementKind {
     ExprStatement,
     BlockStatement,
@@ -114,9 +132,10 @@ private:
   StatementKind Kind;
 public:
   StatementAST(StatementKind Kind) : Kind(Kind) {}
-  bool isBlock() { return Kind == BlockStatement; }
-  bool isIfStatement() { return Kind == IfStatement; }
-  bool isWhileStatement() { return Kind == WhileStatement; }
+  StatementKind getKind() const { return Kind; }
+  // bool isBlock() { return Kind == BlockStatement; }
+  // bool isIfStatement() { return Kind == IfStatement; }
+  // bool isWhileStatement() { return Kind == WhileStatement; }
 };
 
 class IntAST : public ExpressionAST {
@@ -126,6 +145,7 @@ public:
   void dump(const std::string &prefix = "") const override {
     std::cout << "(int)" << Value << std::endl;
   }
+  int getValue() const { return Value; }
 };
 
 class DoubleAST : public ExpressionAST {
@@ -135,6 +155,7 @@ public:
   void dump(const std::string &prefix = "") const override {
     std::cout << "(double)" << Value << std::endl;
   }
+  double getValue() const { return Value; }
 };
 
 class BoolAST : public ExpressionAST {
@@ -144,6 +165,7 @@ public:
   void dump(const std::string &prefix = "") const override {
     std::cout << "(bool)" << (Value ? "true" : "false") << std::endl;
   }
+  bool getValue() const { return Value; }
 };
 
 class StringAST : public ExpressionAST {
@@ -154,6 +176,7 @@ public:
   void dump(const std::string &prefix = "") const override {
     std::cout << "(str)" << Value << std::endl;
   }
+  const std::string &getValue() const { return Value; }
 };
 
 class IdentifierAST : public ExpressionAST {
@@ -164,6 +187,7 @@ public:
   void dump(const std::string &prefix = "") const override {
     std::cout << "(id)" << Name << std::endl;
   }
+  const std::string &getName() const { return Name; }
 };
 
 class FunctionCallAST : public ExpressionAST {
@@ -359,6 +383,9 @@ public:
     return DeclarationList;
   }
   BlockAST *getOuterBlock() const { return OuterBlock; }
+  std::list<std::unique_ptr<StatementAST>> &getStatementList() {
+    return StatementList;
+  }
 
   void dump(const std::string &prefix = "") const override {
     std::cout << "(Block)\n";
@@ -379,6 +406,8 @@ class ExprStatementAST : public StatementAST {
 public:
   ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
     : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
+
+  ExpressionAST *getExpression() const { return Expression.get(); }
 
   void dump(const std::string &prefix) const override {
     std::cout << "(ExprStmt)" << std::endl;
