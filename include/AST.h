@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <list>
+#include <cstdlib>
 
 ///code.h
 namespace cvm {
@@ -29,6 +30,17 @@ struct BasicValue {
   BasicValue(double D) : Type(DoubleType), DoubleVal(D) {}
   BasicValue(bool B) : Type(BoolType), BoolVal(B) {}
   BasicValue() : Type(VoidType) {}
+
+  bool isInt() const { return Type == IntType; }
+  bool isDouble() const { return Type == DoubleType; }
+  bool isBool() const { return Type == BoolType; }
+  bool isString() const { return Type == StringType; }
+  bool isVoid() const { return Type == VoidType; }
+
+  int toInt() const;
+  double toDouble() const;
+  bool toBool() const ;
+  std::string toString() const;
 };
 }
 ///
@@ -108,11 +120,12 @@ private:
 public:
   ExpressionAST(ExpressionKind Kind) : Kind(Kind) {}
   ExpressionKind getKind() const { return Kind; }
-  bool isInt() { return Kind == IntExpression; }
-  bool isDouble() { return Kind == DoubleExpression; }
-  bool isBool() { return Kind == BoolExpression; }
-  bool isString() { return Kind == StringExpression; }
-  bool isNumeric() { return isInt() || isDouble(); }
+  bool isIdentifierExpr() { return Kind == IdentifierExpression; }
+  // bool isInt() { return Kind == IntExpression; }
+  // bool isDouble() { return Kind == DoubleExpression; }
+  // bool isBool() { return Kind == BoolExpression; }
+  // bool isString() { return Kind == StringExpression; }
+  // bool isNumeric() { return isInt() || isDouble(); }
 };
 class StatementAST : public AST {
 public:
@@ -199,6 +212,8 @@ public:
     : ExpressionAST(FunctionCallExpression), Callee(Callee)
     , Arguments(std::move(Arguments)) {}
 
+  const std::string &getCallee() { return Callee; }
+
   void dump(const std::string &prefix = "") const override {
     std::cout << "(call)" << Callee << std::endl;
     for (const auto &Arg : Arguments) {
@@ -226,21 +241,22 @@ public:
     Assign /**, Comma**/, Index
   };
 private:
-  OperatorKind Kind;
+  OperatorKind OpKind;
   std::unique_ptr<ExpressionAST> LHS, RHS;
 public:
-  BinaryOperatorAST(OperatorKind Kind,
+  BinaryOperatorAST(OperatorKind OpKind,
                     std::unique_ptr<ExpressionAST> LHS,
                     std::unique_ptr<ExpressionAST> RHS)
     : ExpressionAST(BinaryOperatorExpression)
-    , Kind(Kind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
-  static std::unique_ptr<ExpressionAST> create(Token::TokenKind TokenKind,
-    std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS);
+    , OpKind(OpKind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
+  OperatorKind getOpKind() const { return OpKind; }
+  ExpressionAST *getLHS() const { return LHS.get(); }
+  ExpressionAST *getRHS() const { return RHS.get(); }
 
   void dump(const std::string &prefix = "") const override {
     std::string OperatorSymbol;
-    switch (Kind) {
+    switch (OpKind) {
     default: break;
     case Add:           OperatorSymbol = "Add"; break;
     case Minus:         OperatorSymbol = "Sub"; break;
@@ -268,6 +284,10 @@ public:
     std::cout << prefix << "`---";
     RHS->dump(prefix + "    ");
   }
+
+  static std::unique_ptr<ExpressionAST> create(Token::TokenKind TokenKind,
+                                               std::unique_ptr<ExpressionAST> LHS,
+                                               std::unique_ptr<ExpressionAST> RHS);
 };
 
 class UnaryOperatorAST : public ExpressionAST {

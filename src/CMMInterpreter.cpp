@@ -83,20 +83,69 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env, ExpressionAST *Expr) {
     return cvm::BasicValue(static_cast<StringAST *>(Expr)->getValue());
   case ExpressionAST::IdentifierExpression:
     return evaluateIdentifierExpr(Env, static_cast<IdentifierAST *>(Expr));
-  case ExpressionAST::FunctionCallExpression:
+  case ExpressionAST::FunctionCallExpression: {
+    auto FuncCallAST = static_cast<FunctionCallAST *>(Expr);
+  }
   case ExpressionAST::BinaryOperatorExpression:
   case ExpressionAST::UnaryOperatorExpression:
     exit(-1);
   }
 }
+
 cvm::BasicValue
-CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env, IdentifierAST *IdExpr) {
-  for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
-    const auto &VarMap = E->VarMap;
-    auto It = VarMap.find(IdExpr->getName());
-    if (It != VarMap.end())
-      return It->second;
+CMMInterpreter::evaluateFunctionCallExpr(VariableEnv *Env,
+                                         FunctionCallAST *FuncCall) {
+  auto NativeIt = NativeFunctionMap.find(FuncCall->getCallee());
+  if (NativeIt != NativeFunctionMap.end())
+    return callNativeFunction(Env, NativeIt->second /*.TODO*/);
+}
+
+
+cvm::BasicValue
+CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env,
+                                       IdentifierAST *IdExpr) {
+  return searchVariable(Env, IdExpr->getName())->second;
+}
+
+cvm::BasicValue
+CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
+                                     BinaryOperatorAST *Expr) {
+
+  cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
+
+  if (Expr->getOpKind() == Expr->Assign) {
+    const auto &Id = static_cast<IdentifierAST *>(Expr->getLHS())->getName();
+    cvm::BasicValue &Var = searchVariable(Env, Id)->second;
+    if (Var.Type != RHS.Type)
+      ; // TODO runtime error
+    return Var = RHS;
   }
-  return cvm::BasicValue();
-  // TODO runtime err
+  if(Expr->getOpKind() == Expr->Index) {
+  }
+
+  cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
+}
+
+/*
+std::pair<std::string, cvm::BasicValue> &
+CMMInterpreter::searchVariable(VariableEnv *Env, const std::string &Name) {
+  for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
+
+    std::map<std::string, cvm::BasicValue>::iterator It = E->VarMap.find(Name);
+    if (It != E->VarMap.end())
+      return *It;
+  }
+  // TODO runtime error
+}
+ */
+
+std::map<std::string, cvm::BasicValue>::iterator
+CMMInterpreter::searchVariable(VariableEnv *Env, const std::string &Name) {
+  for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
+
+    std::map<std::string, cvm::BasicValue>::iterator It = E->VarMap.find(Name);
+    if (It != E->VarMap.end())
+      return It;
+  }
+  //  TODO runtime error
 }

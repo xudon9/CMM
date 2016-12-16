@@ -1,5 +1,48 @@
 #include "AST.h"
 
+namespace cvm {
+int BasicValue::toInt() const {
+  switch (Type) {
+  default:          return 0;
+  case IntType:     return IntVal;
+  case DoubleType:  return static_cast<int>(DoubleVal);
+  case BoolType:    return static_cast<int>(BoolVal);
+  case StringType:  return std::atoi(StrVal.c_str());
+  }
+}
+
+double BasicValue::toDouble() const {
+  switch (Type) {
+  default:          return 0.0;
+  case IntType:     return static_cast<double>(IntVal);
+  case DoubleType:  return DoubleVal;
+  case BoolType:    return static_cast<double>(BoolType);
+  case StringType:  return std::atof(StrVal.c_str());
+  }
+}
+
+bool BasicValue::toBool() const {
+  switch (Type) {
+  default: return false;
+  case IntType: return IntVal;
+  case DoubleType: return DoubleType;
+  case BoolType: return BoolType;
+  case StringType: return !StrVal.empty();
+  }
+}
+
+std::string BasicValue::toString() const {
+  switch (Type) {
+  default: return "";
+  case IntType: return std::to_string(IntVal);
+  case DoubleType: return std::to_string(DoubleVal);
+  case BoolType: return BoolVal ? "true" : "false";
+  case StringType: return StrVal;
+  }
+}
+
+}
+
 using namespace cmm;
 
 const char *cvm::TypeToStr(BasicType Type) {

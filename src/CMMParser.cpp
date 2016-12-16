@@ -1,28 +1,35 @@
 #include "CMMParser.h"
 #include <cassert>
 
-using namespace cmm;
+#include "CMMInterpreter.h" /*ad-hoc ^*/
 
+using namespace cmm;
 
 bool CMMParser::Parse() {
   Lex();
   while (Lexer.isNot(Token::Eof))
-    if (parseToplevel())
+    if (parseTopLevel())
       break;
+
   std::cout << "************ StatementList:\n";
   for (auto &S : TopLevelBlock.getStatementList())
     S->dump();
   std::cout << "------------ Function Definitions:\n";
   for (auto &F : FunctionDefinition)
     F.second.dump();
+
+  std::cout << "------------ Running -----------\n";
+  CMMInterpreter interpreter(TopLevelBlock, FunctionDefinition);
+  interpreter.interpret();
+
   return false;
 }
 
-bool CMMParser::parseToplevel() {
+bool CMMParser::parseTopLevel() {
   switch (getKind()) {
   default: {
   std::unique_ptr<StatementAST> Statement;
-    if (parseExprStatement(Statement))
+    if (parseStatement(Statement))
       return true;
     TopLevelBlock.addStatement(std::move(Statement));
     return false;

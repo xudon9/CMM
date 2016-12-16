@@ -31,7 +31,7 @@ private:
 
   int8_t getBinOpPrecedence();
 
-  bool parseToplevel(); //TODO
+  bool parseTopLevel(); //TODO
   bool parseFunctionDefinition();
   bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
