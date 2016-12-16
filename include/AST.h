@@ -212,7 +212,8 @@ public:
     : ExpressionAST(FunctionCallExpression), Callee(Callee)
     , Arguments(std::move(Arguments)) {}
 
-  const std::string &getCallee() { return Callee; }
+  auto getCallee() const -> const std::string & { return Callee; }
+  auto getArguments() const -> const decltype(Arguments) & { return Arguments; }
 
   void dump(const std::string &prefix = "") const override {
     std::cout << "(call)" << Callee << std::endl;
@@ -285,9 +286,10 @@ public:
     RHS->dump(prefix + "    ");
   }
 
-  static std::unique_ptr<ExpressionAST> create(Token::TokenKind TokenKind,
-                                               std::unique_ptr<ExpressionAST> LHS,
-                                               std::unique_ptr<ExpressionAST> RHS);
+  static std::unique_ptr<ExpressionAST>
+    create(Token::TokenKind TokenKind,
+           std::unique_ptr<ExpressionAST> LHS,
+           std::unique_ptr<ExpressionAST> RHS);
 };
 
 class UnaryOperatorAST : public ExpressionAST {
