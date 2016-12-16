@@ -1,4 +1,5 @@
 #include "CMMInterpreter.h"
+#include "NativeFunctions.h"
 #include <cassert>
 
 using namespace cmm;
@@ -6,26 +7,23 @@ using namespace cmm;
 void CMMInterpreter::interpret() {
   for (auto &Stmt : TopLevelBlock.getStatementList()) {
     ExecutionResult Res = executeStatement(&TopLevelEnv, Stmt.get());
-    if (Res.Kind != ExecutionResult::NormalStatementResult) {
-      // ERROR todo
-      break;
-    }
+    if (Res.Kind != ExecutionResult::NormalStatementResult)
+      RuntimeError("unbounded break/continue/return");
   }
 }
 
 void CMMInterpreter::addNativeFunctions() {
-  NativeFunctionMap["puts"] = [](std::list<cvm::BasicValue> &Args)
-    -> cvm::BasicValue {
-    for (auto &V : Args) {
-      std::cout << V.toString() << " ";
-    }
-    std::cout << std::endl;
-    return cvm::BasicValue();
-  };
+  NativeFunctionMap["print"] = cvm::NativePrint;
+  NativeFunctionMap["println"] = cvm::NativePrintln;
+}
+
+void CMMInterpreter::RuntimeError(const std::string &Msg) {
+  std::cerr << "Runtime Error: " << Msg << std::endl;
+  std::exit(EXIT_FAILURE);
 }
 
 CMMInterpreter::ExecutionResult
-CMMInterpreter::executeBlock(VariableEnv *OuterEnv, BlockAST *Block) {
+CMMInterpreter::executeBlock(VariableEnv *OuterEnv, const BlockAST *Block) {
   ExecutionResult Res;
   VariableEnv CurrentEnv(OuterEnv);
 
@@ -43,13 +41,13 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
 
   switch (Stmt->getKind()) {
   default:
-    std::cerr << "bad statement kind\n";
+    RuntimeError("unknown statement kind");
     break;
   case StatementAST::ExprStatement:
     Res = executeExprStatement(Env, static_cast<const ExprStatementAST *>(Stmt));
     break;
   case StatementAST::BlockStatement:
-    //Res = executeBlock(Env, static_cast<const BlockAST *>(Stmt));
+    Res = executeBlock(Env, static_cast<const BlockAST *>(Stmt));
     break;
   case StatementAST::IfStatement:
     //Res = executeIfStatement(Env, static_cast<const IfStatementAST *>(Stmt));
@@ -61,8 +59,7 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   case StatementAST::BreakStatement:
   //case StatementAST::DeclarationStatement:
   case StatementAST::DeclarationListStatement:
-    std::cerr << "unimplemented kind\n";
-    exit(-1);
+    RuntimeError("unimplemented stmt kind!");
   }
 
   if (Res.Kind != ExecutionResult::NormalStatementResult) {
@@ -78,7 +75,8 @@ CMMInterpreter::executeIfStatement(VariableEnv *Env, IfStatementAST *Stmt) {
 }
 
 CMMInterpreter::ExecutionResult
-CMMInterpreter::executeExprStatement(VariableEnv *Env, const ExprStatementAST *Stmt) {
+CMMInterpreter::executeExprStatement(VariableEnv *Env,
+                                     const ExprStatementAST *Stmt) {
   evaluateExpression(Env, Stmt->getExpression());
   return ExecutionResult();
 }
@@ -127,7 +125,8 @@ CMMInterpreter::evaluateFunctionCallExpr(VariableEnv *Env,
     return callNativeFunction(NativeFuncIt->second, Args);
   }
 
-  // Run time error TODO
+  RuntimeError("function `" + FuncCall->getCallee() + "' is undefined");
+  return cvm::BasicValue(); // Make the compiler happy.
 }
 
 
@@ -144,14 +143,15 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
   cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
 
   if (Expr->getOpKind() == Expr->Assign) {
-    const auto &Id = static_cast<IdentifierAST *>(Expr->getLHS())->getName();
+    const std::string &Id = static_cast<IdentifierAST *>
+                                          (Expr->getLHS())->getName();
     cvm::BasicValue &Var = searchVariable(Env, Id)->second;
     if (Var.Type != RHS.Type)
-      std::cout << ""; // TODO runtime error
+      RuntimeError("assignment to symbol `" + Id + "' is undefined");
     return Var = RHS;
   }
   if(Expr->getOpKind() == Expr->Index) {
-    // TODO
+    RuntimeError("array implemented!");
   }
 
   cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
@@ -165,7 +165,7 @@ CMMInterpreter::searchVariable(VariableEnv *Env, const std::string &Name) {
     if (It != E->VarMap.end())
       return It;
   }
-  //  TODO runtime error
+  RuntimeError("variable `" + Name + "' is undefined");
 }
 
 std::list<cvm::BasicValue>
@@ -187,6 +187,31 @@ CMMInterpreter::callNativeFunction(NativeFunction &Function,
 cvm::BasicValue
 CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
                                  std::list<cvm::BasicValue> &Args) {
-  //VariableEnv FunctionEnv(&)
-  return Args.front();
+  if (Args.size() != Function.getParameterCount())
+    RuntimeError("Function `" + Function.getName() + "' expects " +
+      std::to_string(Function.getParameterCount()) + " parameter(s), but " +
+      std::to_string(Args.size()) + " argument(s) provided");
+
+  VariableEnv FuncEnv(&TopLevelEnv);
+
+  auto ParaIt = Function.getParameterList().cbegin();
+  auto ParaEnd = Function.getParameterList().cend();
+  for (cvm::BasicValue &Arg : Args) {
+    if (ParaIt->getType() != Arg.Type) {
+      RuntimeError("in function `" + Function.getName() + "', parameter `" +
+        ParaIt->getName() + "' has type " + cvm::TypeToStr(ParaIt->getType()) +
+        ", but argument has type " + cvm::TypeToStr(Arg.Type));
+    }
+    FuncEnv.VarMap[ParaIt->getName()] = Arg;
+    ++ParaIt;
+  }
+  assert(ParaIt == ParaEnd);
+  ExecutionResult Result =
+            executeStatement(&FuncEnv, Function.getStatement());
+  if (Result.ReturnValue.Type != Function.getType()) {
+    RuntimeError("functon `" + Function.getName() + "' ought to return " +
+      cvm::TypeToStr(Function.getType()) + ", but got " +
+      cvm::TypeToStr(Result.ReturnValue.Type));
+  }
+  return Result.ReturnValue;
 }

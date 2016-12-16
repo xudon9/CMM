@@ -16,28 +16,28 @@ double BasicValue::toDouble() const {
   default:          return 0.0;
   case IntType:     return static_cast<double>(IntVal);
   case DoubleType:  return DoubleVal;
-  case BoolType:    return static_cast<double>(BoolType);
+  case BoolType:    return static_cast<double>(BoolVal);
   case StringType:  return std::atof(StrVal.c_str());
   }
 }
 
 bool BasicValue::toBool() const {
   switch (Type) {
-  default: return false;
-  case IntType: return IntVal;
-  case DoubleType: return DoubleType;
-  case BoolType: return BoolType;
-  case StringType: return !StrVal.empty();
+  default:          return false;
+  case IntType:     return IntVal != 0;
+  case DoubleType:  return DoubleVal != 0.0;
+  case BoolType:    return BoolVal;
+  case StringType:  return !StrVal.empty();
   }
 }
 
 std::string BasicValue::toString() const {
   switch (Type) {
-  default: return "";
-  case IntType: return std::to_string(IntVal);
-  case DoubleType: return std::to_string(DoubleVal);
-  case BoolType: return BoolVal ? "true" : "false";
-  case StringType: return StrVal;
+  default:          return "";
+  case IntType:     return std::to_string(IntVal);
+  case DoubleType:  return std::to_string(DoubleVal);
+  case BoolType:    return BoolVal ? "true" : "false";
+  case StringType:  return StrVal;
   }
 }
 

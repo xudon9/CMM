@@ -65,6 +65,8 @@ public:
   TypeSpecifier(cvm::BasicType BasicType)
     : BasicType(BasicType), Derived(nullptr) {}
 
+  cvm::BasicType getBasicType() const {return BasicType; }
+
   std::string toString() const {
     std::string Res;
     switch (BasicType) {
@@ -90,6 +92,10 @@ public:
   std::string toString() const {
     return  Type->toString() + " " + Name;
   }
+
+ /* hack */
+  cvm::BasicType getType() const { return Type->getBasicType(); }
+  const std::string &getName() const { return Name; }
 };
 
 class FunctionType : public DerivedType {
@@ -459,6 +465,12 @@ public:
                         std::unique_ptr<StatementAST> Statement)
     : Name(Name), Type(Type), ParameterList(std::move(ParameterList))
     , Statement(std::move(Statement)) {}
+
+  cvm::BasicType getType() const { return Type; }
+  const std::string &getName() const { return Name; }
+  size_t getParameterCount() const { return ParameterList.size(); }
+  const std::list<Parameter> &getParameterList()  const { return ParameterList; }
+  const StatementAST *getStatement() const { return Statement.get(); }
 
   void dump() const {
     std::cout << cvm::TypeToStr(Type) << " " << Name << "(";

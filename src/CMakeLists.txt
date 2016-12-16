@@ -1,4 +1,5 @@
-set(SRC_LIST cmm.cpp CMMLexer.cpp CMMParser.cpp CMMInterpreter.cpp SourceMgr.cpp AST.cpp)
+set(SRC_LIST cmm.cpp CMMLexer.cpp CMMParser.cpp CMMInterpreter.cpp
+	             SourceMgr.cpp AST.cpp NativeFunctions.cpp)
 add_executable(cmm ${SRC_LIST})
 
 set_property(TARGET cmm PROPERTY CXX_STANDARD 11)

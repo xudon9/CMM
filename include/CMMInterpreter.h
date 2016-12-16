@@ -47,8 +47,9 @@ public:
 
 private:
   void addNativeFunctions();
+  void RuntimeError(const std::string &Msg);
 
-  ExecutionResult executeBlock(VariableEnv *OuterEnv, BlockAST *Block);
+  ExecutionResult executeBlock(VariableEnv *OuterEnv, const BlockAST *Block);
   ExecutionResult executeStatement(VariableEnv *Env, const StatementAST *Stmt);
   ExecutionResult executeIfStatement(VariableEnv *Env, IfStatementAST *Stmt);
   ExecutionResult executeExprStatement(VariableEnv *Env, const ExprStatementAST *);
