@@ -65,7 +65,9 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   case StatementAST::DeclarationStatement:
     RuntimeError("single declaration should not be used by user");
   case StatementAST::DeclarationListStatement:
-    RuntimeError("unimplemented stmt kind!");
+    Res = executeDeclarationList(Env,
+                                 static_cast<const DeclarationListAST *>(Stmt));
+    break;
   }
 
   if (Res.Kind != ExecutionResult::NormalStatementResult) {
@@ -112,20 +114,26 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
 
   if (Env->contains(Name)) {
     RuntimeError("variable `" + Decl->getName() +
-                 "' is already defined in current scope");
+        "' is already defined in current scope");
   }
 
   if (Decl->isArray()) {
-    RuntimeError("unimplemented!");
+    RuntimeError("unimplemented!"); // TODO
   }
 
   // Now it's a normal variable.
   if (Decl->getInitializer()) {
     cvm::BasicValue Val = evaluateExpression(Env, Decl->getInitializer());
+
     if (Val.Type != Decl->getType()) {
-      RuntimeError("variable `" + Name + "' is declared to be " +
-        cvm::TypeToStr(Decl->getType()) + ", but is initialized to be " +
-        cvm::TypeToStr(Val.Type));
+      if (Decl->getType() == cvm::DoubleType && Val.isInt()) {
+        Val.Type = cvm::DoubleType;
+        Val.DoubleVal = static_cast<double>(Val.IntVal);
+      } else {
+        RuntimeError("variable `" + Name + "' is declared to be " +
+            cvm::TypeToStr(Decl->getType()) + ", but is initialized to be " +
+            cvm::TypeToStr(Val.Type));
+      }
     }
     Env->VarMap.emplace(std::make_pair(Name, Val));
   } else {
@@ -136,13 +144,13 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
 }
 
 cvm::BasicValue
-CMMInterpreter::evaluateExpression(VariableEnv *Env, const ExpressionAST *Expr) {
+CMMInterpreter::evaluateExpression(VariableEnv *Env,
+                                   const ExpressionAST *Expr) {
   cvm::BasicValue Value;
 
   switch (Expr->getKind()) {
   default:
-    // TODO
-    break;
+    RuntimeError("unknown expression kind");
   case ExpressionAST::IntExpression:
     return cvm::BasicValue(static_cast<const IntAST *>(Expr)->getValue());
   case ExpressionAST::DoubleExpression:
@@ -152,14 +160,16 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env, const ExpressionAST *Expr) 
   case ExpressionAST::StringExpression:
     return cvm::BasicValue(static_cast<const StringAST *>(Expr)->getValue());
   case ExpressionAST::IdentifierExpression:
-    return evaluateIdentifierExpr(Env, static_cast<const IdentifierAST *>(Expr));
+    return evaluateIdentifierExpr(Env,
+                                  static_cast<const IdentifierAST *>(Expr));
   case ExpressionAST::FunctionCallExpression:
-    return evaluateFunctionCallExpr(Env, static_cast<const FunctionCallAST *>(Expr));
+    return evaluateFunctionCallExpr(Env,
+                                    static_cast<const FunctionCallAST *>(Expr));
   case ExpressionAST::BinaryOperatorExpression:
-    //TODO
+    return evaluateBinaryOpExpr(Env,
+                                static_cast<const BinaryOperatorAST *>(Expr));
   case ExpressionAST::UnaryOperatorExpression:
-    //TODO
-    exit(-1);
+    RuntimeError("unimplemented"); //TODO
   }
 }
 
@@ -191,39 +201,74 @@ CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env,
 
 cvm::BasicValue
 CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
-                                     BinaryOperatorAST *Expr) {
-
-  cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
-
+                                     const BinaryOperatorAST *Expr) {
+  // Is it an assignment?
   if (Expr->getOpKind() == Expr->Assign) {
-    const std::string &Id = static_cast<IdentifierAST *>
-                                          (Expr->getLHS())->getName();
-    cvm::BasicValue &Var = searchVariable(Env, Id)->second;
-    if (Var.Type != RHS.Type)
-      RuntimeError("assignment to symbol `" + Id + "' is undefined");
-    return Var = RHS;
+    const std::string &Name =
+        static_cast<IdentifierAST *>(Expr->getLHS())->getName();
+    return evaluateAssignment(Env, Name, Expr->getRHS());
   }
+
   if(Expr->getOpKind() == Expr->Index) {
     RuntimeError("array unimplemented!");
   }
 
   cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
+  cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
+  return evaluateBinaryCalc(Expr->getOpKind(), LHS, RHS);
 }
+
+cvm::BasicValue
+CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
+                                   cvm::BasicValue LHS, cvm::BasicValue RHS) {
+  switch (OpKind) {
+  default:
+    RuntimeError("unknown binary operator kind (code :" +
+        std::to_string(OpKind) + ")");
+  case BinaryOperatorAST::Add:
+    if (LHS.isString() || RHS.isString())
+      return cvm::BasicValue(LHS.toString() + RHS.toString());
+    /* fall Through */
+  case BinaryOperatorAST::Minus:
+  case BinaryOperatorAST::Multiply:
+  case BinaryOperatorAST::Division:
+    return evaluateBinArith(OpKind, LHS, RHS);
+  case BinaryOperatorAST::LogicalAnd:
+  case BinaryOperatorAST::LogicalOr:
+    return evaluateBinLogic(OpKind, LHS, RHS);
+  case BinaryOperatorAST::Less:
+  case BinaryOperatorAST::LessEqual:
+  case BinaryOperatorAST::Equal:
+  case BinaryOperatorAST::Greater:
+  case BinaryOperatorAST::GreaterEqual:
+    return evaluateBinRelation(OpKind, LHS, RHS);
+  case BinaryOperatorAST::BitwiseAnd:
+  case BinaryOperatorAST::BitwiseOr:
+  case BinaryOperatorAST::BitwiseXor:
+  case BinaryOperatorAST::LeftShift:
+  case BinaryOperatorAST::RightShift:
+    return evaluateBinBitwise(OpKind, LHS, RHS);
+  case BinaryOperatorAST::Assign:
+  case BinaryOperatorAST::Index:
+    RuntimeError("assignment/index should be handled in evaluateBinaryOpExpr");
+  }
+}
+
 
 std::map<std::string, cvm::BasicValue>::iterator
 CMMInterpreter::searchVariable(VariableEnv *Env, const std::string &Name) {
   for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
-
     std::map<std::string, cvm::BasicValue>::iterator It = E->VarMap.find(Name);
     if (It != E->VarMap.end())
       return It;
   }
   RuntimeError("variable `" + Name + "' is undefined");
+  return Env->VarMap.end(); // Make the compiler happy.
 }
 
 std::list<cvm::BasicValue>
 CMMInterpreter::evaluateArgumentList(VariableEnv *Env,
-  const std::list<std::unique_ptr<ExpressionAST>> &Args) {
+                                     const std::list<std::unique_ptr<ExpressionAST>> &Args) {
 
   std::list<cvm::BasicValue> Res;
   for (auto &P : Args)
@@ -240,10 +285,11 @@ CMMInterpreter::callNativeFunction(NativeFunction &Function,
 cvm::BasicValue
 CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
                                  std::list<cvm::BasicValue> &Args) {
-  if (Args.size() != Function.getParameterCount())
+  if (Args.size() != Function.getParameterCount()) {
     RuntimeError("Function `" + Function.getName() + "' expects " +
-      std::to_string(Function.getParameterCount()) + " parameter(s), but " +
-      std::to_string(Args.size()) + " argument(s) provided");
+        std::to_string(Function.getParameterCount()) + " parameter(s), " +
+        std::to_string(Args.size()) + " argument(s) provided");
+  }
 
   VariableEnv FuncEnv(&TopLevelEnv);
 
@@ -252,19 +298,38 @@ CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
   for (cvm::BasicValue &Arg : Args) {
     if (ParaIt->getType() != Arg.Type) {
       RuntimeError("in function `" + Function.getName() + "', parameter `" +
-        ParaIt->getName() + "' has type " + cvm::TypeToStr(ParaIt->getType()) +
-        ", but argument has type " + cvm::TypeToStr(Arg.Type));
+          ParaIt->getName() + "' has type " + cvm::TypeToStr(ParaIt->getType()) +
+          ", but argument has type " + cvm::TypeToStr(Arg.Type));
     }
     FuncEnv.VarMap[ParaIt->getName()] = Arg;
     ++ParaIt;
   }
+
   assert(ParaIt == ParaEnd);
-  ExecutionResult Result =
-            executeStatement(&FuncEnv, Function.getStatement());
+
+  ExecutionResult Result = executeStatement(&FuncEnv, Function.getStatement());
   if (Result.ReturnValue.Type != Function.getType()) {
-    RuntimeError("functon `" + Function.getName() + "' ought to return " +
-      cvm::TypeToStr(Function.getType()) + ", but got " +
-      cvm::TypeToStr(Result.ReturnValue.Type));
+    RuntimeError("function `" + Function.getName() + "' ought to return " +
+        cvm::TypeToStr(Function.getType()) + ", but got " +
+        cvm::TypeToStr(Result.ReturnValue.Type));
   }
   return Result.ReturnValue;
+}
+
+cvm::BasicValue
+CMMInterpreter::evaluateAssignment(VariableEnv *Env, const std::string &Name,
+                                   const ExpressionAST *Expr) {
+  cvm::BasicValue &LHS = searchVariable(Env, Name)->second;
+  cvm::BasicValue RHS = evaluateExpression(Env, Expr);
+
+  if (LHS.Type != RHS.Type) {
+    if (LHS.isDouble() && RHS.isInt()) {
+      LHS.DoubleVal = RHS.IntVal;
+      return LHS;
+    } else {
+      RuntimeError("assignment to " + cvm::TypeToStr(LHS.Type) + " variable `" +
+          Name + "' with " + cvm::TypeToStr(RHS.Type) + " expression");
+    }
+  }
+  return LHS = RHS;
 }

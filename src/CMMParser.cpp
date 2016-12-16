@@ -281,7 +281,7 @@ bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
 /// \brief Parse a primary expression and return it.
 ///  primaryExpr ::= parenExpr
 ///  primaryExpr ::= identifierExpr
-///  primaryExpr ::= identifierExpr [Expr]*
+///  primaryExpr ::= identifierExpr ('[' Expr ']')+
 ///  primaryExpr ::= constantExpr
 ///  primaryExpr ::= ~,+,-,! primaryExpr
 bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
@@ -297,13 +297,13 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
     if (parseIdentifierExpression(Res))
       return true;
     while (Lexer.is(Token::LBrac)) {
-      Lex(); // Eat the LBrac.
+      Lex(); // Eat the ']'.
       std::unique_ptr<ExpressionAST> IndexExpr, TmpRHS;
       if (parseExpression(IndexExpr))
         return true;
       if (Lexer.isNot(Token::RBrac))
         return Error("RBrac ']' expected in index expression");
-      Lex(); // Eat the RBrac.
+      Lex(); // Eat the ']'.
       std::swap(Res, TmpRHS);
       Res.reset(new BinaryOperatorAST(
         BinaryOperatorAST::Index, std::move(TmpRHS), std::move(IndexExpr)));
@@ -336,8 +336,8 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     Lex();
     if (parseExpression(RHS))
       return true;
-    Res = BinaryOperatorAST::create(Token::Equal, std::move(Res),
-      std::move(RHS));
+    Res = BinaryOperatorAST::create(Token::Equal,
+                                    std::move(Res), std::move(RHS));
     return false;
   }
   for (;;) {

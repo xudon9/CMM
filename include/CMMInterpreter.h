@@ -7,6 +7,8 @@
 
 namespace cmm {
 class CMMInterpreter {
+
+private:  /* private data types */
   struct ExecutionResult {
     enum ExecutionResultKind {
       NormalStatementResult,
@@ -33,48 +35,68 @@ class CMMInterpreter {
   typedef std::function<cvm::BasicValue(std::list<cvm::BasicValue> &)>
       NativeFunction;
 
-  //typedef cvm::BasicType FunctionType(std::list<Exp)
-  //std::map<std::string, >;
+private:  /*  private member variables  */
   BlockAST &TopLevelBlock;
   std::map<std::string, FunctionDefinitionAST> &UserFunctionMap;
   std::map<std::string, NativeFunction> NativeFunctionMap;
   VariableEnv TopLevelEnv;
 
-public:
+public:   /* public member functions */
   CMMInterpreter(BlockAST &Block,
-                std::map<std::string, FunctionDefinitionAST> &F)
-    : TopLevelBlock(Block), UserFunctionMap(F) {
+                 std::map<std::string, FunctionDefinitionAST> &F)
+      : TopLevelBlock(Block), UserFunctionMap(F) {
     addNativeFunctions();
   }
 
   void interpret();
 
-private:
+private:  /* private member functions */
   void addNativeFunctions();
   void RuntimeError(const std::string &Msg);
 
-  ExecutionResult executeBlock(VariableEnv *, const BlockAST *);
-  ExecutionResult executeStatement(VariableEnv *, const StatementAST *);
-  ExecutionResult executeIfStatement(VariableEnv *, IfStatementAST *);
-  ExecutionResult executeExprStatement(VariableEnv *, const ExprStatementAST *);
-  ExecutionResult executeReturnStatement(VariableEnv *, const ReturnStatementAST *);
-  ExecutionResult executeDeclarationList(VariableEnv *, const DeclarationListAST *);
-  ExecutionResult executeDeclaration(VariableEnv *, const DeclarationAST *);
+  ExecutionResult executeBlock(VariableEnv *Env, const BlockAST *Block);
+  ExecutionResult executeStatement(VariableEnv *Env, const StatementAST *Stmt);
+  ExecutionResult executeIfStatement(VariableEnv *Env, IfStatementAST *IfStmt);
+  ExecutionResult executeExprStatement(VariableEnv *Env,
+                                       const ExprStatementAST *ExprStmt);
+  ExecutionResult executeReturnStatement(VariableEnv *Env,
+                                         const ReturnStatementAST *RetStmt);
+  ExecutionResult executeDeclarationList(VariableEnv *Env,
+                                         const DeclarationListAST *DeclList);
+  ExecutionResult executeDeclaration(VariableEnv *Env,
+                                     const DeclarationAST *Decl);
 
-  cvm::BasicValue evaluateExpression(VariableEnv *Env, const ExpressionAST *Expr);
-  cvm::BasicValue evaluateIdentifierExpr(VariableEnv *Env, const IdentifierAST *Expr);
-  cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env, const FunctionCallAST *);
-  cvm::BasicValue evaluateBinaryOpExpr(VariableEnv *Env, BinaryOperatorAST *Expr);
-  cvm::BasicValue evaluateBinaryOperation(cvm::BasicValue LHS, cvm::BasicValue RHS);
-  cvm::BasicValue evaluateAssignOperation(const std::string &Identifier,
-                                          cvm::BasicValue Value);
-  std::list<cvm::BasicValue> evaluateArgumentList(VariableEnv *Env,
-                         const std::list<std::unique_ptr<ExpressionAST>> &Args);
+  cvm::BasicValue evaluateExpression(VariableEnv *Env,
+                                     const ExpressionAST *Expr);
+  cvm::BasicValue evaluateIdentifierExpr(VariableEnv *Env,
+                                         const IdentifierAST *Expr);
+  cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env,
+                                           const FunctionCallAST *FuncCall);
+  cvm::BasicValue evaluateBinaryOpExpr(VariableEnv *Env,
+                                       const BinaryOperatorAST *Expr);
+  cvm::BasicValue evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
+                                     cvm::BasicValue LHS, cvm::BasicValue RHS);
+  cvm::BasicValue evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
+                                        cvm::BasicValue LHS,
+                                        cvm::BasicValue RHS);
+  cvm::BasicValue evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
+                                     cvm::BasicValue LHS, cvm::BasicValue RHS);
+  cvm::BasicValue evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
+                                      cvm::BasicValue LHS, cvm::BasicValue RHS);
+  cvm::BasicValue evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,
+                                     cvm::BasicValue LHS, cvm::BasicValue RHS);
+
+
+  std::list<cvm::BasicValue>
+  evaluateArgumentList(VariableEnv *Env,
+                       const std::list<std::unique_ptr<ExpressionAST>> &Args);
 
   cvm::BasicValue callNativeFunction(NativeFunction &Function,
                                      std::list<cvm::BasicValue> &Args);
   cvm::BasicValue callUserFunction(FunctionDefinitionAST &Function,
-                                     std::list<cvm::BasicValue> &Args);
+                                   std::list<cvm::BasicValue> &Args);
+  cvm::BasicValue evaluateAssignment(VariableEnv *Env, const std::string &Name,
+                                     const ExpressionAST *Expr);
 
   std::map<std::string, cvm::BasicValue>::iterator
   searchVariable(VariableEnv *Env, const std::string &Name);

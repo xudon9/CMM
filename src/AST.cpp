@@ -1,4 +1,5 @@
 #include "AST.h"
+#include <string>
 
 namespace cvm {
 int BasicValue::toInt() const {
@@ -45,7 +46,7 @@ std::string BasicValue::toString() const {
 
 using namespace cmm;
 
-const char *cvm::TypeToStr(BasicType Type) {
+const std::string cvm::TypeToStr(BasicType Type) {
   switch (Type) {
   case BoolType:    return "bool";
   case IntType:     return "int";

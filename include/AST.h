@@ -13,7 +13,7 @@
 ///code.h
 namespace cvm {
 enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
-const char *TypeToStr(BasicType Type);
+const std::string TypeToStr(BasicType Type);
 
 struct BasicValue {
   BasicType Type;
@@ -25,24 +25,18 @@ struct BasicValue {
     bool BoolVal;
   };
 
+  BasicValue() : Type(VoidType) {}
   BasicValue(const std::string &S) : Type(StringType), StrVal(S) {}
   BasicValue(int I) : Type(IntType), IntVal(I) {}
   BasicValue(double D) : Type(DoubleType), DoubleVal(D) {}
   BasicValue(bool B) : Type(BoolType), BoolVal(B) {}
-  BasicValue() : Type(VoidType) {}
+
   BasicValue(BasicType T) : Type(T) {
     switch (Type) {
-    default:
-      break;
-    case cvm::BoolType:
-      BoolVal = false;
-      break;
-    case cvm::IntType:
-      IntVal = 0;
-      break;
-    case cvm::DoubleType:
-      DoubleVal = 0.0;
-      break;
+    default: break;
+    case cvm::BoolType:   BoolVal = false;  break;
+    case cvm::IntType:    IntVal = 0;       break;
+    case cvm::DoubleType: DoubleVal = 0.0;  break;
     }
   }
 
@@ -256,10 +250,10 @@ public:
 class BinaryOperatorAST : public ExpressionAST {
 public:
   enum OperatorKind {
-    Add, Minus, Multiply, Division, Modulo,
-    LogicalAnd, LogicalOr,
-    Less, LessEqual, Equal, Greater, GreaterEqual,
-    BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift,
+    Add, Minus, Multiply, Division, Modulo,   /* arithmetic */
+    LogicalAnd, LogicalOr,                    /* logical */
+    Less, LessEqual, Equal, Greater, GreaterEqual, /* relational */
+    BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift, /* bitwise */
     Assign /**, Comma**/, Index
   };
 private:
