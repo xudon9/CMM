@@ -4,30 +4,17 @@
 using namespace cmm;
 
 void CMMInterpreter::interpret() {
-  ExecutionResult Res;
-
-  //for (auto &Statement : TopLevelBlock.getStatementList()) {
-  //  Res = executeStatement(&TopLevelEnv, Statement.get());
-  //  if (Res.Kind != ExecutionResult::NormalStatementResult) {
-  //    // ERROR TODO
-  //    break;
-  //  }
-  //}
-  auto Begin = TopLevelBlock.getStatementList().cbegin();
-  auto End = TopLevelBlock.getStatementList().cend();
-  for (auto I = Begin; I != End; ++I) {
-    assert(I->get() != nullptr);
-    /*Res =*/ executeStatement(&TopLevelEnv, I->get());
-    std::cerr << "ok" << std::endl;
-    /*if (Res.Kind != ExecutionResult::NormalStatementResult) {
-      assert(0 && "Kind");
+  for (auto &Stmt : TopLevelBlock.getStatementList()) {
+    ExecutionResult Res = executeStatement(&TopLevelEnv, Stmt.get());
+    if (Res.Kind != ExecutionResult::NormalStatementResult) {
+      // ERROR todo
       break;
-    }*/
+    }
   }
 }
 
 void CMMInterpreter::addNativeFunctions() {
-  NativeFunctionMap["puts"] = [](std::list<cvm::BasicValue> Args)
+  NativeFunctionMap["puts"] = [](std::list<cvm::BasicValue> &Args)
     -> cvm::BasicValue {
     for (auto &V : Args) {
       std::cout << V.toString() << " ";
@@ -81,6 +68,7 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   if (Res.Kind != ExecutionResult::NormalStatementResult) {
     //todo
   }
+  return Res;
 }
 
 CMMInterpreter::ExecutionResult

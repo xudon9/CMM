@@ -26,7 +26,7 @@ class CMMInterpreter {
     VariableEnv(VariableEnv *OuterEnv = nullptr) : OuterEnv(OuterEnv) {}
   };
 
-  typedef std::function<cvm::BasicValue(std::list<cvm::BasicValue>)>
+  typedef std::function<cvm::BasicValue(std::list<cvm::BasicValue> &)>
       NativeFunction;
 
   //typedef cvm::BasicType FunctionType(std::list<Exp)
