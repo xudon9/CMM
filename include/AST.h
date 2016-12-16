@@ -30,6 +30,21 @@ struct BasicValue {
   BasicValue(double D) : Type(DoubleType), DoubleVal(D) {}
   BasicValue(bool B) : Type(BoolType), BoolVal(B) {}
   BasicValue() : Type(VoidType) {}
+  BasicValue(BasicType T) : Type(T) {
+    switch (Type) {
+    default:
+      break;
+    case cvm::BoolType:
+      BoolVal = false;
+      break;
+    case cvm::IntType:
+      IntVal = 0;
+      break;
+    case cvm::DoubleType:
+      DoubleVal = 0.0;
+      break;
+    }
+  }
 
   bool isInt() const { return Type == IntType; }
   bool isDouble() const { return Type == DoubleType; }
@@ -339,8 +354,12 @@ public:
     , ElementCountList(std::move(ElementCountList)) {}
 
   bool isArray() const { return !ElementCountList.empty(); }
+
   const std::string &getName() const { return Name; }
+
   cvm::BasicType getType() const { return Type; }
+
+  const ExpressionAST *getInitializer() const { return Initializer.get(); }
 
   void dump(const std::string &prefix = "") const override {
     std::cout << cvm::TypeToStr(Type) << " " << Name << std::endl;
@@ -367,11 +386,16 @@ class DeclarationListAST : public StatementAST {
 public:
   DeclarationListAST(cvm::BasicType Type)
     : StatementAST(DeclarationListStatement), Type(Type) {}
+
   void addDeclaration(const std::string &Name,
                       std::unique_ptr<ExpressionAST> I,
                       std::list<std::unique_ptr<ExpressionAST>> C) {
     DeclarationList.emplace_back(new DeclarationAST(Name, Type, std::move(I),
                                                                 std::move(C)));
+  }
+
+  const std::list<std::unique_ptr<DeclarationAST>> &getDeclarationList() const {
+    return DeclarationList;
   }
 
   void dump(const std::string &prefix = "") const override {
@@ -435,7 +459,7 @@ public:
   ExprStatementAST(std::unique_ptr<ExpressionAST> Expression)
     : StatementAST(ExprStatement), Expression(std::move(Expression)) {}
 
-  ExpressionAST *getExpression() const { return Expression.get(); }
+  const ExpressionAST *getExpression() const { return Expression.get(); }
 
   void dump(const std::string &prefix) const override {
     std::cout << "(ExprStmt)" << std::endl;
@@ -565,6 +589,8 @@ class ReturnStatementAST : public StatementAST {
 public:
   ReturnStatementAST(std::unique_ptr<ExpressionAST> ReturnValue)
     : StatementAST(ReturnStatement), ReturnValue(std::move(ReturnValue)) {}
+
+  const ExpressionAST *getReturnValue() const { return ReturnValue.get(); }
 
   void dump(const std::string &prefix = "") const override {
     std::cout << "return" << std::endl;

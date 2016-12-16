@@ -15,6 +15,7 @@ void CMMInterpreter::interpret() {
 void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["print"] = cvm::NativePrint;
   NativeFunctionMap["println"] = cvm::NativePrintln;
+  NativeFunctionMap["system"] = cvm::NativeSystem;
 }
 
 void CMMInterpreter::RuntimeError(const std::string &Msg) {
@@ -44,7 +45,8 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
     RuntimeError("unknown statement kind");
     break;
   case StatementAST::ExprStatement:
-    Res = executeExprStatement(Env, static_cast<const ExprStatementAST *>(Stmt));
+    Res = executeExprStatement(Env,
+                               static_cast<const ExprStatementAST *>(Stmt));
     break;
   case StatementAST::BlockStatement:
     Res = executeBlock(Env, static_cast<const BlockAST *>(Stmt));
@@ -52,12 +54,16 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   case StatementAST::IfStatement:
     //Res = executeIfStatement(Env, static_cast<const IfStatementAST *>(Stmt));
     break;
+  case StatementAST::ReturnStatement:
+    Res = executeReturnStatement(Env,
+                                 static_cast<const ReturnStatementAST *>(Stmt));
+    break;
   case StatementAST::WhileStatement:
   case StatementAST::ForStatement:
-  case StatementAST::ReturnStatement:
   case StatementAST::ContinueStatement:
   case StatementAST::BreakStatement:
-  //case StatementAST::DeclarationStatement:
+  case StatementAST::DeclarationStatement:
+    RuntimeError("single declaration should not be used by user");
   case StatementAST::DeclarationListStatement:
     RuntimeError("unimplemented stmt kind!");
   }
@@ -81,6 +87,54 @@ CMMInterpreter::executeExprStatement(VariableEnv *Env,
   return ExecutionResult();
 }
 
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeReturnStatement(VariableEnv *Env,
+                                       const ReturnStatementAST *Stmt) {
+  ExecutionResult Res(ExecutionResult::ReturnStatementResult);
+  if (auto ReturnValueExpr = Stmt->getReturnValue())
+    Res.ReturnValue = evaluateExpression(Env, ReturnValueExpr);
+  return Res;
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeDeclarationList(VariableEnv *Env,
+                                       const DeclarationListAST *DeclList) {
+  for (auto &Decl : DeclList->getDeclarationList()) {
+    executeDeclaration(Env, Decl.get());
+  }
+  return ExecutionResult();
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeDeclaration(VariableEnv *Env,
+                                   const DeclarationAST *Decl) {
+  const std::string& Name = Decl->getName();
+
+  if (Env->contains(Name)) {
+    RuntimeError("variable `" + Decl->getName() +
+                 "' is already defined in current scope");
+  }
+
+  if (Decl->isArray()) {
+    RuntimeError("unimplemented!");
+  }
+
+  // Now it's a normal variable.
+  if (Decl->getInitializer()) {
+    cvm::BasicValue Val = evaluateExpression(Env, Decl->getInitializer());
+    if (Val.Type != Decl->getType()) {
+      RuntimeError("variable `" + Name + "' is declared to be " +
+        cvm::TypeToStr(Decl->getType()) + ", but is initialized to be " +
+        cvm::TypeToStr(Val.Type));
+    }
+    Env->VarMap.emplace(std::make_pair(Name, Val));
+  } else {
+    Env->VarMap.emplace(std::make_pair(Name, cvm::BasicType(Decl->getType())));
+  }
+
+  return ExecutionResult();
+}
+
 cvm::BasicValue
 CMMInterpreter::evaluateExpression(VariableEnv *Env, const ExpressionAST *Expr) {
   cvm::BasicValue Value;
@@ -99,9 +153,8 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env, const ExpressionAST *Expr) 
     return cvm::BasicValue(static_cast<const StringAST *>(Expr)->getValue());
   case ExpressionAST::IdentifierExpression:
     return evaluateIdentifierExpr(Env, static_cast<const IdentifierAST *>(Expr));
-  case ExpressionAST::FunctionCallExpression: {
+  case ExpressionAST::FunctionCallExpression:
     return evaluateFunctionCallExpr(Env, static_cast<const FunctionCallAST *>(Expr));
-  }
   case ExpressionAST::BinaryOperatorExpression:
     //TODO
   case ExpressionAST::UnaryOperatorExpression:
@@ -151,7 +204,7 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
     return Var = RHS;
   }
   if(Expr->getOpKind() == Expr->Index) {
-    RuntimeError("array implemented!");
+    RuntimeError("array unimplemented!");
   }
 
   cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
