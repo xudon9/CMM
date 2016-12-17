@@ -21,6 +21,7 @@ static int hexDigitValue(int C) {
   return C - '0';
 }
 
+/*
 static void UnEscapeLexed(std::string &Str) {
   if (Str.empty()) return;
 
@@ -46,6 +47,36 @@ static void UnEscapeLexed(std::string &Str) {
     }
   }
   Str.resize(BOut - Buffer);
+}
+ */
+
+static void UnEscapeLexed(std::string &Str) {
+  std::string Out;
+  Out.reserve(Str.size());
+
+  auto It = Str.cbegin(), End = Str.cend();
+  while (It != End) {
+    char C = *It++;
+    if (C == '\\' && It != End) {
+      switch (*It++) {
+      default:    continue; // Ignore invalid escaping.
+      case 'a':   C = '\a'; break;
+      case 'b':   C = '\b'; break;
+      case 'f':   C = '\f'; break;
+      case 'n':   C = '\n'; break;
+      case 'r':   C = '\r'; break;
+      case 't':   C = '\t'; break;
+      case 'v':   C = '\v'; break;
+      case '?':   C = '\?'; break;
+      case '0':   C = '\0'; break;
+      case '\\':  C = '\\'; break;
+      case '\'':  C = '\''; break;
+      case '\"':  C = '\"'; break;
+      }
+    }
+    Out.push_back(C);
+  }
+  Str.swap(Out);
 }
 
 Token CMMLexer::LexToken() {
@@ -261,4 +292,3 @@ int CMMLexer::getNextChar() {
 void CMMLexer::ungetChar() {
   SrcMgr.unget();
 }
-
