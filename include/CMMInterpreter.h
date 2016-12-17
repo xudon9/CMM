@@ -28,7 +28,9 @@ private:  /* private data types */
   public:
     VariableEnv(VariableEnv *OuterEnv = nullptr) : OuterEnv(OuterEnv) {}
 
-    bool contains(const std::string &Name) const { return VarMap.count(Name); }
+    bool contains(const std::string &Name) const {
+      return VarMap.count(Name) > 0;
+    }
   };
 
   typedef cvm::BasicValue (*NativeFunction)(std::list<cvm::BasicValue> &);

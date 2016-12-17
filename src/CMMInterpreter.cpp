@@ -79,7 +79,13 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeIfStatement(VariableEnv *Env,
   const IfStatementAST *Stmt) {
-  // todo
+
+  if (evaluateExpression(Env, Stmt->getCondition()).toBool()) {
+    return executeStatement(Env, Stmt);
+  }
+  if (auto StatementElse = Stmt->getStatementElse()) {
+    return executeStatement(Env, StatementElse);
+  }
   return ExecutionResult();
 }
 

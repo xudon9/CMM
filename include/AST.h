@@ -530,6 +530,10 @@ public:
     , StatementThen(std::move(StatementThen))
     , StatementElse(std::move(StatementElse)) {}
 
+  const ExpressionAST *getCondition() const { return Condition.get(); }
+  const StatementAST *getStatementThen() const { return StatementThen.get(); }
+  const StatementAST *getStatementElse() const { return StatementElse.get(); }
+
   void dump(const std::string &prefix = "") const override {
     std::cout << "if" << std::endl;
     std::cout << prefix << "|---";

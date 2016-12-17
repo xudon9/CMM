@@ -49,7 +49,7 @@ bool BasicValue::operator<(const BasicValue &RHS) const {
     case BoolType:
       return !BoolVal && RHS.BoolVal;
     case IntType:
-      return IntVal < RHS.BoolVal;
+      return IntVal < RHS.IntVal;
     case DoubleType:
       return DoubleVal < RHS.DoubleVal;
     case StringType:
