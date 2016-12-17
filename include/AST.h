@@ -252,9 +252,6 @@ public:
   }
 };
 
-// Unary operator
-//class CastAST : public ExpressionAST {};
-
 class BinaryOperatorAST : public ExpressionAST {
 public:
   enum OperatorKind {
@@ -551,7 +548,6 @@ public:
 };
 
 class WhileStatementAST : public StatementAST {
-  // char *label? TODO
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
 public:
@@ -561,6 +557,8 @@ public:
     , Condition(std::move(Condition))
     , Statement(std::move(Statement)) {}
 
+  const ExpressionAST *getCondition() const { return Condition.get(); }
+  const StatementAST *getStatement() const { return Statement.get(); }
 
   void dump(const std::string &prefix) const override {
     std::cout << "while" << std::endl;

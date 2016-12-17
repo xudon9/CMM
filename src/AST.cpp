@@ -70,7 +70,7 @@ bool BasicValue::operator==(const BasicValue &RHS) const {
     case BoolType:
       return BoolVal == RHS.BoolVal;
     case IntType:
-      return IntVal == RHS.BoolVal;
+      return IntVal == RHS.IntVal;
     case DoubleType:
       return DoubleVal == RHS.DoubleVal;
     case StringType:
@@ -91,7 +91,7 @@ bool BasicValue::operator>(const BasicValue &RHS) const {
 }
 
 bool BasicValue::operator>=(const BasicValue &RHS) const {
-  // L >= R  <==>  not L < R;
+  // L >= R  <===>  not L < R;
   return !(*this < RHS);
 }
 }
@@ -105,7 +105,7 @@ std::string cvm::TypeToStr(BasicType Type) {
   case DoubleType:  return "double";
   case StringType:  return "string";
   case VoidType:    return "void";
-  default:          return "UnkownType";
+  default:          return "UnknownType";
   }
 }
 

@@ -58,6 +58,12 @@ private:  /* private member functions */
   ExecutionResult executeStatement(VariableEnv *Env, const StatementAST *Stmt);
   ExecutionResult executeIfStatement(VariableEnv *Env,
                                      const IfStatementAST *IfStmt);
+  ExecutionResult executeWhileStatement(VariableEnv *Env,
+                                        const WhileStatementAST *WhileStmt);
+  ExecutionResult executeBreakStatement(VariableEnv *Env,
+                                        const BreakStatementAST *BreakStmt);
+  ExecutionResult executeContinueStatement(VariableEnv *Env,
+                                           const ContinueStatementAST *ContStmt);
   ExecutionResult executeExprStatement(VariableEnv *Env,
                                        const ExprStatementAST *ExprStmt);
   ExecutionResult executeReturnStatement(VariableEnv *Env,

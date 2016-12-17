@@ -59,9 +59,20 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
                                  static_cast<const ReturnStatementAST *>(Stmt));
     break;
   case StatementAST::WhileStatement:
+    Res = executeWhileStatement(Env,
+                                static_cast<const WhileStatementAST *>(Stmt));
+    break;
   case StatementAST::ForStatement:
+    RuntimeError("TODO: unimplemented");
   case StatementAST::ContinueStatement:
+    Res = executeContinueStatement(Env,
+                                   static_cast<const ContinueStatementAST *>
+                                   (Stmt));
+    break;
   case StatementAST::BreakStatement:
+    Res = executeBreakStatement(Env,
+                                static_cast<const BreakStatementAST *>(Stmt));
+    break;
   case StatementAST::DeclarationStatement:
     RuntimeError("single declaration should not be used by user");
   case StatementAST::DeclarationListStatement:
@@ -78,13 +89,30 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
 
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeIfStatement(VariableEnv *Env,
-  const IfStatementAST *Stmt) {
+                                   const IfStatementAST *Stmt) {
 
   if (evaluateExpression(Env, Stmt->getCondition()).toBool()) {
-    return executeStatement(Env, Stmt);
+    return executeStatement(Env, Stmt->getStatementThen());
   }
   if (auto StatementElse = Stmt->getStatementElse()) {
     return executeStatement(Env, StatementElse);
+  }
+  return ExecutionResult();
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeWhileStatement(VariableEnv *Env,
+                                      const WhileStatementAST *WhileStmt) {
+  const ExpressionAST *Condition = WhileStmt->getCondition();
+  const StatementAST *Statement = WhileStmt->getStatement();
+
+  while (evaluateExpression(Env, Condition).toBool()) {
+    ExecutionResult Res = executeStatement(Env, Statement);
+
+    if (Res.Kind == Res.ReturnStatementResult)
+      return Res;
+    if (Res.Kind == Res.BreakStatementResult)
+      break;
   }
   return ExecutionResult();
 }
@@ -100,9 +128,23 @@ CMMInterpreter::ExecutionResult
 CMMInterpreter::executeReturnStatement(VariableEnv *Env,
                                        const ReturnStatementAST *Stmt) {
   ExecutionResult Res(ExecutionResult::ReturnStatementResult);
-  if (auto ReturnValueExpr = Stmt->getReturnValue())
+
+  // ReturnValueExpr can be null.
+  if (const ExpressionAST *ReturnValueExpr = Stmt->getReturnValue())
     Res.ReturnValue = evaluateExpression(Env, ReturnValueExpr);
   return Res;
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeBreakStatement(VariableEnv *,
+                                      const BreakStatementAST *) {
+  return ExecutionResult(ExecutionResult::BreakStatementResult);
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeContinueStatement(VariableEnv *Env,
+                                         const ContinueStatementAST *ContStmt) {
+  return ExecutionResult(ExecutionResult::ContinueStatementResult);
 }
 
 CMMInterpreter::ExecutionResult
@@ -209,7 +251,7 @@ CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env,
 
 cvm::BasicValue
 CMMInterpreter::evaluateUnaryOpExpr(VariableEnv *Env,
-  const UnaryOperatorAST *Expr) {
+                                    const UnaryOperatorAST *Expr) {
 
   cvm::BasicValue Operand = evaluateExpression(Env, Expr->getOperand());
 
@@ -230,10 +272,10 @@ CMMInterpreter::evaluateUnaryOpExpr(VariableEnv *Env,
   }
 }
 
-
+/// \brief Perform unary arithmetic operation (+,-) on value
 cvm::BasicValue
 CMMInterpreter::evaluateUnaryArith(UnaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue Operand) {
+                                   cvm::BasicValue Operand) {
   if (!Operand.isNumeric()) {
     RuntimeError("operands of unary arithmetic operations should be numeric");
   }
@@ -247,24 +289,27 @@ CMMInterpreter::evaluateUnaryArith(UnaryOperatorAST::OperatorKind OpKind,
   }
 
   RuntimeError(std::to_string(OpKind) +
-    " is not valid unary arithmetic operation kind");
+      " is not valid unary arithmetic operation kind");
+  return cvm::BasicValue(); // Make the compiler happy.
 }
 
+/// \brief Perform unary bitwise operation (!) on value
 cvm::BasicValue
 CMMInterpreter::evaluateUnaryLogical(UnaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue Operand) {
+                                     cvm::BasicValue Operand) {
   if (OpKind != UnaryOperatorAST::LogicalNot) {
-      RuntimeError(std::to_string(OpKind) +
+    RuntimeError(std::to_string(OpKind) +
         " is not valid unary logical operation kind");
   }
   return cvm::BasicValue(!Operand.toBool());
 }
 
+/// \brief Perform unary bitwise operation (~) on value
 cvm::BasicValue
 CMMInterpreter::evaluateUnaryBitwise(UnaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue Operand) {
+                                     cvm::BasicValue Operand) {
   if (OpKind != UnaryOperatorAST::BitwiseNot) {
-      RuntimeError(std::to_string(OpKind) +
+    RuntimeError(std::to_string(OpKind) +
         " is not valid unary bitwise operation kind");
   }
   if (!Operand.isInt()) {
@@ -327,12 +372,13 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Index:
     RuntimeError("assignment/index should be handled in evaluateBinaryOpExpr");
   }
+  return cvm::BasicValue(); // Make the compiler happy.
 }
 
 /// \brief Perform binary arithmetic operation (+,-,*,/) on values
 cvm::BasicValue
 CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue LHS, cvm::BasicValue RHS) {
+                                 cvm::BasicValue LHS, cvm::BasicValue RHS) {
   if (!LHS.isNumeric() || !RHS.isNumeric()) {
     RuntimeError("operands of binary arithmetic operations should be numeric");
   }
@@ -341,7 +387,7 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
     switch (OpKind) {
     default:
       RuntimeError(std::to_string(OpKind) +
-        " is not valid binary arithmetic operation kind");
+          " is not valid binary arithmetic operation kind");
     case BinaryOperatorAST::Add:
       return cvm::BasicValue(LHS.IntVal + RHS.IntVal);
     case BinaryOperatorAST::Minus:
@@ -362,7 +408,7 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
   switch (OpKind) {
   default:
     RuntimeError(std::to_string(OpKind) +
-      " is not a valid binary arithmetic operation kind");
+        " is not a valid binary arithmetic operation kind");
   case BinaryOperatorAST::Add:
     return cvm::BasicValue(L + R);
   case BinaryOperatorAST::Minus:
@@ -374,16 +420,17 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Modulo:
     RuntimeError("operands of modulo operator should be int");
   }
+  return cvm::BasicValue(); // Make the compiler happy.
 }
 
 /// \brief Perform binary arithmetic operation (&&, ||) on values
 cvm::BasicValue
 CMMInterpreter::evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue LHS, cvm::BasicValue RHS) {
+                                 cvm::BasicValue LHS, cvm::BasicValue RHS) {
   switch (OpKind) {
   default:
     RuntimeError(std::to_string(OpKind) +
-      " is not a valid binary logical operation kind");
+        " is not a valid binary logical operation kind");
   case BinaryOperatorAST::LogicalAnd:
     return cvm::BasicValue(LHS.toBool() && RHS.toBool());
   case BinaryOperatorAST::LogicalOr:
@@ -391,10 +438,10 @@ CMMInterpreter::evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
   }
 }
 
-/// \brief Perform binary relational operation (<, <=, ==, >, >=) on values
+/// \brief Perform binary relational operation (<, <=, ==, !=, >, >=) on values
 cvm::BasicValue
 CMMInterpreter::evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue LHS, cvm::BasicValue RHS) {
+                                    cvm::BasicValue LHS, cvm::BasicValue RHS) {
   if (LHS.Type != RHS.Type) {
     if (LHS.isNumeric() && RHS.isNumeric()) {
       cvm::BasicValue L(LHS.toDouble()), R(RHS.toDouble());
@@ -406,7 +453,7 @@ CMMInterpreter::evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
   switch (OpKind) {
   default:
     RuntimeError(std::to_string(OpKind) +
-      " is not a valid binary relational operation kind");
+        " is not a valid binary relational operation kind");
   case cmm::BinaryOperatorAST::Less:
     return cvm::BasicValue(LHS < RHS);
   case cmm::BinaryOperatorAST::LessEqual:
@@ -425,7 +472,7 @@ CMMInterpreter::evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
 /// \brief Perform binary bitwise operation (<<,>>,&,|) on values
 cvm::BasicValue
 CMMInterpreter::evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,
-  cvm::BasicValue LHS, cvm::BasicValue RHS) {
+                                   cvm::BasicValue LHS, cvm::BasicValue RHS) {
   if (!LHS.isInt() || !RHS.isInt()) {
     RuntimeError("operands of bitwise operations should be int");
   }
@@ -433,7 +480,7 @@ CMMInterpreter::evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,
   switch (OpKind) {
   default:
     RuntimeError(std::to_string(OpKind) +
-      " is not a valid binary bitwise operation kind");
+        " is not a valid binary bitwise operation kind");
   case cmm::BinaryOperatorAST::BitwiseAnd:
     return cvm::BasicValue(LHS.IntVal & RHS.IntVal);
   case cmm::BinaryOperatorAST::BitwiseOr:
