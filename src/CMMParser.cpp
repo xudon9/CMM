@@ -450,19 +450,19 @@ bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
     return Error("left parenthesis expected in for loop");
   Lex();  // eat the LParen '('.
 
-  if (parseExpression(Init))
+  if (Lexer.isNot(Token::Semicolon) && parseExpression(Init))
     return true;
   if (Lexer.isNot(Token::Semicolon))
     return Error("missing semicolon for initial expression in for loop");
   Lex();  // eat the semicolon.
 
-  if (parseExpression(Condition))
+  if (Lexer.isNot(Token::Semicolon) && parseExpression(Condition))
     return true;
   if (Lexer.isNot(Token::Semicolon))
     return Error("missing semicolon for conditional expression in for loop");
   Lex();  // eat the semicolon.
 
-  if (parseExpression(Post))
+  if (Lexer.isNot(Token::RParen) && parseExpression(Post))
     return true;
   if (Lexer.isNot(Token::RParen))
     return Error("missing semicolon for post expression in for loop");

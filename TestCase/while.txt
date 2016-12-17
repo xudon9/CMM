@@ -1,0 +1,9 @@
+int i = 0;
+
+break;
+
+while (true) {
+    println(i = i + 1);
+    if (i > 5)
+        break;
+}

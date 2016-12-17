@@ -583,11 +583,22 @@ public:
     , Init(std::move(Init)), Condition(std::move(Condition))
     , Post(std::move(Post)), Statement(std::move(Statement)) {}
 
+  const ExpressionAST *getInit() const { return Init.get(); }
+  const ExpressionAST *getCondition() const { return Condition.get(); }
+  const ExpressionAST *getPost() const { return Post.get(); }
+  const StatementAST *getStatement() const { return Statement.get(); }
+
   void dump(const std::string &prefix) const override {
     std::cout << "for" << std::endl;
-    std::cout << prefix << "|---"; Init->dump(prefix + "|   ");
-    std::cout << prefix << "|---"; Condition->dump(prefix + "|   ");
-    std::cout << prefix << "|---"; Post->dump(prefix + "|   ");
+    if (Init) {
+      std::cout << prefix << "|--<"; Init->dump(prefix + "|   ");
+    }
+    if (Condition) {
+      std::cout << prefix << "|--*"; Condition->dump(prefix + "|   ");
+    }
+    if (Post) {
+      std::cout << prefix << "|-->"; Post->dump(prefix + "|   ");
+    }
     std::cout << prefix << "`---"; Statement->dump(prefix + "    ");
   }
 };

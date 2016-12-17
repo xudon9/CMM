@@ -60,6 +60,8 @@ private:  /* private member functions */
                                      const IfStatementAST *IfStmt);
   ExecutionResult executeWhileStatement(VariableEnv *Env,
                                         const WhileStatementAST *WhileStmt);
+  ExecutionResult executeForStatement(VariableEnv *Env,
+                                      const ForStatementAST *ForStmt);
   ExecutionResult executeBreakStatement(VariableEnv *Env,
                                         const BreakStatementAST *BreakStmt);
   ExecutionResult executeContinueStatement(VariableEnv *Env,

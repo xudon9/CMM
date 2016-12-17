@@ -1,7 +1,8 @@
-int i = 0;
+int i;
 
-while (i < 10) {
-    print(i);
-    i = i + 1;
+for (i = 0;; i=i+1) {
+    println(i);
+    if (i > 10) break;
 }
+
 println();

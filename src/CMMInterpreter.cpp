@@ -63,7 +63,8 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
                                 static_cast<const WhileStatementAST *>(Stmt));
     break;
   case StatementAST::ForStatement:
-    RuntimeError("TODO: unimplemented");
+    Res = executeForStatement(Env, static_cast<const ForStatementAST *>(Stmt));
+    break;
   case StatementAST::ContinueStatement:
     Res = executeContinueStatement(Env,
                                    static_cast<const ContinueStatementAST *>
@@ -90,12 +91,36 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeIfStatement(VariableEnv *Env,
                                    const IfStatementAST *Stmt) {
-
   if (evaluateExpression(Env, Stmt->getCondition()).toBool()) {
     return executeStatement(Env, Stmt->getStatementThen());
   }
-  if (auto StatementElse = Stmt->getStatementElse()) {
+  if (const StatementAST *StatementElse = Stmt->getStatementElse()) {
     return executeStatement(Env, StatementElse);
+  }
+  return ExecutionResult();
+}
+
+CMMInterpreter::ExecutionResult
+CMMInterpreter::executeForStatement(VariableEnv *Env,
+                                    const ForStatementAST *ForStmt) {
+  const ExpressionAST *Condition = ForStmt->getCondition();
+  const ExpressionAST *Post = ForStmt->getPost();
+  const StatementAST *Statement = ForStmt->getStatement();
+
+  if (const ExpressionAST *Init = ForStmt->getInit()) {
+    evaluateExpression(Env, Init);
+  }
+
+  while (!Condition || evaluateExpression(Env, Condition).toBool()) {
+    ExecutionResult Res = executeStatement(Env, Statement);
+
+    if (Res.Kind == Res.ReturnStatementResult)
+      return Res;
+    if (Res.Kind == Res.BreakStatementResult)
+      break;
+
+    if (Post)
+      evaluateExpression(Env, Post);
   }
   return ExecutionResult();
 }
