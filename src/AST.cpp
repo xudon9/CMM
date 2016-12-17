@@ -42,11 +42,63 @@ std::string BasicValue::toString() const {
   }
 }
 
+bool BasicValue::operator<(const BasicValue &RHS) const {
+  if (Type != RHS.Type)
+    return false;
+  switch (Type) {
+    case BoolType:
+      return !BoolVal && RHS.BoolVal;
+    case IntType:
+      return IntVal < RHS.BoolVal;
+    case DoubleType:
+      return DoubleVal < RHS.DoubleVal;
+    case StringType:
+      return StrVal < RHS.StrVal;
+    default:
+      return false;
+  }
+}
+
+bool BasicValue::operator<=(const BasicValue &RHS) const {
+  return *this < RHS || *this == RHS;
+}
+
+bool BasicValue::operator==(const BasicValue &RHS) const {
+  if (Type != RHS.Type)
+    return false;
+  switch (Type) {
+    case BoolType:
+      return BoolVal == RHS.BoolVal;
+    case IntType:
+      return IntVal == RHS.BoolVal;
+    case DoubleType:
+      return DoubleVal == RHS.DoubleVal;
+    case StringType:
+      return StrVal == RHS.StrVal;
+    case VoidType:
+      return true;
+    default:
+      return false;
+  }
+}
+
+bool BasicValue::operator!=(const BasicValue &RHS) const {
+  return !(*this == RHS);
+}
+
+bool BasicValue::operator>(const BasicValue &RHS) const {
+  return RHS < *this;
+}
+
+bool BasicValue::operator>=(const BasicValue &RHS) const {
+  // L >= R  <==>  not L < R;
+  return !(*this < RHS);
+}
 }
 
 using namespace cmm;
 
-const std::string cvm::TypeToStr(BasicType Type) {
+std::string cvm::TypeToStr(BasicType Type) {
   switch (Type) {
   case BoolType:    return "bool";
   case IntType:     return "int";
@@ -74,6 +126,7 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   case Token::Less:           OpKind = BinaryOperatorAST::Less; break;
   case Token::LessEqual:      OpKind = BinaryOperatorAST::LessEqual; break;
   case Token::EqualEqual:     OpKind = BinaryOperatorAST::Equal; break;
+  case Token::ExclaimEqual:   OpKind = BinaryOperatorAST::NotEqual; break;
   case Token::GreaterEqual:   OpKind = BinaryOperatorAST::GreaterEqual; break;
   case Token::Greater:        OpKind = BinaryOperatorAST::Greater; break;
   case Token::Amp:            OpKind = BinaryOperatorAST::BitwiseAnd; break;

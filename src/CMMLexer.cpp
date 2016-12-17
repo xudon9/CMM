@@ -98,9 +98,9 @@ Token CMMLexer::LexToken() {
     return Token::EqualEqual;
   case '!':
     if (peekNextChar() != '=')
-      return Token::ExclaimEqual;
+      return Token::Exclaim;
     getNextChar();
-    return Token::Exclaim;
+    return Token::ExclaimEqual;
   case '&':
     if (peekNextChar() != '&')
       return Token::Amp;

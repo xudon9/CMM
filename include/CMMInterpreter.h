@@ -3,7 +3,6 @@
 
 #include "AST.h"
 #include <map>
-#include <functional>
 
 namespace cmm {
 class CMMInterpreter {
@@ -32,8 +31,7 @@ private:  /* private data types */
     bool contains(const std::string &Name) const { return VarMap.count(Name); }
   };
 
-  typedef std::function<cvm::BasicValue(std::list<cvm::BasicValue> &)>
-      NativeFunction;
+  typedef cvm::BasicValue (*NativeFunction)(std::list<cvm::BasicValue> &);
 
 private:  /*  private member variables  */
   BlockAST &TopLevelBlock;
@@ -56,7 +54,8 @@ private:  /* private member functions */
 
   ExecutionResult executeBlock(VariableEnv *Env, const BlockAST *Block);
   ExecutionResult executeStatement(VariableEnv *Env, const StatementAST *Stmt);
-  ExecutionResult executeIfStatement(VariableEnv *Env, IfStatementAST *IfStmt);
+  ExecutionResult executeIfStatement(VariableEnv *Env,
+                                     const IfStatementAST *IfStmt);
   ExecutionResult executeExprStatement(VariableEnv *Env,
                                        const ExprStatementAST *ExprStmt);
   ExecutionResult executeReturnStatement(VariableEnv *Env,
@@ -72,15 +71,22 @@ private:  /* private member functions */
                                          const IdentifierAST *Expr);
   cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env,
                                            const FunctionCallAST *FuncCall);
+  cvm::BasicValue evaluateUnaryOpExpr(VariableEnv *Env,
+                                      const UnaryOperatorAST *Expr);
+  cvm::BasicValue evaluateUnaryArith(UnaryOperatorAST::OperatorKind OpKind,
+                                     cvm::BasicValue Operand);
+  cvm::BasicValue evaluateUnaryLogical(UnaryOperatorAST::OperatorKind OpKind,
+                                       cvm::BasicValue Operand);
+  cvm::BasicValue evaluateUnaryBitwise(UnaryOperatorAST::OperatorKind OpKind,
+                                       cvm::BasicValue Operand);
   cvm::BasicValue evaluateBinaryOpExpr(VariableEnv *Env,
                                        const BinaryOperatorAST *Expr);
   cvm::BasicValue evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
                                      cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
-                                        cvm::BasicValue LHS,
-                                        cvm::BasicValue RHS);
+                                   cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
-                                     cvm::BasicValue LHS, cvm::BasicValue RHS);
+                                   cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
                                       cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,

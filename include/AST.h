@@ -13,7 +13,7 @@
 ///code.h
 namespace cvm {
 enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
-const std::string TypeToStr(BasicType Type);
+std::string TypeToStr(BasicType Type);
 
 struct BasicValue {
   BasicType Type;
@@ -45,11 +45,19 @@ struct BasicValue {
   bool isBool() const { return Type == BoolType; }
   bool isString() const { return Type == StringType; }
   bool isVoid() const { return Type == VoidType; }
+  bool isNumeric() const { return isInt() || isDouble(); }
 
   int toInt() const;
   double toDouble() const;
   bool toBool() const ;
   std::string toString() const;
+
+  bool operator<(const BasicValue &RHS) const;
+  bool operator<=(const BasicValue &RHS) const;
+  bool operator==(const BasicValue &RHS) const;
+  bool operator!=(const BasicValue &RHS) const;
+  bool operator>(const BasicValue &RHS) const;
+  bool operator>=(const BasicValue &RHS) const;
 };
 }
 ///
@@ -252,7 +260,7 @@ public:
   enum OperatorKind {
     Add, Minus, Multiply, Division, Modulo,   /* arithmetic */
     LogicalAnd, LogicalOr,                    /* logical */
-    Less, LessEqual, Equal, Greater, GreaterEqual, /* relational */
+    Less, LessEqual, Equal, NotEqual, Greater, GreaterEqual, /* relational */
     BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift, /* bitwise */
     Assign /**, Comma**/, Index
   };
@@ -284,6 +292,7 @@ public:
     case Less:          OperatorSymbol = "Less"; break;
     case LessEqual:     OperatorSymbol = "LessEq"; break;
     case Equal:         OperatorSymbol = "Equal"; break;
+    case NotEqual:      OperatorSymbol = "NotEq"; break;
     case Greater:       OperatorSymbol = "Greater"; break;
     case BitwiseAnd:    OperatorSymbol = "BitAnd"; break;
     case BitwiseOr:     OperatorSymbol = "BitOr"; break;
@@ -311,16 +320,19 @@ class UnaryOperatorAST : public ExpressionAST {
 public:
   enum OperatorKind { Plus, Minus, LogicalNot, BitwiseNot };
 private:
-  OperatorKind Kind;
+  OperatorKind OpKind;
   std::unique_ptr<ExpressionAST> Operand;
 public:
   UnaryOperatorAST(OperatorKind Kind, std::unique_ptr<ExpressionAST> Operand)
     : ExpressionAST(UnaryOperatorExpression)
-    , Kind(Kind), Operand(std::move(Operand)) {}
+    , OpKind(Kind), Operand(std::move(Operand)) {}
+
+  OperatorKind getOpKind() const { return OpKind; }
+  const ExpressionAST *getOperand() const { return Operand.get(); }
 
   void dump(const std::string &prefix = "") const override {
     std::string OperatorSymbol;
-    switch (Kind) {
+    switch (OpKind) {
     default: break;
     case Plus:       OperatorSymbol = "Positive"; break;
     case Minus:      OperatorSymbol = "Negative"; break;
