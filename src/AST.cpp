@@ -1,13 +1,49 @@
 #include "AST.h"
 #include <string>
+#include <numeric>
 
 namespace cvm {
+
+std::string TypeToStr(BasicType Type) {
+  switch (Type) {
+  case BoolType:    return "bool";
+  case IntType:     return "int";
+  case DoubleType:  return "double";
+  case StringType:  return "string";
+  case VoidType:    return "void";
+  default:          return "UnknownType";
+  }
+}
+
+// Constructors and member functions of BasicValue
+BasicValue::BasicValue(BasicType T) : Type(T) {
+    switch (Type) {
+    default: break;
+    case cvm::BoolType:   BoolVal = false;  break;
+    case cvm::IntType:    IntVal = 0;       break;
+    case cvm::DoubleType: DoubleVal = 0.0;  break;
+    }
+}
+
+BasicValue::BasicValue(BasicType T, const std::list<int> &DimensionList)
+    : BasicValue(T, DimensionList.cbegin(), DimensionList.cend()) {}
+
+BasicValue::BasicValue(BasicType T,
+                       std::list<int>::const_iterator I,
+                       std::list<int>::const_iterator E) : BasicValue(T) {
+  if (I == E)
+    return;
+
+  int N = *I++;
+  ArrayPtr = std::make_shared<std::vector<BasicValue>>(N, BasicValue(T, I, E));
+}
+
 int BasicValue::toInt() const {
   switch (Type) {
   default:          return 0;
   case IntType:     return IntVal;
   case DoubleType:  return static_cast<int>(DoubleVal);
-  case BoolType:    return static_cast<int>(BoolVal);
+  case BoolType:    return BoolVal;
   case StringType:  return std::atoi(StrVal.c_str());
   }
 }
@@ -33,6 +69,15 @@ bool BasicValue::toBool() const {
 }
 
 std::string BasicValue::toString() const {
+  if (isArray()) {
+    return "[" + std::accumulate(ArrayPtr->begin() + 1,
+                                 ArrayPtr->end(),
+                                 ArrayPtr->front().toString(),
+                                 [](std::string S, BasicValue &X) {
+                                   return S + ", " + X.toString();
+                                 }) + "]";
+  }
+
   switch (Type) {
   default:          return "";
   case IntType:     return std::to_string(IntVal);
@@ -96,18 +141,7 @@ bool BasicValue::operator>=(const BasicValue &RHS) const {
 }
 }
 
-using namespace cmm;
-
-std::string cvm::TypeToStr(BasicType Type) {
-  switch (Type) {
-  case BoolType:    return "bool";
-  case IntType:     return "int";
-  case DoubleType:  return "double";
-  case StringType:  return "string";
-  case VoidType:    return "void";
-  default:          return "UnknownType";
-  }
-}
+namespace cmm {
 
 std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
     Token::TokenKind TokenKind,
@@ -139,4 +173,6 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   return std::unique_ptr<ExpressionAST>(new BinaryOperatorAST(OpKind,
                                                               std::move(LHS),
                                                               std::move(RHS)));
+}
+
 }

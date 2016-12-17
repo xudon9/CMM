@@ -127,16 +127,17 @@ bool CMMParser::parseParameterList(std::list<Parameter> &ParameterList) {
     std::string Identifier;
     cvm::BasicType Type;
     LocTy Loc;
+
     if (parseTypeSpecifier(Type))
       return true;
+
     Loc = Lexer.getLoc();
     if (Lexer.is(Token::Identifier)) {
       Identifier = Lexer.getStrVal();
-      Lex();
+      Lex();  // Eat the identifier.
     } else {
       Warning("missing identifier after type");
     }
-
     ParameterList.emplace_back(Identifier, Type, Loc);
 
     if (Lexer.isNot(Token::Comma))
@@ -369,7 +370,7 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
 
 /// \brief Parse an identifier expression
 /// identifierExpression ::= identifier
-/// identifierExpression ::= identifier '(' [argumentList] ')'
+/// identifierExpression ::= identifier  '('  [argumentList]  ')'
 bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   // TODO: handle function call in this function
   assert(Lexer.is(Token::Identifier) &&
@@ -409,8 +410,8 @@ bool CMMParser::parseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
 }
 
 /// \brief Parse an if statement.
-/// ifStatement ::= if ( expr ) statement
-/// ifStatement ::= if ( expr ) statement else statement
+/// ifStatement ::= "if"  "(" expr  ")"  statement
+/// ifStatement ::= "if"  "(" expr  ")"  statement  "else"  statement
 bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> StatementThen, StatementElse;
@@ -439,7 +440,7 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a for statement
-/// forStatement ::= for ( expr;expr;expr ) statement
+/// forStatement ::= "for"  "("  expr  ";"  expr  ";"  expr  ")"  statement
 bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Init, Condition, Post;
   std::unique_ptr<StatementAST> Statement;
@@ -476,7 +477,7 @@ bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a while statement.
-/// whileStatement ::= while ( expr ) statement
+/// whileStatement ::= "while"  "("  expr  ")"  statement
 bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
@@ -498,7 +499,7 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse an expression statement.
-/// exprStatement ::= expression ;
+/// exprStatement ::= expression ";"
 bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Expression;
   if (parseExpression(Expression))
@@ -511,8 +512,8 @@ bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a return statement.
-/// returnStatement ::= return ;
-/// returnStatement ::= return Expr ;
+/// returnStatement ::= "return" ";"
+/// returnStatement ::= "return" Expr ";"
 bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> ReturnValue;
 
@@ -529,7 +530,7 @@ bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a break statement.
-/// breakStatement ::= break ;
+/// breakStatement ::= "break" ";"
 bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
   assert(Lexer.is(Token::Kw_break) && "parseIfStatement: unknown token");
   Lex();  // eat the 'break'.
@@ -541,7 +542,7 @@ bool CMMParser::parseBreakStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a continue statement.
-/// continueStatement ::= continue ;
+/// continueStatement ::= "continue" ";"
 bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
   assert(Lexer.is(Token::Kw_continue) && "parseIfStatement: unknown token");
   Lex();  // eat the 'continue'.

@@ -55,6 +55,7 @@ public:
 class CMMLexer {
 public:
   using LocTy = SourceMgr::LocTy;
+
 private:
   SourceMgr &SrcMgr;
   /// Information about the current token.
@@ -66,12 +67,14 @@ private:
     double DoubleVal;
     bool BoolVal;
   };
+
 public:
   CMMLexer(SourceMgr &SrcMgr) :
       SrcMgr(SrcMgr), CurTok(Token::Boolean) {}
   Token Lex() {
     return CurTok = LexToken();
   }
+
   /// Getters
   Token getTok() const { return CurTok; }
   Token::TokenKind getKind() const { return CurTok.getKind(); }

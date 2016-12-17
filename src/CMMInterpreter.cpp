@@ -1,6 +1,5 @@
 #include "CMMInterpreter.h"
 #include "NativeFunctions.h"
-#include <cassert>
 
 using namespace cmm;
 
@@ -185,6 +184,7 @@ CMMInterpreter::ExecutionResult
 CMMInterpreter::executeDeclaration(VariableEnv *Env,
                                    const DeclarationAST *Decl) {
   const std::string& Name = Decl->getName();
+  cvm::BasicType Type = Decl->getType();
 
   if (Env->contains(Name)) {
     RuntimeError("variable `" + Decl->getName() +
@@ -192,7 +192,26 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
   }
 
   if (Decl->isArray()) {
-    RuntimeError("unimplemented!"); // TODO
+    std::list<int> DimensionList;
+
+    for (auto &E : Decl->getElementCountList()) {
+      cvm::BasicValue Dimension = evaluateExpression(Env, E.get());
+
+      if (!Dimension.isInt()) {
+        RuntimeError("expressions in array declaration `" + Name +
+            "' should be integral type");
+      }
+
+      if (Dimension.IntVal <= 0) {
+        RuntimeError("index range should greater than zero, " +
+            std::to_string(Dimension.IntVal) + " provided");
+      }
+
+      DimensionList.push_back(Dimension.IntVal);
+    }
+
+    Env->VarMap.emplace(std::make_pair(Name, cvm::BasicValue(Type,
+                                                             DimensionList)));
   }
 
   // Now it's a normal variable.
@@ -211,7 +230,7 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
     }
     Env->VarMap.emplace(std::make_pair(Name, Val));
   } else {
-    Env->VarMap.emplace(std::make_pair(Name, cvm::BasicType(Decl->getType())));
+    Env->VarMap.emplace(std::make_pair(Name, Decl->getType()));
   }
 
   return ExecutionResult();
@@ -264,11 +283,38 @@ CMMInterpreter::evaluateFunctionCallExpr(VariableEnv *Env,
   }
 
   RuntimeError("function `" + FuncCall->getCallee() + "' is undefined");
-  return cvm::BasicValue(); // Make the compiler happy.
+  return evaluateFunctionCallExpr(nullptr, nullptr); // Make the compiler happy.
 }
 
+/// \brief Return a lvalue of an expression if possible
+/// There are 3 kinds of lvalue expression:
+/// 1. IdentifierExpression
+/// 2. ArrayIdentifier [ IndexExpression ]
+/// 3. IdentifierExpression = Expression
+cvm::BasicValue &
+CMMInterpreter::evaluateLvalueExpr(VariableEnv *Env,
+                                   const ExpressionAST *Expr) {
+  if (Expr->isIdentifierExpr())
+    return evaluateIdentifierExpr(Env,
+                                  static_cast<const IdentifierAST *>(Expr));
 
-cvm::BasicValue
+  if (Expr->isBinaryOperatorExpression()) {
+    auto *BinOpExpr = static_cast<const BinaryOperatorAST *>(Expr);
+
+    if (BinOpExpr->getOpKind() == BinaryOperatorAST::Index)
+      return evaluateIndexExpr(Env, BinOpExpr->getLHS(), BinOpExpr->getRHS());
+    if (BinOpExpr->getOpKind() == BinaryOperatorAST::Assign)
+      return evaluateAssignment(Env, BinOpExpr->getLHS(), BinOpExpr->getRHS());
+
+    RuntimeError("try to evaluate a rvalue binOpExpr as lvalue");
+  }
+
+  RuntimeError("try to evaluate a rvalue expression as lvalue");
+  return evaluateLvalueExpr(nullptr, nullptr);  // Make the compiler happy.
+}
+
+/// \brief Return the reference of an identifier
+cvm::BasicValue &
 CMMInterpreter::evaluateIdentifierExpr(VariableEnv *Env,
                                        const IdentifierAST *IdExpr) {
   return searchVariable(Env, IdExpr->getName())->second;
@@ -280,7 +326,7 @@ CMMInterpreter::evaluateUnaryOpExpr(VariableEnv *Env,
 
   cvm::BasicValue Operand = evaluateExpression(Env, Expr->getOperand());
 
-  switch (auto OpKind =  Expr->getOpKind()) {
+  switch (auto OpKind = Expr->getOpKind()) {
   default:
     RuntimeError("unknown unary operator kind (code :" +
         std::to_string(OpKind) + ")");
@@ -348,18 +394,39 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
                                      const BinaryOperatorAST *Expr) {
   // Is it an assignment?
   if (Expr->getOpKind() == Expr->Assign) {
-    const std::string &Name =
-        static_cast<IdentifierAST *>(Expr->getLHS())->getName();
-    return evaluateAssignment(Env, Name, Expr->getRHS());
+    return evaluateAssignment(Env, Expr->getLHS(), Expr->getRHS());
   }
 
+  // Is it an index expression?
   if(Expr->getOpKind() == Expr->Index) {
-    RuntimeError("array unimplemented!");
+    return evaluateIndexExpr(Env, Expr->getLHS(), Expr->getRHS());
   }
 
   cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
   cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
   return evaluateBinaryCalc(Expr->getOpKind(), LHS, RHS);
+}
+
+cvm::BasicValue &
+CMMInterpreter::evaluateIndexExpr(VariableEnv *Env,
+                                  const ExpressionAST *BaseExpr,
+                                  const ExpressionAST *IndexExpr) {
+
+  cvm::BasicValue &Base = evaluateLvalueExpr(Env, BaseExpr);
+  if (!Base.isArray())
+    RuntimeError("too many index or index expression didn't start with array");
+
+  cvm::BasicValue Index = evaluateExpression(Env, IndexExpr);
+  if (!Index.isInt())
+    RuntimeError("non-int index in index expression");
+
+  size_t ArraySize = Base.ArrayPtr->size();
+  if (Index.IntVal < 0 || Index.IntVal >= ArraySize) {
+    RuntimeError("index out of range: should within [0," +
+        std::to_string(ArraySize) + "); actually got index " +
+        std::to_string(Index .IntVal));
+  }
+  return Base.ArrayPtr->at(static_cast<size_t>(Index.IntVal));
 }
 
 cvm::BasicValue
@@ -522,18 +589,19 @@ CMMInterpreter::evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,
 
 std::map<std::string, cvm::BasicValue>::iterator
 CMMInterpreter::searchVariable(VariableEnv *Env, const std::string &Name) {
+
   for (VariableEnv *E = Env; E != nullptr; E = E->OuterEnv) {
     std::map<std::string, cvm::BasicValue>::iterator It = E->VarMap.find(Name);
     if (It != E->VarMap.end())
       return It;
   }
   RuntimeError("variable `" + Name + "' is undefined");
-  return Env->VarMap.end(); // Make the compiler happy.
+  return searchVariable(nullptr, nullptr); // Make the compiler happy.
 }
 
 std::list<cvm::BasicValue>
-CMMInterpreter::evaluateArgumentList(VariableEnv *Env,
-                                     const std::list<std::unique_ptr<ExpressionAST>> &Args) {
+CMMInterpreter::evaluateArgumentList(VariableEnv *Env, const std::list
+    <std::unique_ptr<ExpressionAST>> &Args) {
 
   std::list<cvm::BasicValue> Res;
   for (auto &P : Args) {
@@ -559,19 +627,20 @@ CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
 
   VariableEnv FuncEnv(&TopLevelEnv);
 
-  auto ParaIt = Function.getParameterList().cbegin();
-  auto ParaEnd = Function.getParameterList().cend();
+  auto It = Function.getParameterList().cbegin();
+  auto End = Function.getParameterList().cend();
   for (cvm::BasicValue &Arg : Args) {
-    if (ParaIt->getType() != Arg.Type) {
+
+    if (It->getType() != Arg.Type) {
       RuntimeError("in function `" + Function.getName() + "', parameter `" +
-          ParaIt->getName() + "' has type " + cvm::TypeToStr(ParaIt->getType()) +
+          It->getName() + "' has type " + cvm::TypeToStr(It->getType()) +
           ", but argument has type " + cvm::TypeToStr(Arg.Type));
     }
-    FuncEnv.VarMap[ParaIt->getName()] = Arg;
-    ++ParaIt;
-  }
 
-  assert(ParaIt == ParaEnd);
+    if (!It->getName().empty()) // We allow empty parameter name.
+      FuncEnv.VarMap[It->getName()] = Arg;
+    ++It;
+  }
 
   ExecutionResult Result = executeStatement(&FuncEnv, Function.getStatement());
   if (Result.ReturnValue.Type != Function.getType()) {
@@ -582,20 +651,25 @@ CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
   return Result.ReturnValue;
 }
 
-cvm::BasicValue
-CMMInterpreter::evaluateAssignment(VariableEnv *Env, const std::string &Name,
-                                   const ExpressionAST *Expr) {
-  cvm::BasicValue &LHS = searchVariable(Env, Name)->second;
-  cvm::BasicValue RHS = evaluateExpression(Env, Expr);
+cvm::BasicValue &
+CMMInterpreter::evaluateAssignment(VariableEnv *Env,
+                                   const ExpressionAST *RefExpr,
+                                   const ExpressionAST *ValExpr) {
+  cvm::BasicValue &Variable = evaluateLvalueExpr(Env, RefExpr);
+  cvm::BasicValue Value = evaluateExpression(Env, ValExpr);
 
-  if (LHS.Type != RHS.Type) {
-    if (LHS.isDouble() && RHS.isInt()) {
-      LHS.DoubleVal = RHS.IntVal;
-      return LHS;
+  if (Variable.isArray()) {
+    RuntimeError("cannot assign value to array directly");
+  }
+
+  if (Variable.Type != Value.Type) {
+    if (Variable.isDouble() && Value.isInt()) {
+      Variable.DoubleVal = Value.IntVal;
+      return Variable;
     } else {
-      RuntimeError("assignment to " + cvm::TypeToStr(LHS.Type) + " variable `" +
-          Name + "' with " + cvm::TypeToStr(RHS.Type) + " expression");
+      RuntimeError("assignment to " + cvm::TypeToStr(Variable.Type) +
+          " variable with " + cvm::TypeToStr(Value.Type) + " expression");
     }
   }
-  return LHS = RHS;
+  return Variable = Value;
 }

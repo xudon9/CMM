@@ -8,6 +8,7 @@
 #include <iostream>
 #include <memory>
 #include <list>
+#include <vector>
 #include <cstdlib>
 
 ///code.h
@@ -15,7 +16,9 @@ namespace cvm {
 enum BasicType { BoolType, IntType, DoubleType, StringType, VoidType };
 std::string TypeToStr(BasicType Type);
 
-struct BasicValue {
+class BasicValue {
+public:
+  // Public member variables
   BasicType Type;
 
   std::string StrVal;
@@ -25,21 +28,27 @@ struct BasicValue {
     bool BoolVal;
   };
 
+  std::shared_ptr<std::vector<BasicValue>> ArrayPtr;
+
+public:
+  // Public constructors
   BasicValue() : Type(VoidType) {}
   BasicValue(const std::string &S) : Type(StringType), StrVal(S) {}
   BasicValue(int I) : Type(IntType), IntVal(I) {}
   BasicValue(double D) : Type(DoubleType), DoubleVal(D) {}
   BasicValue(bool B) : Type(BoolType), BoolVal(B) {}
 
-  BasicValue(BasicType T) : Type(T) {
-    switch (Type) {
-    default: break;
-    case cvm::BoolType:   BoolVal = false;  break;
-    case cvm::IntType:    IntVal = 0;       break;
-    case cvm::DoubleType: DoubleVal = 0.0;  break;
-    }
-  }
+  BasicValue(BasicType T);
+  BasicValue(BasicType T, const std::list<int> &DimensionList);
 
+private:
+  // Private constructor
+  BasicValue(BasicType Type,
+             std::list<int>::const_iterator It,
+             std::list<int>::const_iterator End);
+
+public:
+  bool isArray() const { return ArrayPtr != nullptr; }
   bool isInt() const { return Type == IntType; }
   bool isDouble() const { return Type == DoubleType; }
   bool isBool() const { return Type == BoolType; }
@@ -63,6 +72,8 @@ struct BasicValue {
 ///
 
 namespace cmm {
+
+/*
 class DerivedType {
 protected:
   enum DerivedKind {
@@ -97,28 +108,37 @@ public:
     return Res;
   }
 };
+ */
 
 class Parameter {
   std::string Name;
-  std::unique_ptr<TypeSpecifier> Type;
+  //std::unique_ptr<TypeSpecifier> Type;
+  cvm::BasicType Type;
   SourceMgr::LocTy Loc;
 public:
+  /*
   Parameter(const std::string &Name, cvm::BasicType Type, SourceMgr::LocTy Loc)
     : Name(Name), Type(new TypeSpecifier(Type)), Loc(Loc) {}
+   */
+  Parameter(const std::string &Name, cvm::BasicType Type, SourceMgr::LocTy Loc)
+      : Name(Name), Type(Type), Loc(Loc) {}
 
   std::string toString() const {
-    return  Type->toString() + " " + Name;
+    return  cvm::TypeToStr(Type) + " " + Name;
   }
 
  /* hack */
-  cvm::BasicType getType() const { return Type->getBasicType(); }
+  //cvm::BasicType getType() const { return Type->getBasicType(); }
+  cvm::BasicType getType() const { return Type; }
   const std::string &getName() const { return Name; }
 };
 
+/*
 class FunctionType : public DerivedType {
   std::unique_ptr<TypeSpecifier> Type;
   std::list<Parameter> ParameterList;
 };
+ */
 
 class AST {
 public:
@@ -141,9 +161,16 @@ public:
 private:
   ExpressionKind Kind;
 public:
+  // Constructor
   ExpressionAST(ExpressionKind Kind) : Kind(Kind) {}
+
+  // Other public member functions
   ExpressionKind getKind() const { return Kind; }
-  bool isIdentifierExpr() { return Kind == IdentifierExpression; }
+
+  bool isIdentifierExpr() const { return Kind == IdentifierExpression; }
+  bool isBinaryOperatorExpression() const {
+    return Kind == BinaryOperatorExpression;
+  }
   // bool isInt() { return Kind == IntExpression; }
   // bool isDouble() { return Kind == DoubleExpression; }
   // bool isBool() { return Kind == BoolExpression; }
@@ -364,6 +391,11 @@ public:
 
   const ExpressionAST *getInitializer() const { return Initializer.get(); }
 
+  const decltype(ElementCountList) &getElementCountList() const {
+      return ElementCountList;
+  }
+
+
   void dump(const std::string &prefix = "") const override {
     std::cout << cvm::TypeToStr(Type) << " " << Name << std::endl;
     if (Initializer) {
@@ -496,7 +528,7 @@ public:
   cvm::BasicType getType() const { return Type; }
   const std::string &getName() const { return Name; }
   size_t getParameterCount() const { return ParameterList.size(); }
-  const std::list<Parameter> &getParameterList()  const { return ParameterList; }
+  const std::list<Parameter> &getParameterList() const { return ParameterList; }
   const StatementAST *getStatement() const { return Statement.get(); }
 
   void dump() const {
@@ -591,17 +623,17 @@ public:
   void dump(const std::string &prefix) const override {
     std::cout << "for" << std::endl;
 
-    std::cout << prefix << "|--<";
+    std::cout << prefix << "|--+";
     if (Init)   Init->dump(prefix + "|   ");
-    else        std::cout << "null Init\n";
+    else        std::cout << "(nullInit)\n";
 
-    std::cout << prefix << "|--*";
+    std::cout << prefix << "|--+";
     if (Condition)  Condition->dump(prefix + "|   ");
-    else            std::cout << "forever\n";
+    else            std::cout << "(forever)\n";
 
-    std::cout << prefix << "|-->";
+    std::cout << prefix << "|--+";
     if (Post)   Post->dump(prefix + "|   ");
-    else        std::cout << "null Post\n";
+    else        std::cout << "(nullPost)\n";
 
     std::cout << prefix << "`---"; Statement->dump(prefix + "    ");
   }

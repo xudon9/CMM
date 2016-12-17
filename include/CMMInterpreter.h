@@ -65,7 +65,7 @@ private:  /* private member functions */
   ExecutionResult executeBreakStatement(VariableEnv *Env,
                                         const BreakStatementAST *BreakStmt);
   ExecutionResult executeContinueStatement(VariableEnv *Env,
-                                           const ContinueStatementAST *ContStmt);
+                                           const ContinueStatementAST *ConStmt);
   ExecutionResult executeExprStatement(VariableEnv *Env,
                                        const ExprStatementAST *ExprStmt);
   ExecutionResult executeReturnStatement(VariableEnv *Env,
@@ -77,8 +77,16 @@ private:  /* private member functions */
 
   cvm::BasicValue evaluateExpression(VariableEnv *Env,
                                      const ExpressionAST *Expr);
-  cvm::BasicValue evaluateIdentifierExpr(VariableEnv *Env,
-                                         const IdentifierAST *Expr);
+  cvm::BasicValue &evaluateLvalueExpr(VariableEnv *Env,
+                                      const ExpressionAST *Expr);
+  cvm::BasicValue &evaluateIdentifierExpr(VariableEnv *Env,
+                                          const IdentifierAST *Expr);
+  cvm::BasicValue &evaluateIndexExpr(VariableEnv *Env,
+                                     const ExpressionAST *BaseExpr,
+                                     const ExpressionAST *IndexExpr);
+  cvm::BasicValue &evaluateAssignment(VariableEnv *Env,
+                                      const ExpressionAST *RefExpr,
+                                      const ExpressionAST *VarExpr);
   cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env,
                                            const FunctionCallAST *FuncCall);
   cvm::BasicValue evaluateUnaryOpExpr(VariableEnv *Env,
@@ -91,6 +99,8 @@ private:  /* private member functions */
                                        cvm::BasicValue Operand);
   cvm::BasicValue evaluateBinaryOpExpr(VariableEnv *Env,
                                        const BinaryOperatorAST *Expr);
+  cvm::BasicValue evaluateAssignExpr(VariableEnv *Env,
+                                     const BinaryOperatorAST *Expr);
   cvm::BasicValue evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
                                      cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
@@ -111,8 +121,6 @@ private:  /* private member functions */
                                      std::list<cvm::BasicValue> &Args);
   cvm::BasicValue callUserFunction(FunctionDefinitionAST &Function,
                                    std::list<cvm::BasicValue> &Args);
-  cvm::BasicValue evaluateAssignment(VariableEnv *Env, const std::string &Name,
-                                     const ExpressionAST *Expr);
 
   std::map<std::string, cvm::BasicValue>::iterator
   searchVariable(VariableEnv *Env, const std::string &Name);

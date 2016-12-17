@@ -57,10 +57,10 @@ private:
   bool parseParenExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res); //TODO
   bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
+
 public:
   CMMParser(SourceMgr &SrcMgr)
-    : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {
-  }
+    : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {}
   bool Parse();
 };
 }
