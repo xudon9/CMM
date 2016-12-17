@@ -50,35 +50,6 @@ static void UnEscapeLexed(std::string &Str) {
 }
  */
 
-static void UnEscapeLexed(std::string &Str) {
-  std::string Out;
-  Out.reserve(Str.size());
-
-  auto It = Str.cbegin(), End = Str.cend();
-  while (It != End) {
-    char C = *It++;
-    if (C == '\\' && It != End) {
-      switch (*It++) {
-      default:    continue; // Ignore invalid escaping.
-      case 'a':   C = '\a'; break;
-      case 'b':   C = '\b'; break;
-      case 'f':   C = '\f'; break;
-      case 'n':   C = '\n'; break;
-      case 'r':   C = '\r'; break;
-      case 't':   C = '\t'; break;
-      case 'v':   C = '\v'; break;
-      case '?':   C = '\?'; break;
-      case '0':   C = '\0'; break;
-      case '\\':  C = '\\'; break;
-      case '\'':  C = '\''; break;
-      case '\"':  C = '\"'; break;
-      }
-    }
-    Out.push_back(C);
-  }
-  Str.swap(Out);
-}
-
 Token CMMLexer::LexToken() {
   TokStartLoc = SrcMgr.getLoc();
   int CurChar = getNextChar();
@@ -183,6 +154,7 @@ Token CMMLexer::LexIdentifier() {
   do {
     StrVal.push_back(static_cast<char>(getNextChar()));
   } while (std::isalnum(peekNextChar()) || peekNextChar() == '_');
+
 #define KEYWORD(STR) do {                                                      \
                        if (StrVal == #STR)                                     \
                          return Token::Kw_##STR;                               \
@@ -201,11 +173,13 @@ Token CMMLexer::LexIdentifier() {
   KEYWORD(void);
   KEYWORD(string);
 #undef KEYWORD
+
   if (StrVal == "true")  { BoolVal = true;  return Token::Boolean; }
   if (StrVal == "false") { BoolVal = false; return Token::Boolean; }
 
   if (StrVal.back() == '_')
     Warning("identifier end with _");
+
   return Token::Identifier;
 }
 
@@ -214,14 +188,35 @@ Token CMMLexer::LexString() {
   StrVal.clear();
   for (;;) {
     int CurChar = getNextChar();
+
+    if (CurChar == '"') {
+      // UnEscapeLexed(StrVal);
+      return Token::String;
+    }
+
     if (CurChar == std::char_traits<char>::eof()) {
-      // TODO: Escape for \"
       Error("end of file in string constant");
       return Token::Error;
     }
-    if (CurChar == '"') {
-      UnEscapeLexed(StrVal);
-      return Token::String;
+
+    if (CurChar == '\\') {
+      switch (CurChar = getNextChar()) {
+      default:    StrVal.push_back('\\'); break;
+      case 'a':   CurChar = '\a'; break;
+      case 'b':   CurChar = '\b'; break;
+      case 'f':   CurChar = '\f'; break;
+      case 'n':   CurChar = '\n'; break;
+      case 'r':   CurChar = '\r'; break;
+      case 't':   CurChar = '\t'; break;
+      case 'v':   CurChar = '\v'; break;
+      case '?':   CurChar = '\?'; break;
+      case '0':   CurChar = '\0'; break;
+      case '\\':  CurChar = '\\'; break;
+      case '\'':  CurChar = '\''; break;
+      case '\"':  CurChar = '\"'; break;
+      case std::char_traits<char>::eof():
+        Error("end of file in string constant");
+      }
     }
     StrVal.push_back(static_cast<char>(CurChar));
   }
@@ -238,15 +233,18 @@ Token CMMLexer::LexDigit() {
     } while (std::isxdigit(peekNextChar()));
     return Token::Integer;
   }
+
   // It's a Double or Decimal Integer
   ungetChar();
   do {
     IntVal = 10 * IntVal + (getNextChar() - '0');
   } while (std::isdigit(peekNextChar()));
+
   if (getNextChar() != '.') { // Eat the dot
     ungetChar();
     return Token::Integer;
   }
+
   // It's a Double, and the dot was eaten
   unsigned int Frac = 0;
   unsigned char Scale = 1;
@@ -286,9 +284,11 @@ bool CMMLexer::skipBlockComment() {
 int CMMLexer::peekNextChar() {
   return SrcMgr.peek();
 }
+
 int CMMLexer::getNextChar() {
   return SrcMgr.get();
 }
+
 void CMMLexer::ungetChar() {
   SrcMgr.unget();
 }

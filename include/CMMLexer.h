@@ -28,7 +28,7 @@ public:
     LParen, RParen, LBrac, RBrac, LCurly, RCurly,
     Plus, Minus, Star, Slash, Semicolon, Comma,
     Equal, Percent, Exclaim, AmpAmp, PipePipe,
-    Less, LessEqual, EqualEqual, Greater, GreaterEqual, ExclaimEqual,
+    Less, LessEqual, EqualEqual, ExclaimEqual, Greater, GreaterEqual,
     Amp, Pipe, LessLess, GreaterGreater, Caret, Tilde,
     Kw_if, Kw_else, Kw_for, Kw_while, Kw_do,
     Kw_break, Kw_continue, Kw_return,
@@ -41,6 +41,7 @@ private:
 public:
   Token(TokenKind K) : Kind(K) {}
   TokenKind getKind() const { return Kind; }
+
   /// is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }

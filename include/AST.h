@@ -590,15 +590,19 @@ public:
 
   void dump(const std::string &prefix) const override {
     std::cout << "for" << std::endl;
-    if (Init) {
-      std::cout << prefix << "|--<"; Init->dump(prefix + "|   ");
-    }
-    if (Condition) {
-      std::cout << prefix << "|--*"; Condition->dump(prefix + "|   ");
-    }
-    if (Post) {
-      std::cout << prefix << "|-->"; Post->dump(prefix + "|   ");
-    }
+
+    std::cout << prefix << "|--<";
+    if (Init)   Init->dump(prefix + "|   ");
+    else        std::cout << "null Init\n";
+
+    std::cout << prefix << "|--*";
+    if (Condition)  Condition->dump(prefix + "|   ");
+    else            std::cout << "forever\n";
+
+    std::cout << prefix << "|-->";
+    if (Post)   Post->dump(prefix + "|   ");
+    else        std::cout << "null Post\n";
+
     std::cout << prefix << "`---"; Statement->dump(prefix + "    ");
   }
 };
