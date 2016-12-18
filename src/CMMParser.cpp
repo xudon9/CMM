@@ -488,24 +488,30 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
 
   assert(Lexer.is(Token::Kw_if) && "parseIfStatement: unknown token");
   Lex();  // eat 'if'.
+
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected");
   Lex();  // eat LParen '('.
+
   if (parseExpression(Condition))
     return true;
   if (Lexer.isNot(Token::RParen))
     return Error("right parenthesis expected");
   Lex();  // eat RParen ')'.
+
   if (parseStatement(StatementThen))
     return true;
+
   // Parse the else branch is there is one.
   if (Lexer.is(Token::Kw_else)) {
     Lex();  // eat 'else'
     if (parseStatement(StatementElse))
       return true;
   }
-  Res.reset(new IfStatementAST(std::move(Condition), std::move(StatementThen),
-                               std::move(StatementElse)));
+
+  Res = IfStatementAST::create(std::move(Condition),
+                               std::move(StatementThen),
+                               std::move(StatementElse));
   return false;
 }
 
@@ -554,17 +560,22 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
 
   assert(Lexer.is(Token::Kw_while) && "parseIfStatement: unknown token");
   Lex();  // eat 'while'
+
   if (Lexer.isNot(Token::LParen))
     return Error("left parenthesis expected in while loop");
   Lex();  // eat LParen '('.
+
   if (parseExpression(Condition))
     return true;
+
   if (Lexer.isNot(Token::RParen))
     return Error("right parenthesis expected in while loop");
   Lex();  // eat RParen ')'.
+
   if (parseStatement(Statement))
     return true;
-  Res.reset(new WhileStatementAST(std::move(Condition), std::move(Statement)));
+
+  Res = WhileStatementAST::create(std::move(Condition), std::move(Statement));
   return false;
 }
 

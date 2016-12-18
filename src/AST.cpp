@@ -143,6 +143,8 @@ bool BasicValue::operator>=(const BasicValue &RHS) const {
 }
 }
 
+/******************************************************************************/
+
 namespace cmm {
 
 std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
@@ -176,6 +178,49 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
                                                               std::move(LHS),
                                                               std::move(RHS)));
 }
+
+std::unique_ptr<StatementAST>
+IfStatementAST::create(std::unique_ptr<ExpressionAST> Condition,
+                       std::unique_ptr<StatementAST> StatementThen,
+                       std::unique_ptr<StatementAST> StatementElse) {
+  if (!Condition->isConstant()) {
+    auto *IfStmt = new IfStatementAST(std::move(Condition),
+                                      std::move(StatementThen),
+                                      std::move(StatementElse));
+    return std::unique_ptr<StatementAST>(IfStmt);
+  }
+
+  if (Condition->asBool())
+    return StatementThen;
+
+  if (StatementElse)
+    return StatementElse;
+
+  // The IfStatement has no 'Else', return a null.
+  return nullptr;
+}
+
+std::unique_ptr<StatementAST>
+WhileStatementAST::create(std::unique_ptr<ExpressionAST> Condition,
+                          std::unique_ptr<StatementAST> Statement) {
+  if (!Condition->isConstant()) {
+    auto *WhileStmt = new WhileStatementAST(std::move(Condition),
+                                            std::move(Statement));
+    return std::unique_ptr<WhileStatementAST>(WhileStmt);
+  }
+
+  // Forever
+  if (Condition->asBool()) {
+    std::unique_ptr<ExpressionAST> TrueCond(new BoolAST(true));
+    auto *WhileStmt = new WhileStatementAST(std::move(TrueCond),
+                                            std::move(Statement));
+    return std::unique_ptr<WhileStatementAST>(WhileStmt);
+  }
+
+  // Never
+  return nullptr;
+}
+
 
 int ExpressionAST::asInt() const {
   switch (getKind()) {

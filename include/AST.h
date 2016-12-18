@@ -452,7 +452,8 @@ public:
     : StatementAST(BlockStatement), OuterBlock(OuterBlock) {}
 
   void addStatement(std::unique_ptr<StatementAST> Statement) {
-    StatementList.push_back(std::move(Statement));
+    if (Statement)
+      StatementList.push_back(std::move(Statement));
   }
 
   const decltype(StatementList) &getStatementList() const {
@@ -567,6 +568,12 @@ public:
   const StatementAST *getStatementElse() const { return StatementElse.get(); }
 
   void dump(const std::string &prefix = "") const override;
+
+  // Static helper
+  static std::unique_ptr<StatementAST>
+  create(std::unique_ptr<ExpressionAST> Condition,
+         std::unique_ptr<StatementAST> StatementThen,
+         std::unique_ptr<StatementAST> StatementElse);
 };
 
 
@@ -584,8 +591,12 @@ public:
   const StatementAST *getStatement() const { return Statement.get(); }
 
   void dump(const std::string &prefix = "") const override;
-};
 
+  // Static helper
+  static std::unique_ptr<StatementAST>
+  create(std::unique_ptr<ExpressionAST> Condition,
+         std::unique_ptr<StatementAST> Statement);
+};
 
 
 class ForStatementAST : public StatementAST {

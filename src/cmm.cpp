@@ -5,7 +5,7 @@
  * TODO:
  * 1. command line argument
  * 2. dead code elimination
- * 3.
+ * 3. functional return
  */
 
 #include <cstdlib>
