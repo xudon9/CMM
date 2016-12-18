@@ -1,6 +1,6 @@
+#include "CMMLexer.h"
 #include <iostream>
 #include <cctype>
-#include "CMMLexer.h"
 
 using namespace cmm;
 
@@ -53,6 +53,7 @@ static void UnEscapeLexed(std::string &Str) {
 Token CMMLexer::LexToken() {
   TokStartLoc = SrcMgr.getLoc();
   int CurChar = getNextChar();
+
   switch (CurChar) {
   default:
     if (std::isalpha(static_cast<unsigned char>(CurChar)) || CurChar == '_') {
@@ -61,10 +62,13 @@ Token CMMLexer::LexToken() {
     }
     Error("unknown character " + std::string(1, static_cast<char>(CurChar)));
     return Token::Error;
+
   case std::char_traits<char>::eof():
     return Token::Eof;
+
   case '\0': case ' ': case '\t': case '\n': case '\r':
     return LexToken();
+
   case '/': {
     int NextChar = getNextChar();
     if (NextChar == '/') {
@@ -78,6 +82,7 @@ Token CMMLexer::LexToken() {
     ungetChar();
     return Token::Slash;
   }
+
   case '"': return LexString();
   case '(': return Token::LParen;
   case ')': return Token::RParen;
@@ -93,26 +98,31 @@ Token CMMLexer::LexToken() {
   case ',': return Token::Comma;
   case '^': return Token::Caret;
   case '~': return Token::Tilde;
+
   case '=':
     if (peekNextChar() != '=')
       return Token::Equal;
     getNextChar();
     return Token::EqualEqual;
+
   case '!':
     if (peekNextChar() != '=')
       return Token::Exclaim;
     getNextChar();
     return Token::ExclaimEqual;
+
   case '&':
     if (peekNextChar() != '&')
       return Token::Amp;
     getNextChar();
     return Token::AmpAmp;
+
   case '|':
     if (peekNextChar() != '|')
       return Token::Pipe;
     getNextChar();
     return Token::PipePipe;
+
   case '<': {
     int NextChar = getNextChar();
     if (NextChar == '<')
@@ -122,6 +132,7 @@ Token CMMLexer::LexToken() {
     ungetChar();
     return Token::Less;
   }
+
   case '>': {
     int NextChar = getNextChar();
     if (NextChar == '>')
@@ -131,11 +142,16 @@ Token CMMLexer::LexToken() {
     ungetChar();
     return Token::Greater;
   }
+
   case '0': case '1': case '2': case '3': case '4':
   case '5': case '6': case '7': case '8': case '9': {
     ungetChar();
     return LexDigit();
   }
+
+  case '`': case '?': case ':': case '$': case '#':
+  case '\'': case '\\': case '@':
+    return LexInfixOp(CurChar);
   }
 }
 
@@ -172,6 +188,7 @@ Token CMMLexer::LexIdentifier() {
   KEYWORD(bool);
   KEYWORD(void);
   KEYWORD(string);
+  KEYWORD(infix);
 #undef KEYWORD
 
   if (StrVal == "true")  { BoolVal = true;  return Token::Boolean; }
@@ -254,6 +271,24 @@ Token CMMLexer::LexDigit() {
   }
   DoubleVal = IntVal + static_cast<double>(Frac) / Scale;
   return Token::Double;
+}
+
+Token CMMLexer::LexInfixOp(int HeadChar) {
+  StrVal.assign(1, static_cast<char>(HeadChar));
+
+  for (;;) {
+    int NextChar = peekNextChar();
+
+    if (std::isspace(NextChar) || std::isalnum(NextChar) ||
+        NextChar == std::char_traits<char>::eof()) {
+      return Token::InfixOp;
+    }
+
+    StrVal.push_back(static_cast<char>(getNextChar()));
+
+    if (NextChar == HeadChar)
+      return Token::InfixOp;
+  }
 }
 
 // Assume the '/*' is eaten

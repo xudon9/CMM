@@ -13,7 +13,7 @@ public:
     // String values.
     Identifier,
     String,
-    Operator,
+    InfixOp,
 
     // Integer values.
     Integer,
@@ -30,7 +30,7 @@ public:
     Equal, Percent, Exclaim, AmpAmp, PipePipe,
     Less, LessEqual, EqualEqual, ExclaimEqual, Greater, GreaterEqual,
     Amp, Pipe, LessLess, GreaterGreater, Caret, Tilde,
-    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do,
+    Kw_if, Kw_else, Kw_for, Kw_while, Kw_do, Kw_infix,
     Kw_break, Kw_continue, Kw_return,
     Kw_string, Kw_int, Kw_double, Kw_bool, Kw_void
   };
@@ -45,6 +45,7 @@ public:
   /// is/isNot - Predicates to check if this token is a specific kind
   bool is(TokenKind K) const { return Kind == K; }
   bool isNot(TokenKind K) const { return Kind != K; }
+
   //bool isOneOf(TokenKind K1, TokenKind K2) const { return is(K1) || is(K2); }
   //template <typename... Ts>
   //bool isOneOf(TokenKind K1, TokenKind K2, Ts... Ks) const {
@@ -112,6 +113,7 @@ private:
   Token LexIdentifier();
   Token LexString();
   Token LexDigit();
+  Token LexInfixOp(int HeadChar);
   void skipLineComment();
   bool skipBlockComment();
 };

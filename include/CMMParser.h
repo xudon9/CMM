@@ -20,6 +20,7 @@ private:
 
   std::map<std::string, int8_t> BinOpPrecedence;
   std::map<std::string, FunctionDefinitionAST> FunctionDefinition;
+  std::map<std::string, InfixOpDefinitionAST> InfixOpDefinition;
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
@@ -32,6 +33,7 @@ private:
   int8_t getBinOpPrecedence();
 
   bool parseTopLevel(); //TODO
+  bool parseInfixOpDefinition();
   bool parseFunctionDefinition();
   bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
@@ -55,7 +57,7 @@ private:
   bool parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseBinOpRHS(int8_t ExprPrec, std::unique_ptr<ExpressionAST> &Res);
   bool parseParenExpression(std::unique_ptr<ExpressionAST> &Res);
-  bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res); //TODO
+  bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 
 public:

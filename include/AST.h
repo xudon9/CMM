@@ -155,6 +155,7 @@ public:
     StringExpression,
     IdentifierExpression,
     FunctionCallExpression,
+    InfixOpExpression,
     BinaryOperatorExpression,
     UnaryOperatorExpression
   };
@@ -253,6 +254,29 @@ public:
   const std::string &getName() const { return Name; }
 };
 
+class InfixOpExprAST : public ExpressionAST {
+  std::string Symbol;
+  std::unique_ptr<ExpressionAST> LHS, RHS;
+public:
+  InfixOpExprAST(const std::string &Symbol,
+                 std::unique_ptr<ExpressionAST> LHS,
+                 std::unique_ptr<ExpressionAST> RHS)
+      : ExpressionAST(InfixOpExpression)
+      , Symbol(Symbol), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+
+  const std::string &getSymbol() const { return Symbol; }
+  const ExpressionAST *getLHS() const { return LHS.get(); }
+  const ExpressionAST *getRHS() const { return RHS.get(); }
+
+  void dump(const std::string &prefix = "") const override {
+    std::cout << getSymbol() << std::endl;
+    std::cout << prefix << "|---";
+    LHS->dump(prefix + "|   ");
+    std::cout << prefix << "`---";
+    RHS->dump(prefix + "    ");
+  }
+};
+
 class FunctionCallAST : public ExpressionAST {
   std::string Callee;
   std::list<std::unique_ptr<ExpressionAST>> Arguments;
@@ -262,8 +286,8 @@ public:
     : ExpressionAST(FunctionCallExpression), Callee(Callee)
     , Arguments(std::move(Arguments)) {}
 
-  auto getCallee() const -> const std::string & { return Callee; }
-  auto getArguments() const -> const decltype(Arguments) & { return Arguments; }
+  const std::string &getCallee() const  { return Callee; }
+  const decltype(Arguments) &getArguments() const { return Arguments; }
 
   void dump(const std::string &prefix = "") const override {
     std::cout << "(call)" << Callee << std::endl;
@@ -509,12 +533,36 @@ public:
 //   size_t BreakLabel;
 // };
 
+class InfixOpDefinitionAST {
+  std::string Symbol;
+  std::string LHSName, RHSName;
+  std::unique_ptr<StatementAST> Statement;
+
+public:
+  InfixOpDefinitionAST(const std::string &Sym,
+                       const std::string &LHS,
+                       const std::string &RHS,
+                       std::unique_ptr<StatementAST> Stmt)
+  : Symbol(Sym), LHSName(LHS), RHSName(RHS), Statement(std::move(Stmt)) {}
+
+  const std::string &getSymbol() const { return Symbol; }
+  const std::string &getLHSName() const { return LHSName; }
+  const std::string &getRHSName() const { return RHSName; }
+  const StatementAST *getStatement() const { return Statement.get(); }
+
+  void dump() const {
+    std::cout << "infix " << getLHSName() << " " << getSymbol() << " "
+        << getRHSName() << "\n";
+    Statement->dump();
+  }
+};
+
 class FunctionDefinitionAST /*: public StatementAST*/ {
   std::string Name;
   cvm::BasicType Type;
   std::list<Parameter> ParameterList;
   std::unique_ptr<StatementAST> Statement;
-  std::list<std::unique_ptr<DeclarationAST>> LocalVariableList;
+  // std::list<std::unique_ptr<DeclarationAST>> LocalVariableList;
   // int Index;
 public:
   FunctionDefinitionAST() = default;
@@ -536,7 +584,7 @@ public:
     for (const auto &P : ParameterList) {
       std::cout << P.toString() << ", ";
     }
-    std::cout << "\b)\n";
+    std::cout << ")\n";
     Statement->dump();
   }
 };

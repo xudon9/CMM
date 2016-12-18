@@ -41,7 +41,13 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
 
   switch (Stmt->getKind()) {
   default:
-    RuntimeError("unknown statement kind");
+    RuntimeError(std::to_string(Stmt->getKind()) + ": unknown statement kind");
+    break;
+  case StatementAST::DeclarationStatement:
+    RuntimeError("single declaration should not be used by user");
+  case StatementAST::DeclarationListStatement:
+    Res = executeDeclarationList(Env,
+                                 static_cast<const DeclarationListAST *>(Stmt));
     break;
   case StatementAST::ExprStatement:
     Res = executeExprStatement(Env,
@@ -73,17 +79,8 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
     Res = executeBreakStatement(Env,
                                 static_cast<const BreakStatementAST *>(Stmt));
     break;
-  case StatementAST::DeclarationStatement:
-    RuntimeError("single declaration should not be used by user");
-  case StatementAST::DeclarationListStatement:
-    Res = executeDeclarationList(Env,
-                                 static_cast<const DeclarationListAST *>(Stmt));
-    break;
   }
 
-  if (Res.Kind != ExecutionResult::NormalStatementResult) {
-    //todo
-  }
   return Res;
 }
 
@@ -258,6 +255,8 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env,
   case ExpressionAST::FunctionCallExpression:
     return evaluateFunctionCallExpr(Env,
                                     static_cast<const FunctionCallAST *>(Expr));
+  case ExpressionAST::InfixOpExpression:
+    return evaluateInfixOpExpr(Env, static_cast<const InfixOpExprAST *>(Expr));
   case ExpressionAST::BinaryOperatorExpression:
     return evaluateBinaryOpExpr(Env,
                                 static_cast<const BinaryOperatorAST *>(Expr));
@@ -614,6 +613,32 @@ cvm::BasicValue
 CMMInterpreter::callNativeFunction(NativeFunction &Function,
                                    std::list<cvm::BasicValue> &Args) {
   return Function(Args);
+}
+
+cvm::BasicValue
+CMMInterpreter::evaluateInfixOpExpr(VariableEnv *Env,
+                                    const InfixOpExprAST *Expr) {
+  auto InfixOpIt = InfixOpMap.find(Expr->getSymbol());
+
+  if (InfixOpIt == InfixOpMap.end()) {
+    RuntimeError("Infix operator " + Expr->getSymbol() + " is undefined");
+  }
+
+  InfixOpDefinitionAST &InfixOpDef = InfixOpIt->second;
+  VariableEnv InfixOpEnv(&TopLevelEnv);
+
+  cvm::BasicValue LHSVal = evaluateExpression(Env, Expr->getLHS());
+  cvm::BasicValue RHSVal = evaluateExpression(Env, Expr->getRHS());
+  InfixOpEnv.VarMap.emplace(std::make_pair(InfixOpDef.getLHSName(), LHSVal));
+  InfixOpEnv.VarMap.emplace(std::make_pair(InfixOpDef.getRHSName(), RHSVal));
+
+  ExecutionResult Result = executeStatement(&InfixOpEnv,
+                                            InfixOpDef.getStatement());
+
+  if (Result.Kind != ExecutionResult::ReturnStatementResult) {
+    RuntimeError("infix operator didn't return any value");
+  }
+  return Result.ReturnValue;
 }
 
 cvm::BasicValue

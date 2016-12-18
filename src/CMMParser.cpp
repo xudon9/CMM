@@ -17,9 +17,13 @@ bool CMMParser::Parse() {
   std::cout << "------------ Function Definitions:\n";
   for (auto &F : FunctionDefinition)
     F.second.dump();
+  std::cout << "------------ Function Definitions:\n";
+  for (auto &I : InfixOpDefinition)
+    I.second.dump();
 
   std::cout << "------------ Running -----------\n";
-  CMMInterpreter interpreter(TopLevelBlock, FunctionDefinition);
+  CMMInterpreter interpreter(TopLevelBlock,
+                             FunctionDefinition, InfixOpDefinition);
   interpreter.interpret();
 
   return false;
@@ -34,6 +38,8 @@ bool CMMParser::parseTopLevel() {
     TopLevelBlock.addStatement(std::move(Statement));
     return false;
   }
+  case Token::Kw_infix:
+    return parseInfixOpDefinition();
   case Token::Kw_void:
     return parseFunctionDefinition();
   case Token::Kw_int: case Token::Kw_bool:
@@ -63,6 +69,47 @@ bool CMMParser::parseTopLevel() {
     return false;
   }
   }
+}
+
+/// \brief Parse an infix operator definition
+/// infixOpDefinition ::= Kw_infix Int Id infixOp Id Statement
+bool CMMParser::parseInfixOpDefinition() {
+  assert(Lexer.is(Token::Kw_infix));
+  Lex();  // Eat the 'infix'.
+
+  int Precedence;
+
+  if (Lexer.is(Token::Integer)) {
+    Precedence = Lexer.getIntVal();
+    Lex();  // Eat the int.
+  } else {
+    Precedence = 12;
+  }
+
+  if (Lexer.isNot(Token::Identifier))
+    return Error("left hand operand name for infix operator expected");
+  std::string LHS = Lexer.getStrVal();
+  Lex();
+
+  if (Lexer.isNot(Token::InfixOp))
+    return Error("symbol of infix operator expected");
+  std::string Symbol = Lexer.getStrVal();
+  Lex();
+
+  if (Lexer.isNot(Token::Identifier))
+    return Error("right hand operand name for infix operator expected");
+  std::string RHS = Lexer.getStrVal();
+  Lex();
+
+  std::unique_ptr<StatementAST> Statement;
+  if (parseStatement(Statement))
+    return true;
+
+  BinOpPrecedence.emplace(std::make_pair(Symbol, static_cast<int8_t>(Precedence)));
+  InfixOpDefinition.emplace(std::make_pair(Symbol,
+                                           InfixOpDefinitionAST(Symbol, LHS, RHS,
+                                                                std::move(Statement))));
+  return false;
 }
 
 /// \brief Parse a function definition
@@ -260,11 +307,14 @@ int8_t CMMParser::getBinOpPrecedence() {
   case Token::Slash:
   case Token::Percent:
     return 11;
-  case Token::Operator: break;
+  case Token::InfixOp: {
+    auto It = BinOpPrecedence.find(Lexer.getStrVal());
+    if (It != BinOpPrecedence.end())
+      return It->second;
+    break;
   }
-
-  auto It = BinOpPrecedence.find(Lexer.getStrVal());
-  return It == BinOpPrecedence.end() ? -1 : It->second;
+  }
+  return -1;
 }
 
 /// \brief Parse a paren expression and return it.
@@ -351,6 +401,8 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     if (TokPrec < ExprPrec)
       return false;
 
+    // Save the potential symbol before lex.
+    std::string Symbol = Lexer.getStrVal();
     // Eat the binary operator.
     Lex();
     // Eat the next primary expression.
@@ -364,7 +416,11 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
       return true;
     
     // Merge LHS and RHS according to operator.
-    Res = BinaryOperatorAST::create(TokenKind, std::move(Res), std::move(RHS));
+    if (TokenKind == Token::InfixOp)
+      Res.reset(new InfixOpExprAST(Symbol, std::move(Res), std::move(RHS)));
+    else
+      Res = BinaryOperatorAST::create(TokenKind,
+                                      std::move(Res), std::move(RHS));
   }
 }
 

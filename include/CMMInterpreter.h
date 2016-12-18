@@ -38,13 +38,15 @@ private:  /* private data types */
 private:  /*  private member variables  */
   BlockAST &TopLevelBlock;
   std::map<std::string, FunctionDefinitionAST> &UserFunctionMap;
+  std::map<std::string, InfixOpDefinitionAST> &InfixOpMap;
   std::map<std::string, NativeFunction> NativeFunctionMap;
   VariableEnv TopLevelEnv;
 
 public:   /* public member functions */
   CMMInterpreter(BlockAST &Block,
-                 std::map<std::string, FunctionDefinitionAST> &F)
-      : TopLevelBlock(Block), UserFunctionMap(F) {
+                 std::map<std::string, FunctionDefinitionAST> &F,
+                 std::map<std::string, InfixOpDefinitionAST> &I)
+      : TopLevelBlock(Block), UserFunctionMap(F), InfixOpMap(I) {
     addNativeFunctions();
   }
 
@@ -89,6 +91,8 @@ private:  /* private member functions */
                                       const ExpressionAST *VarExpr);
   cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env,
                                            const FunctionCallAST *FuncCall);
+  cvm::BasicValue evaluateInfixOpExpr(VariableEnv *Env,
+                                      const InfixOpExprAST *Expr);
   cvm::BasicValue evaluateUnaryOpExpr(VariableEnv *Env,
                                       const UnaryOperatorAST *Expr);
   cvm::BasicValue evaluateUnaryArith(UnaryOperatorAST::OperatorKind OpKind,

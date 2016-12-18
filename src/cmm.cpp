@@ -37,8 +37,9 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     case Token::Double:
       cout << "Double: " << Lexer.getDoubleVal(); break;
     case Token::Boolean:
-      cout << "Boolean: " << (Lexer.getDoubleVal() ? "True" : "False");
-      break;
+      cout << "Boolean: " << (Lexer.getDoubleVal() ? "True" : "False"); break;
+    case Token::InfixOp:
+      cout << "InfixOp: " << Lexer.getStrVal(); break;
     case Token::LParen:         cout << "LParen: ("; break;
     case Token::RParen:         cout << "RParen: )"; break;
     case Token::LBrac:          cout << "LBrac: ["; break;
@@ -78,6 +79,7 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     case Token::Kw_bool:        cout << "Keyword: bool"; break;
     case Token::Kw_void:        cout << "Keyword: void"; break;
     case Token::Kw_return:      cout << "Keyword: return"; break;
+    case Token::Kw_infix:       cout << "Keyword: infix"; break;
     }
     cout << "\n";
   }
