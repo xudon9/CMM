@@ -1,3 +1,13 @@
+/*
+ * cmm.cpp
+ * Copyright (C) 2016 wang <hsu@whu.edu.cn>
+ *
+ * TODO:
+ * 1. command line argument
+ * 2. dead code elimination
+ * 3.
+ */
+
 #include <cstdlib>
 #include <iostream>
 #include "CMMLexer.h"

@@ -69,7 +69,8 @@ public:
   bool operator>=(const BasicValue &RHS) const;
 };
 }
-///
+/// !code.h
+
 
 namespace cmm {
 
@@ -140,6 +141,8 @@ class FunctionType : public DerivedType {
 };
  */
 
+
+
 class AST {
 public:
   virtual ~AST() {};
@@ -189,6 +192,8 @@ public:
 };
 
 
+
+
 class StatementAST : public AST {
 public:
   enum StatementKind {
@@ -213,6 +218,7 @@ public:
   // bool isWhileStatement() { return Kind == WhileStatement; }
 };
 
+
 class IntAST : public ExpressionAST {
   int Value;
 public:
@@ -220,6 +226,7 @@ public:
   void dump(const std::string &prefix = "") const override;
   int getValue() const { return Value; }
 };
+
 
 class DoubleAST : public ExpressionAST {
   double Value;
@@ -230,6 +237,7 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
 class BoolAST : public ExpressionAST {
   bool Value;
 public:
@@ -238,6 +246,7 @@ public:
   bool getValue() const { return Value; }
   void dump(const std::string &prefix = "") const override;
 };
+
 
 class StringAST : public ExpressionAST {
   std::string Value;
@@ -276,6 +285,7 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
 class FunctionCallAST : public ExpressionAST {
   std::string Callee;
   std::list<std::unique_ptr<ExpressionAST>> Arguments;
@@ -291,6 +301,7 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
 class BinaryOperatorAST : public ExpressionAST {
 public:
   enum OperatorKind {
@@ -300,9 +311,11 @@ public:
     BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift, /* bitwise */
     Assign /**, Comma**/, Index
   };
+
 private:
   OperatorKind OpKind;
   std::unique_ptr<ExpressionAST> LHS, RHS;
+
 public:
   BinaryOperatorAST(OperatorKind OpKind,
                     std::unique_ptr<ExpressionAST> LHS,
@@ -348,6 +361,8 @@ public:
                       std::unique_ptr<ExpressionAST> RHS);
 };
 
+
+
 class UnaryOperatorAST : public ExpressionAST {
 public:
   enum OperatorKind { Plus, Minus, LogicalNot, BitwiseNot };
@@ -368,6 +383,7 @@ public:
   static std::unique_ptr<ExpressionAST>
   tryFoldUnaryOp(OperatorKind OpKind, std::unique_ptr<ExpressionAST> Operand);
 };
+
 
 class DeclarationAST : public StatementAST {
   std::string Name;
@@ -399,6 +415,8 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
+
 class DeclarationListAST : public StatementAST {
   cvm::BasicType Type;
   std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
@@ -420,6 +438,8 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
+
 class BlockAST : public StatementAST {
 public:
   enum BlockKind { UndefinedBlock, FunctionBlock, NormalBlock };
@@ -438,6 +458,7 @@ public:
   const decltype(StatementList) &getStatementList() const {
     return StatementList;
   }
+
   //void addDeclaration(std::unique_ptr<DeclarationAST> Declaration) {
   //  DeclarationList.push_back(std::move(Declaration));
   //}
@@ -454,6 +475,8 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
+
 class ExprStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Expression;
 public:
@@ -466,10 +489,10 @@ public:
 };
 
 // class StatementBlockAST : public BlockAST {
-//   // TODO? Statement   *statement;
 //   size_t ContinueLabel;
 //   size_t BreakLabel;
 // };
+
 
 class InfixOpDefinitionAST {
   std::string Symbol;
@@ -491,7 +514,9 @@ public:
   void dump() const;
 };
 
-class FunctionDefinitionAST /*: public StatementAST*/ {
+
+
+class FunctionDefinitionAST {
   std::string Name;
   cvm::BasicType Type;
   std::list<Parameter> ParameterList;
@@ -516,15 +541,18 @@ public:
   void dump() const;
 };
 
+
 //class FunctionBlock : public BlockAST {
 //  std::unique_ptr<FunctionDefinitionAST> Function;
 //  size_t EndLabel;
 //};
 
+
 class IfStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> StatementThen;
   std::unique_ptr<StatementAST> StatementElse;
+
 public:
   IfStatementAST(std::unique_ptr<ExpressionAST> Condition,
                  std::unique_ptr<StatementAST> StatementThen,
@@ -541,6 +569,7 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
 class WhileStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
@@ -556,6 +585,8 @@ public:
 
   void dump(const std::string &prefix = "") const override;
 };
+
+
 
 class ForStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Init;
@@ -579,6 +610,8 @@ public:
   void dump(const std::string &prefix) const override;
 };
 
+
+
 class ReturnStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> ReturnValue;
 public:
@@ -590,12 +623,15 @@ public:
   void dump(const std::string &prefix = "") const override;
 };
 
+
 class BreakStatementAST : public StatementAST {
 public:
   BreakStatementAST() : StatementAST(BreakStatement) {}
 
   void dump(const std::string &prefix = "") const override;
 };
+
+
 
 class ContinueStatementAST : public StatementAST {
 public:

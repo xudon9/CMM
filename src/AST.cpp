@@ -274,8 +274,9 @@ BinaryOperatorAST::tryFoldBinOp(Token::TokenKind TokenKind,
   case Token::Caret:
   case Token::LessLess:
   case Token::GreaterGreater:
-  case Token::Equal:
     return tryFoldBinOpBitwise(TokenKind, std::move(LHS), std::move(RHS));
+  case Token::Equal:
+    break;
   }
 
   return create(TokenKind, std::move(LHS), std::move(RHS));
@@ -346,15 +347,61 @@ std::unique_ptr<ExpressionAST>
 BinaryOperatorAST::tryFoldBinOpRelation(Token::TokenKind TokenKind,
                                         std::unique_ptr<ExpressionAST> LHS,
                                         std::unique_ptr<ExpressionAST> RHS) {
-  // TODO: unimplemented, but this is ok
+#define TRY_COMPARE(type, Type) do {                                           \
+  if (LHS->is##Type() && RHS->is##Type()) {                                    \
+    type L = LHS->as_cptr<Type##AST>()->getValue();                            \
+    type R = RHS->as_cptr<Type##AST>()->getValue();                            \
+    switch (TokenKind) {                                                       \
+    default:break;                                                             \
+    case Token::Less:                                                          \
+            return std::unique_ptr<BoolAST>(new BoolAST(L < R));               \
+    case Token::LessEqual:                                                     \
+            return std::unique_ptr<BoolAST>(new BoolAST(L <= R));              \
+    case Token::EqualEqual:                                                    \
+            return std::unique_ptr<BoolAST>(new BoolAST(L == R));              \
+    case Token::ExclaimEqual:                                                  \
+            return std::unique_ptr<BoolAST>(new BoolAST(L != R));              \
+    case Token::GreaterEqual:                                                  \
+            return std::unique_ptr<BoolAST>(new BoolAST(L >= R));              \
+    case Token::Greater:                                                       \
+            return std::unique_ptr<BoolAST>(new BoolAST(L > R));               \
+    }                                                                          \
+  }                                                                            \
+} while (0)
+
+  TRY_COMPARE(int, Int);
+  TRY_COMPARE(std::string, String);
+  TRY_COMPARE(double, Double);
+  TRY_COMPARE(bool, Bool);
+
+#undef TRY_COMPARE
+
+  // TODO: Not very elegant, but this is ok.
   return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
 }
 
 std::unique_ptr<ExpressionAST>
 BinaryOperatorAST::tryFoldBinOpBitwise(Token::TokenKind TokenKind,
                                        std::unique_ptr<ExpressionAST> LHS,
-                                       std::unique_ptr<ExpressionAST> RHS){
-  // TODO: unimplemented, but this is ok
+                                       std::unique_ptr<ExpressionAST> RHS) {
+  if (LHS->isInt() && RHS->isInt()) {
+    int L = LHS->as_cptr<IntAST>()->getValue();
+    int R = RHS->as_cptr<IntAST>()->getValue();
+
+    switch (TokenKind) {
+    default:break;
+    case Token::LessLess:
+      return std::unique_ptr<IntAST>(new IntAST(L << R));
+    case Token::GreaterGreater:
+      return std::unique_ptr<IntAST>(new IntAST(L >> R));
+    case Token::Amp:
+      return std::unique_ptr<IntAST>(new IntAST(L & R));
+    case Token::Pipe:
+      return std::unique_ptr<IntAST>(new IntAST(L | R));
+    case Token::Caret:
+      return std::unique_ptr<IntAST>(new IntAST(L ^ R));
+    }
+  }
   return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
 }
 
