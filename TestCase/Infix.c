@@ -8,3 +8,4 @@
 infix a@b return a+b;
 
 println(1 @3);
+println(!!(1 + 2*3 + "heh"));

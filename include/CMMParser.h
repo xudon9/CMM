@@ -60,31 +60,6 @@ private:
   bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
 
-  std::unique_ptr<ExpressionAST>
-  tryFoldBinOp(Token::TokenKind TokenKind, LocTy OperatorLoc,
-                    std::unique_ptr<ExpressionAST> LHS,
-                    std::unique_ptr<ExpressionAST> RHS);
-
-  std::unique_ptr<ExpressionAST>
-  tryFoldBinOpArith(Token::TokenKind TokenKind,
-                    std::unique_ptr<ExpressionAST> LHS,
-                    std::unique_ptr<ExpressionAST> RHS);
-
-  std::unique_ptr<ExpressionAST>
-  tryFoldBinOpLogic(Token::TokenKind TokenKind,
-                    std::unique_ptr<ExpressionAST> LHS,
-                    std::unique_ptr<ExpressionAST> RHS);
-
-  std::unique_ptr<ExpressionAST>
-  tryFoldBinOpRelation(Token::TokenKind TokenKind,
-                       std::unique_ptr<ExpressionAST> LHS,
-                       std::unique_ptr<ExpressionAST> RHS);
-
-  std::unique_ptr<ExpressionAST>
-  tryFoldBinOpBitwise(Token::TokenKind TokenKind,
-                      std::unique_ptr<ExpressionAST> LHS,
-                      std::unique_ptr<ExpressionAST> RHS);
-
 public:
   CMMParser(SourceMgr &SrcMgr)
     : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {}

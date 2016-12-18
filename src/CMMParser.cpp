@@ -1,7 +1,5 @@
 #include "CMMParser.h"
 #include <cassert>
-#include <cmath>
-#include <limits>
 
 #include "CMMInterpreter.h" /*ad-hoc ^*/
 
@@ -60,8 +58,9 @@ bool CMMParser::parseTopLevel() {
     Lex();  // Eat the identifier.
 
     if (Lexer.is(Token::LParen))
-      return parseFunctionDefinition(Type, Name); // It's function def.
-    // It's variable decl.
+      return parseFunctionDefinition(Type, Name); // It's function definition.
+
+    // It's a variable declaration.
     Lexer.seekLoc(Loc);
     Lex();
     std::unique_ptr<StatementAST> DeclStatement;
@@ -383,7 +382,7 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   Lex(); // Eat the operator: +,-,~,!
   if (parsePrimaryExpression(Operand))
     return true;
-  Res.reset(new UnaryOperatorAST(UnaryOpKind, std::move(Operand)));
+  Res = UnaryOperatorAST::tryFoldUnaryOp(UnaryOpKind, std::move(Operand));
   return false;
 }
 
@@ -402,7 +401,6 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
   }
   for (;;) {
     Token::TokenKind TokenKind = getKind();
-    LocTy TokenLoc = Lexer.getLoc();
 
     // If this is a binOp, find its precedence.
     int8_t TokPrec = getBinOpPrecedence();
@@ -429,131 +427,12 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
     if (TokenKind == Token::InfixOp)
       Res.reset(new InfixOpExprAST(Symbol, std::move(Res), std::move(RHS)));
     else
-      Res = tryFoldBinOp(TokenKind, TokenLoc,
-                         std::move(Res), std::move(RHS));
+      Res = BinaryOperatorAST::tryFoldBinOp(TokenKind, std::move(Res),
+                                             std::move(RHS));
   }
 }
 
-std::unique_ptr<ExpressionAST>
-CMMParser::tryFoldBinOp(Token::TokenKind TokenKind, LocTy OperatorLoc,
-                        std::unique_ptr<ExpressionAST> LHS,
-                        std::unique_ptr<ExpressionAST> RHS) {
-  if (!LHS->isConstant() || !RHS->isConstant()) {
-    return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
-  }
 
-  if (TokenKind == Token::Plus && (LHS->isString() || RHS->isString())) {
-    return std::unique_ptr<ExpressionAST>(new StringAST(LHS->asString() +
-        RHS->asString()));
-  }
-
-  switch (TokenKind) {
-  default:
-    break;
-  case Token::Plus:
-  case Token::Slash:
-  case Token::Minus:
-  case Token::Star:
-  case Token::Percent:
-    return tryFoldBinOpArith(TokenKind, std::move(LHS), std::move(RHS));
-  case Token::AmpAmp:
-  case Token::PipePipe:
-    return tryFoldBinOpLogic(TokenKind, std::move(LHS), std::move(RHS));
-  case Token::Less:
-  case Token::LessEqual:
-  case Token::EqualEqual:
-  case Token::ExclaimEqual:
-  case Token::GreaterEqual:
-  case Token::Greater:
-    return tryFoldBinOpRelation(TokenKind, std::move(LHS), std::move(RHS));
-  case Token::Amp:
-  case Token::Pipe:
-  case Token::Caret:
-  case Token::LessLess:
-  case Token::GreaterGreater:
-  case Token::Equal:
-    return tryFoldBinOpBitwise(TokenKind, std::move(LHS), std::move(RHS));
-  }
-
-  return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
-}
-
-std::unique_ptr<ExpressionAST>
-CMMParser::tryFoldBinOpArith(Token::TokenKind TokenKind,
-                             std::unique_ptr<ExpressionAST> LHS,
-                             std::unique_ptr<ExpressionAST> RHS) {
-
-  if (LHS->isInt() || RHS->isInt()) {
-    int Value;
-    int L = LHS->as_cptr<IntAST>()->getValue();
-    int R = RHS->as_cptr<IntAST>()->getValue();
-
-    switch (TokenKind) {
-    default:              Value = 0;      break;
-    case Token::Plus:     Value = L + R;  break;
-    case Token::Minus:    Value = L - R;  break;
-    case Token::Star:     Value = L * R;  break;
-    case Token::Slash:
-      Value = R == 0 ? std::numeric_limits<int>::max() : L / R;
-      break;
-    case Token::Percent:
-      Value = R == 0 ? 0 : L % R;
-      break;
-    }
-    return std::unique_ptr<ExpressionAST>(new IntAST(Value));
-  }
-
-  if (LHS->isNumeric() || RHS->isNumeric()) {
-    double Value;
-    double L = LHS->asDouble();
-    double R = RHS->asDouble();
-
-    switch (TokenKind) {
-    default:              Value = 0.0;    break;
-    case Token::Plus:     Value = L + R;  break;
-    case Token::Minus:    Value = L - R;  break;
-    case Token::Star:     Value = L * R;  break;
-    case Token::Slash:    Value = L / R;  break;
-    case Token::Percent:  Value = std::fmod(L, R); break;
-    }
-    return std::unique_ptr<ExpressionAST>(new DoubleAST(Value));
-  }
-
-  return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
-}
-
-/// \brief Fold two expression for logicalAnd and logicalOr
-/// LHS and RHS should be constantExpr
-std::unique_ptr<ExpressionAST>
-CMMParser::tryFoldBinOpLogic(Token::TokenKind TokenKind,
-                             std::unique_ptr<ExpressionAST> LHS,
-                             std::unique_ptr<ExpressionAST> RHS) {
-  bool Value;
-
-  switch (TokenKind) {
-  default:                Value = false; break;
-  case Token::AmpAmp:     Value = LHS->asBool() && RHS->asBool(); break;
-  case Token::PipePipe:   Value = LHS->asBool() || RHS->asBool(); break;
-  }
-
-  return std::unique_ptr<ExpressionAST>(new BoolAST(Value));
-}
-
-std::unique_ptr<ExpressionAST>
-CMMParser::tryFoldBinOpRelation(Token::TokenKind TokenKind,
-                                std::unique_ptr<ExpressionAST> LHS,
-                                std::unique_ptr<ExpressionAST> RHS) {
-  // TODO: unimplemented.
-  return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
-}
-
-std::unique_ptr<ExpressionAST>
-CMMParser::tryFoldBinOpBitwise(Token::TokenKind TokenKind,
-                               std::unique_ptr<ExpressionAST> LHS,
-                               std::unique_ptr<ExpressionAST> RHS){
-  // TODO: unimplemented.
-  return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
-}
 
 /// \brief Parse an identifier expression
 /// identifierExpression ::= identifier

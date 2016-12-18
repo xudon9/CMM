@@ -127,8 +127,8 @@ public:
     return  cvm::TypeToStr(Type) + " " + Name;
   }
 
- /* hack */
-  //cvm::BasicType getType() const { return Type->getBasicType(); }
+  /** a hack... **/
+  // cvm::BasicType getType() const { return Type->getBasicType(); }
   cvm::BasicType getType() const { return Type; }
   const std::string &getName() const { return Name; }
 };
@@ -217,9 +217,7 @@ class IntAST : public ExpressionAST {
   int Value;
 public:
   IntAST(int Value) : ExpressionAST(IntExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(int)" << Value << std::endl;
-  }
+  void dump(const std::string &prefix = "") const override;
   int getValue() const { return Value; }
 };
 
@@ -227,20 +225,18 @@ class DoubleAST : public ExpressionAST {
   double Value;
 public:
   DoubleAST(double Value) : ExpressionAST(DoubleExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(double)" << Value << std::endl;
-  }
+
   double getValue() const { return Value; }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class BoolAST : public ExpressionAST {
   bool Value;
 public:
   BoolAST(bool Value) : ExpressionAST(BoolExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(bool)" << (Value ? "true" : "false") << std::endl;
-  }
+
   bool getValue() const { return Value; }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class StringAST : public ExpressionAST {
@@ -248,10 +244,9 @@ class StringAST : public ExpressionAST {
 public:
   StringAST(const std::string &Value)
     : ExpressionAST(StringExpression), Value(Value) {}
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(str)" << Value << std::endl;
-  }
+
   const std::string &getValue() const { return Value; }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class IdentifierAST : public ExpressionAST {
@@ -259,10 +254,9 @@ class IdentifierAST : public ExpressionAST {
 public:
   IdentifierAST(const std::string &Name)
     : ExpressionAST(IdentifierExpression), Name(Name) {}
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(id)" << Name << std::endl;
-  }
+
   const std::string &getName() const { return Name; }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class InfixOpExprAST : public ExpressionAST {
@@ -279,13 +273,7 @@ public:
   const ExpressionAST *getLHS() const { return LHS.get(); }
   const ExpressionAST *getRHS() const { return RHS.get(); }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << getSymbol() << std::endl;
-    std::cout << prefix << "|---";
-    LHS->dump(prefix + "|   ");
-    std::cout << prefix << "`---";
-    RHS->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class FunctionCallAST : public ExpressionAST {
@@ -300,18 +288,7 @@ public:
   const std::string &getCallee() const  { return Callee; }
   const decltype(Arguments) &getArguments() const { return Arguments; }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(call)" << Callee << std::endl;
-    for (const auto &Arg : Arguments) {
-      if (Arg != Arguments.back()) {
-        std::cout << prefix << "|---";
-        Arg->dump(prefix + "|   ");
-      } else {
-        std::cout << prefix << "`---";
-        Arg->dump(prefix + "    ");
-      }
-    }
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class BinaryOperatorAST : public ExpressionAST {
@@ -337,42 +314,38 @@ public:
   ExpressionAST *getLHS() const { return LHS.get(); }
   ExpressionAST *getRHS() const { return RHS.get(); }
 
-  void dump(const std::string &prefix = "") const override {
-    std::string OperatorSymbol;
-    switch (OpKind) {
-    default: break;
-    case Add:           OperatorSymbol = "Add"; break;
-    case Minus:         OperatorSymbol = "Sub"; break;
-    case Multiply:      OperatorSymbol = "Mul"; break;
-    case Division:      OperatorSymbol = "Div"; break;
-    case Modulo:        OperatorSymbol = "Mod"; break;
-    case LogicalAnd:    OperatorSymbol = "And"; break;
-    case LogicalOr:     OperatorSymbol = "Or"; break;
-    case Less:          OperatorSymbol = "Less"; break;
-    case LessEqual:     OperatorSymbol = "LessEq"; break;
-    case Equal:         OperatorSymbol = "Equal"; break;
-    case NotEqual:      OperatorSymbol = "NotEq"; break;
-    case Greater:       OperatorSymbol = "Greater"; break;
-    case BitwiseAnd:    OperatorSymbol = "BitAnd"; break;
-    case BitwiseOr:     OperatorSymbol = "BitOr"; break;
-    case BitwiseXor:    OperatorSymbol = "Xor"; break;
-    case LeftShift:     OperatorSymbol = "LShift"; break;
-    case RightShift:    OperatorSymbol = "RShift"; break;
-    case Assign:        OperatorSymbol = "Assign"; break;
-    case GreaterEqual:  OperatorSymbol = "GreaterEq"; break;
-    case Index:         OperatorSymbol = "At"; break;
-    }
-    std::cout << OperatorSymbol << std::endl;
-    std::cout << prefix << "|---";
-    LHS->dump(prefix + "|   ");
-    std::cout << prefix << "`---";
-    RHS->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix = "") const override;
 
+  // Static utilities
   static std::unique_ptr<ExpressionAST>
     create(Token::TokenKind TokenKind,
            std::unique_ptr<ExpressionAST> LHS,
            std::unique_ptr<ExpressionAST> RHS);
+
+  static std::unique_ptr<ExpressionAST>
+  tryFoldBinOp(Token::TokenKind TokenKind,
+               std::unique_ptr<ExpressionAST> LHS,
+               std::unique_ptr<ExpressionAST> RHS);
+
+  static std::unique_ptr<ExpressionAST>
+  tryFoldBinOpArith(Token::TokenKind TokenKind,
+                    std::unique_ptr<ExpressionAST> LHS,
+                    std::unique_ptr<ExpressionAST> RHS);
+
+  static std::unique_ptr<ExpressionAST>
+  tryFoldBinOpLogic(Token::TokenKind TokenKind,
+                    std::unique_ptr<ExpressionAST> LHS,
+                    std::unique_ptr<ExpressionAST> RHS);
+
+  static std::unique_ptr<ExpressionAST>
+  tryFoldBinOpRelation(Token::TokenKind TokenKind,
+                       std::unique_ptr<ExpressionAST> LHS,
+                       std::unique_ptr<ExpressionAST> RHS);
+
+  static std::unique_ptr<ExpressionAST>
+  tryFoldBinOpBitwise(Token::TokenKind TokenKind,
+                      std::unique_ptr<ExpressionAST> LHS,
+                      std::unique_ptr<ExpressionAST> RHS);
 };
 
 class UnaryOperatorAST : public ExpressionAST {
@@ -389,19 +362,11 @@ public:
   OperatorKind getOpKind() const { return OpKind; }
   const ExpressionAST *getOperand() const { return Operand.get(); }
 
-  void dump(const std::string &prefix = "") const override {
-    std::string OperatorSymbol;
-    switch (OpKind) {
-    default: break;
-    case Plus:       OperatorSymbol = "Positive"; break;
-    case Minus:      OperatorSymbol = "Negative"; break;
-    case LogicalNot: OperatorSymbol = "Not"; break;
-    case BitwiseNot: OperatorSymbol = "BitNot"; break;
-    }
-    std::cout << "(" << OperatorSymbol << ")" << std::endl;
-    std::cout << prefix << "`---";
-    Operand->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix = "") const override;
+
+  // Static utilities
+  static std::unique_ptr<ExpressionAST>
+  tryFoldUnaryOp(OperatorKind OpKind, std::unique_ptr<ExpressionAST> Operand);
 };
 
 class DeclarationAST : public StatementAST {
@@ -431,23 +396,7 @@ public:
   }
 
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << cvm::TypeToStr(Type) << " " << Name << std::endl;
-    if (Initializer) {
-      std::cout << prefix << " `==";
-      Initializer->dump(prefix + "    ");
-    } else if (isArray()) {
-      for (const auto &E : ElementCountList) {
-        if (E != ElementCountList.back()) {
-          std::cout << prefix << "|-[]";
-          E->dump(prefix + "|   ");
-        } else {
-          std::cout << prefix << "`-[]";
-          E->dump(prefix + "    ");
-        }
-      }
-    }
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class DeclarationListAST : public StatementAST {
@@ -468,18 +417,7 @@ public:
     return DeclarationList;
   }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(Decl)" << cvm::TypeToStr(Type) << std::endl;
-    for (const auto &Declare : DeclarationList) {
-      if (Declare != DeclarationList.back()) {
-        std::cout << prefix << "|---";
-        Declare->dump(prefix + "|   ");
-      } else {
-        std::cout << prefix << "`---";
-        Declare->dump(prefix + "    ");
-      }
-    }
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class BlockAST : public StatementAST {
@@ -488,39 +426,32 @@ public:
 private:
   BlockAST *OuterBlock;
   std::list<std::unique_ptr<StatementAST>> StatementList;
-  std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
+  //std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
 public:
   BlockAST(BlockAST *OuterBlock = nullptr)
     : StatementAST(BlockStatement), OuterBlock(OuterBlock) {}
+
   void addStatement(std::unique_ptr<StatementAST> Statement) {
     StatementList.push_back(std::move(Statement));
   }
-  void addDeclaration(std::unique_ptr<DeclarationAST> Declaration) {
-    DeclarationList.push_back(std::move(Declaration));
-  }
+
   const decltype(StatementList) &getStatementList() const {
     return StatementList;
   }
-  const decltype(DeclarationList) &getDeclarationList() const {
-    return DeclarationList;
-  }
+  //void addDeclaration(std::unique_ptr<DeclarationAST> Declaration) {
+  //  DeclarationList.push_back(std::move(Declaration));
+  //}
+
+  //const decltype(DeclarationList) &getDeclarationList() const {
+  //  return DeclarationList;
+  //}
+
   BlockAST *getOuterBlock() const { return OuterBlock; }
   std::list<std::unique_ptr<StatementAST>> &getStatementList() {
     return StatementList;
   }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "(Block)\n";
-    for (const auto &Statement : StatementList) {
-      if (Statement != StatementList.back()) {
-        std::cout << prefix << "|---";
-        Statement->dump(prefix + "|   ");
-      } else {
-        std::cout << prefix << "`---";
-        Statement->dump(prefix + "    ");
-      }
-    }
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class ExprStatementAST : public StatementAST {
@@ -531,11 +462,7 @@ public:
 
   const ExpressionAST *getExpression() const { return Expression.get(); }
 
-  void dump(const std::string &prefix) const override {
-    std::cout << "(ExprStmt)" << std::endl;
-    std::cout << prefix << "`---";
-    Expression->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix) const override;
 };
 
 // class StatementBlockAST : public BlockAST {
@@ -561,11 +488,7 @@ public:
   const std::string &getRHSName() const { return RHSName; }
   const StatementAST *getStatement() const { return Statement.get(); }
 
-  void dump() const {
-    std::cout << "infix " << getLHSName() << " " << getSymbol() << " "
-        << getRHSName() << "\n";
-    Statement->dump();
-  }
+  void dump() const;
 };
 
 class FunctionDefinitionAST /*: public StatementAST*/ {
@@ -590,20 +513,13 @@ public:
   const std::list<Parameter> &getParameterList() const { return ParameterList; }
   const StatementAST *getStatement() const { return Statement.get(); }
 
-  void dump() const {
-    std::cout << cvm::TypeToStr(Type) << " " << Name << "(";
-    for (const auto &P : ParameterList) {
-      std::cout << P.toString() << ", ";
-    }
-    std::cout << ")\n";
-    Statement->dump();
-  }
+  void dump() const;
 };
 
-class FunctionBlock : public BlockAST {
-  std::unique_ptr<FunctionDefinitionAST> Function;
-  size_t EndLabel;
-};
+//class FunctionBlock : public BlockAST {
+//  std::unique_ptr<FunctionDefinitionAST> Function;
+//  size_t EndLabel;
+//};
 
 class IfStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Condition;
@@ -622,20 +538,7 @@ public:
   const StatementAST *getStatementThen() const { return StatementThen.get(); }
   const StatementAST *getStatementElse() const { return StatementElse.get(); }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "if" << std::endl;
-    std::cout << prefix << "|---";
-    Condition->dump(prefix + "|   ");
-    if (StatementElse) {
-      std::cout << prefix << "|---";
-      StatementThen->dump(prefix + "|   ");
-      std::cout << prefix << "`---";
-      StatementElse->dump(prefix + "    ");
-    } else {
-      std::cout << prefix << "`---";
-      StatementThen->dump(prefix + "    ");
-    }
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class WhileStatementAST : public StatementAST {
@@ -651,13 +554,7 @@ public:
   const ExpressionAST *getCondition() const { return Condition.get(); }
   const StatementAST *getStatement() const { return Statement.get(); }
 
-  void dump(const std::string &prefix) const override {
-    std::cout << "while" << std::endl;
-    std::cout << prefix << "|---";
-    Condition->dump(prefix + "|   ");
-    std::cout << prefix << "`---";
-    Statement->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class ForStatementAST : public StatementAST {
@@ -679,23 +576,7 @@ public:
   const ExpressionAST *getPost() const { return Post.get(); }
   const StatementAST *getStatement() const { return Statement.get(); }
 
-  void dump(const std::string &prefix) const override {
-    std::cout << "for" << std::endl;
-
-    std::cout << prefix << "|--+";
-    if (Init)   Init->dump(prefix + "|   ");
-    else        std::cout << "(nullInit)\n";
-
-    std::cout << prefix << "|--+";
-    if (Condition)  Condition->dump(prefix + "|   ");
-    else            std::cout << "(forever)\n";
-
-    std::cout << prefix << "|--+";
-    if (Post)   Post->dump(prefix + "|   ");
-    else        std::cout << "(nullPost)\n";
-
-    std::cout << prefix << "`---"; Statement->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix) const override;
 };
 
 class ReturnStatementAST : public StatementAST {
@@ -706,31 +587,21 @@ public:
 
   const ExpressionAST *getReturnValue() const { return ReturnValue.get(); }
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "return" << std::endl;
-    if (!ReturnValue)
-      return;
-    std::cout << prefix << "`---";
-    ReturnValue->dump(prefix + "    ");
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class BreakStatementAST : public StatementAST {
 public:
   BreakStatementAST() : StatementAST(BreakStatement) {}
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "break" << std::endl;
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 class ContinueStatementAST : public StatementAST {
 public:
   ContinueStatementAST() : StatementAST(ContinueStatement) {}
 
-  void dump(const std::string &prefix = "") const override {
-    std::cout << "continue" << std::endl;
-  }
+  void dump(const std::string &prefix = "") const override;
 };
 
 }
