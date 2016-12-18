@@ -1,6 +1,7 @@
 #include "AST.h"
 #include <string>
 #include <numeric>
+#include <AST.h>
 
 namespace cvm {
 
@@ -173,6 +174,66 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   return std::unique_ptr<ExpressionAST>(new BinaryOperatorAST(OpKind,
                                                               std::move(LHS),
                                                               std::move(RHS)));
+}
+
+int ExpressionAST::asInt() const {
+  switch (getKind()) {
+  default:
+    return 0;
+  case IntExpression:
+    return as_cptr<IntAST>()->getValue();
+  case DoubleExpression:
+    return static_cast<int>(as_cptr<DoubleAST>()->getValue());
+  case StringExpression:
+    return std::stoi(as_cptr<StringAST>()->getValue());
+  case BoolExpression:
+    return static_cast<int>(as_cptr<BoolAST>()->getValue());
+  }
+}
+
+bool ExpressionAST::asBool() const {
+  switch (getKind()) {
+  default:
+    return false;
+  case IntExpression:
+    return static_cast<bool>(as_cptr<IntAST>()->getValue());
+  case DoubleExpression:
+    return static_cast<bool>(as_cptr<DoubleAST>()->getValue());
+  case StringExpression:
+    return !as_cptr<StringAST>()->getValue().empty();
+  case BoolExpression:
+    return as_cptr<BoolAST>()->getValue();
+  }
+}
+
+double ExpressionAST::asDouble() const {
+  switch (getKind()) {
+  default:
+    return 0.0;
+  case IntExpression:
+    return static_cast<double>(as_cptr<IntAST>()->getValue());
+  case DoubleExpression:
+    return as_cptr<DoubleAST>()->getValue();
+  case StringExpression:
+    return std::stod(as_cptr<StringAST>()->getValue());
+  case BoolExpression:
+    return static_cast<double>(as_cptr<BoolAST>()->getValue());
+  }
+}
+
+std::string ExpressionAST::asString() const {
+  switch (getKind()) {
+  default:
+    return "";
+  case IntExpression:
+    return std::to_string(as_cptr<IntAST>()->getValue());
+  case DoubleExpression:
+    return std::to_string(as_cptr<DoubleAST>()->getValue());
+  case StringExpression:
+    return as_cptr<StringAST>()->getValue();
+  case BoolExpression:
+    return as_cptr<BoolAST>()->getValue() ? "true" : "false";
+  }
 }
 
 }

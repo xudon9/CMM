@@ -166,18 +166,29 @@ public:
   ExpressionAST(ExpressionKind Kind) : Kind(Kind) {}
 
   // Other public member functions
+  template <typename T>
+  const T *as_cptr() const { return static_cast<const T*>(this); }
+
   ExpressionKind getKind() const { return Kind; }
 
-  bool isIdentifierExpr() const { return Kind == IdentifierExpression; }
+  bool isIdentifierExpr() const { return getKind() == IdentifierExpression; }
   bool isBinaryOperatorExpression() const {
-    return Kind == BinaryOperatorExpression;
+    return getKind() == BinaryOperatorExpression;
   }
-  // bool isInt() { return Kind == IntExpression; }
-  // bool isDouble() { return Kind == DoubleExpression; }
-  // bool isBool() { return Kind == BoolExpression; }
-  // bool isString() { return Kind == StringExpression; }
-  // bool isNumeric() { return isInt() || isDouble(); }
+  bool isInt() { return getKind() == IntExpression; }
+  bool isDouble() { return getKind() == DoubleExpression; }
+  bool isBool() { return getKind() == BoolExpression; }
+  bool isString() { return getKind() == StringExpression; }
+  bool isNumeric() { return isInt() || isDouble(); }
+  bool isConstant() { return isInt() || isDouble() || isBool() || isString(); }
+
+  int asInt() const;
+  bool asBool() const;
+  double asDouble() const;
+  std::string asString() const;
 };
+
+
 class StatementAST : public AST {
 public:
   enum StatementKind {

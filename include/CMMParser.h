@@ -25,7 +25,7 @@ private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
 
-  bool Error(LocTy Loc, const std::string &Msg) { return Lexer.Error(Loc, Msg);}
+  bool Error(LocTy L, const std::string &Msg) { return Lexer.Error(L, Msg); }
   bool Error(const std::string &Msg) { return Lexer.Error(Msg); }
   void Warning(LocTy Loc, const std::string &Msg) { Lexer.Warning(Loc, Msg); }
   void Warning(const std::string &Msg) { Lexer.Warning(Msg); }
@@ -59,6 +59,31 @@ private:
   bool parseParenExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res);
   bool parseConstantExpression(std::unique_ptr<ExpressionAST> &Res);
+
+  std::unique_ptr<ExpressionAST>
+  tryFoldBinOp(Token::TokenKind TokenKind, LocTy OperatorLoc,
+                    std::unique_ptr<ExpressionAST> LHS,
+                    std::unique_ptr<ExpressionAST> RHS);
+
+  std::unique_ptr<ExpressionAST>
+  tryFoldBinOpArith(Token::TokenKind TokenKind,
+                    std::unique_ptr<ExpressionAST> LHS,
+                    std::unique_ptr<ExpressionAST> RHS);
+
+  std::unique_ptr<ExpressionAST>
+  tryFoldBinOpLogic(Token::TokenKind TokenKind,
+                    std::unique_ptr<ExpressionAST> LHS,
+                    std::unique_ptr<ExpressionAST> RHS);
+
+  std::unique_ptr<ExpressionAST>
+  tryFoldBinOpRelation(Token::TokenKind TokenKind,
+                       std::unique_ptr<ExpressionAST> LHS,
+                       std::unique_ptr<ExpressionAST> RHS);
+
+  std::unique_ptr<ExpressionAST>
+  tryFoldBinOpBitwise(Token::TokenKind TokenKind,
+                      std::unique_ptr<ExpressionAST> LHS,
+                      std::unique_ptr<ExpressionAST> RHS);
 
 public:
   CMMParser(SourceMgr &SrcMgr)
