@@ -4,8 +4,9 @@
  *
  * TODO:
  * 1. command line argument
- * 2. dead code elimination
+ * 2. closure
  * 3. functional return
+ * 4. ++ -- += ...
  */
 
 #include <cstdlib>

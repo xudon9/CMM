@@ -6,8 +6,20 @@ using namespace cmm;
 void CMMInterpreter::interpret() {
   for (auto &Stmt : TopLevelBlock.getStatementList()) {
     ExecutionResult Res = executeStatement(&TopLevelEnv, Stmt.get());
-    if (Res.Kind != ExecutionResult::NormalStatementResult)
-      RuntimeError("unbounded break/continue/return");
+
+    switch (Res.Kind) {
+    default:
+      RuntimeError("bad execution result code: " + std::to_string(Res.Kind));
+    case ExecutionResult::BreakStatementResult:
+      RuntimeError("unbounded break statement");
+    case ExecutionResult::ContinueStatementResult:
+      RuntimeError("unbounded continue statement");
+    case ExecutionResult::ReturnStatementResult:
+      RuntimeError("unbounded return statement with value " +
+          Res.ReturnValue.toString());
+    case ExecutionResult::NormalStatementResult:
+      break;
+    }
   }
 }
 
@@ -42,46 +54,27 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   switch (Stmt->getKind()) {
   default:
     RuntimeError(std::to_string(Stmt->getKind()) + ": unknown statement kind");
-    break;
   case StatementAST::DeclarationStatement:
     RuntimeError("single declaration should not be used by user");
   case StatementAST::DeclarationListStatement:
-    Res = executeDeclarationList(Env,
-                                 static_cast<const DeclarationListAST *>(Stmt));
-    break;
+    return executeDeclarationList(Env, Stmt->as_cptr<DeclarationListAST>());
   case StatementAST::ExprStatement:
-    Res = executeExprStatement(Env,
-                               static_cast<const ExprStatementAST *>(Stmt));
-    break;
+    return executeExprStatement(Env, Stmt->as_cptr<ExprStatementAST>());
   case StatementAST::BlockStatement:
-    Res = executeBlock(Env, static_cast<const BlockAST *>(Stmt));
-    break;
+    return executeBlock(Env, Stmt->as_cptr<BlockAST>());
   case StatementAST::IfStatement:
-    Res = executeIfStatement(Env, static_cast<const IfStatementAST *>(Stmt));
-    break;
+    return executeIfStatement(Env, Stmt->as_cptr<IfStatementAST>());
   case StatementAST::ReturnStatement:
-    Res = executeReturnStatement(Env,
-                                 static_cast<const ReturnStatementAST *>(Stmt));
-    break;
+    return executeReturnStatement(Env, Stmt->as_cptr<ReturnStatementAST>());
   case StatementAST::WhileStatement:
-    Res = executeWhileStatement(Env,
-                                static_cast<const WhileStatementAST *>(Stmt));
-    break;
+    return executeWhileStatement(Env, Stmt->as_cptr<WhileStatementAST>());
   case StatementAST::ForStatement:
-    Res = executeForStatement(Env, static_cast<const ForStatementAST *>(Stmt));
-    break;
+    return  executeForStatement(Env, Stmt->as_cptr<ForStatementAST>());
   case StatementAST::ContinueStatement:
-    Res = executeContinueStatement(Env,
-                                   static_cast<const ContinueStatementAST *>
-                                   (Stmt));
-    break;
+    return executeContinueStatement(Env, Stmt->as_cptr<ContinueStatementAST>());
   case StatementAST::BreakStatement:
-    Res = executeBreakStatement(Env,
-                                static_cast<const BreakStatementAST *>(Stmt));
-    break;
+    return executeBreakStatement(Env, Stmt->as_cptr<BreakStatementAST>());
   }
-
-  return Res;
 }
 
 CMMInterpreter::ExecutionResult
@@ -141,8 +134,8 @@ CMMInterpreter::executeWhileStatement(VariableEnv *Env,
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeExprStatement(VariableEnv *Env,
                                      const ExprStatementAST *Stmt) {
-  evaluateExpression(Env, Stmt->getExpression());
-  return ExecutionResult();
+  return ExecutionResult(ExecutionResult::NormalStatementResult,
+                         evaluateExpression(Env, Stmt->getExpression()));
 }
 
 CMMInterpreter::ExecutionResult
@@ -242,27 +235,31 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env,
   default:
     RuntimeError("unknown expression kind");
   case ExpressionAST::IntExpression:
-    return cvm::BasicValue(static_cast<const IntAST *>(Expr)->getValue());
+    return cvm::BasicValue(Expr->as_cptr<IntAST>()->getValue());
+
   case ExpressionAST::DoubleExpression:
-    return cvm::BasicValue(static_cast<const DoubleAST *>(Expr)->getValue());
+    return cvm::BasicValue(Expr->as_cptr<DoubleAST>()->getValue());
+
   case ExpressionAST::BoolExpression:
-    return cvm::BasicValue(static_cast<const BoolAST *>(Expr)->getValue());
+    return cvm::BasicValue(Expr->as_cptr<BoolAST>()->getValue());
+
   case ExpressionAST::StringExpression:
-    return cvm::BasicValue(static_cast<const StringAST *>(Expr)->getValue());
+    return cvm::BasicValue(Expr->as_cptr<StringAST>()->getValue());
+
   case ExpressionAST::IdentifierExpression:
-    return evaluateIdentifierExpr(Env,
-                                  static_cast<const IdentifierAST *>(Expr));
+    return evaluateIdentifierExpr(Env, Expr->as_cptr<IdentifierAST>());
+
   case ExpressionAST::FunctionCallExpression:
-    return evaluateFunctionCallExpr(Env,
-                                    static_cast<const FunctionCallAST *>(Expr));
+    return evaluateFunctionCallExpr(Env, Expr->as_cptr<FunctionCallAST>());
+
   case ExpressionAST::InfixOpExpression:
-    return evaluateInfixOpExpr(Env, static_cast<const InfixOpExprAST *>(Expr));
+    return evaluateInfixOpExpr(Env, Expr->as_cptr<InfixOpExprAST>());
+
   case ExpressionAST::BinaryOperatorExpression:
-    return evaluateBinaryOpExpr(Env,
-                                static_cast<const BinaryOperatorAST *>(Expr));
+    return evaluateBinaryOpExpr(Env, Expr->as_cptr<BinaryOperatorAST>());
+
   case ExpressionAST::UnaryOperatorExpression:
-    return evaluateUnaryOpExpr(Env,
-                               static_cast<const UnaryOperatorAST *>(Expr));
+    return evaluateUnaryOpExpr(Env, Expr->as_cptr<UnaryOperatorAST>());
   }
 }
 
@@ -443,9 +440,11 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Multiply:
   case BinaryOperatorAST::Division:
     return evaluateBinArith(OpKind, LHS, RHS);
+
   case BinaryOperatorAST::LogicalAnd:
   case BinaryOperatorAST::LogicalOr:
     return evaluateBinLogic(OpKind, LHS, RHS);
+
   case BinaryOperatorAST::Less:
   case BinaryOperatorAST::LessEqual:
   case BinaryOperatorAST::Equal:
@@ -453,12 +452,14 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Greater:
   case BinaryOperatorAST::GreaterEqual:
     return evaluateBinRelation(OpKind, LHS, RHS);
+
   case BinaryOperatorAST::BitwiseAnd:
   case BinaryOperatorAST::BitwiseOr:
   case BinaryOperatorAST::BitwiseXor:
   case BinaryOperatorAST::LeftShift:
   case BinaryOperatorAST::RightShift:
     return evaluateBinBitwise(OpKind, LHS, RHS);
+
   case BinaryOperatorAST::Assign:
   case BinaryOperatorAST::Index:
     RuntimeError("assignment/index should be handled in evaluateBinaryOpExpr");
@@ -635,7 +636,7 @@ CMMInterpreter::evaluateInfixOpExpr(VariableEnv *Env,
   ExecutionResult Result = executeStatement(&InfixOpEnv,
                                             InfixOpDef.getStatement());
 
-  if (Result.Kind != ExecutionResult::ReturnStatementResult) {
+  if (Result.ReturnValue.isVoid()) {
     RuntimeError("infix operator didn't return any value");
   }
   return Result.ReturnValue;

@@ -1,0 +1,15 @@
+/*
+ * 99.c
+ * Copyright (C) 2016 wang <wang@Yet-Another-MBP>
+ *
+ * Distributed under terms of the MIT license.
+ */
+
+int i, j;
+
+for (i = 1; i < 10; i=i+1) {
+    for (j = 1; j <= i; j=j+1) {
+        print(j + "*" + i + "=" + i*j + "\t");
+    }
+    println();
+}

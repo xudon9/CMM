@@ -1,10 +1,14 @@
 /*
- * Infix.c
+ * deadcode.c
  * Copyright (C) 2016 wang <wang@Yet-Another-MBP>
  *
  * Distributed under terms of the MIT license.
  */
 
-infix a@b if (a>b) a; else b;
+int i = 1;
 
-println(9 @ 2);
+for(i=5;0;) {
+    i = i + 1;
+    println(i);
+    if (i > 3) break;
+}

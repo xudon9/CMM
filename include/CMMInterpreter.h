@@ -19,6 +19,8 @@ private:  /* private data types */
 
     ExecutionResult() : Kind(NormalStatementResult) {}
     ExecutionResult(ExecutionResultKind K) : Kind(K) {}
+    ExecutionResult(ExecutionResultKind K, const cvm::BasicValue &V)
+        : Kind(K), ReturnValue(V) {}
   };
 
   struct VariableEnv {

@@ -206,7 +206,7 @@ WhileStatementAST::create(std::unique_ptr<ExpressionAST> Condition,
   if (!Condition->isConstant()) {
     auto *WhileStmt = new WhileStatementAST(std::move(Condition),
                                             std::move(Statement));
-    return std::unique_ptr<WhileStatementAST>(WhileStmt);
+    return std::unique_ptr<StatementAST>(WhileStmt);
   }
 
   // Forever
@@ -214,10 +214,39 @@ WhileStatementAST::create(std::unique_ptr<ExpressionAST> Condition,
     std::unique_ptr<ExpressionAST> TrueCond(new BoolAST(true));
     auto *WhileStmt = new WhileStatementAST(std::move(TrueCond),
                                             std::move(Statement));
-    return std::unique_ptr<WhileStatementAST>(WhileStmt);
+    return std::unique_ptr<StatementAST>(WhileStmt);
   }
 
   // Never
+  return nullptr;
+}
+
+
+std::unique_ptr<StatementAST>
+ForStatementAST::create(std::unique_ptr<ExpressionAST> Init,
+                        std::unique_ptr<ExpressionAST> Condition,
+                        std::unique_ptr<ExpressionAST> Post,
+                        std::unique_ptr<StatementAST> Statement) {
+
+  if (Condition == nullptr || !Condition->isConstant()) {
+    auto *ForStmt = new ForStatementAST(std::move(Init), std::move(Condition),
+                                        std::move(Post), std::move(Statement));
+    return std::unique_ptr<StatementAST>(ForStmt);
+  }
+
+  // Forever
+  if (Condition->asBool()) {
+    std::unique_ptr<ExpressionAST> TrueCond(new BoolAST(true));
+    auto *ForStmt = new ForStatementAST(std::move(Init), std::move(TrueCond),
+                                        std::move(Post), std::move(Statement));
+    return std::unique_ptr<StatementAST>(ForStmt);
+  }
+
+  // Never
+  if (Init) {
+    auto *ExprStmt = new ExprStatementAST(std::move(Init));
+    return std::unique_ptr<StatementAST>(ExprStmt);
+  }
   return nullptr;
 }
 

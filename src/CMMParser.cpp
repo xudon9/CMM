@@ -17,13 +17,14 @@ bool CMMParser::Parse() {
   std::cout << "------------ Function Definitions:\n";
   for (auto &F : FunctionDefinition)
     F.second.dump();
-  std::cout << "------------ Function Definitions:\n";
+  std::cout << "------------ Infix Operator Definitions:\n";
   for (auto &I : InfixOpDefinition)
     I.second.dump();
 
   std::cout << "------------ Running -----------\n";
   CMMInterpreter interpreter(TopLevelBlock,
-                             FunctionDefinition, InfixOpDefinition);
+                             FunctionDefinition,
+                             InfixOpDefinition);
   interpreter.interpret();
 
   return false;
@@ -106,7 +107,8 @@ bool CMMParser::parseInfixOpDefinition() {
   if (parseStatement(Statement))
     return true;
 
-  BinOpPrecedence.emplace(std::make_pair(Symbol, static_cast<int8_t>(Precedence)));
+  BinOpPrecedence.emplace(std::make_pair(Symbol,
+                                         static_cast<int8_t>(Precedence)));
   InfixOpDefinition.emplace(std::make_pair(Symbol,
                                            InfixOpDefinitionAST(Symbol, LHS, RHS,
                                                                 std::move(Statement))));
@@ -120,10 +122,13 @@ bool CMMParser::parseFunctionDefinition() {
   cvm::BasicType RetType;
   if (parseTypeSpecifier(RetType))
     return true;
+
   if (Lexer.isNot(Token::Identifier))
     return Error("expect identifier in function definition");
+
   std::string Identifier = Lexer.getStrVal();
   Lex();  // eat the identifier of function.
+
   return parseFunctionDefinition(RetType, Identifier);
 }
 
@@ -547,8 +552,9 @@ bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
 
   if (parseStatement(Statement))
     return true;
-  Res.reset(new ForStatementAST(std::move(Init), std::move(Condition),
-                                std::move(Post), std::move(Statement)));
+
+  Res = ForStatementAST::create(std::move(Init), std::move(Condition),
+                                std::move(Post), std::move(Statement));
   return false;
 }
 
@@ -558,7 +564,8 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
 
-  assert(Lexer.is(Token::Kw_while) && "parseIfStatement: unknown token");
+  assert(Lexer.is(Token::Kw_while) &&
+      "parseIfStatement: unknown token, 'while' expexted");
   Lex();  // eat 'while'
 
   if (Lexer.isNot(Token::LParen))

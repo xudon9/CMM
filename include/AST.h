@@ -208,11 +208,16 @@ public:
     DeclarationStatement,
     DeclarationListStatement
   };
+
 private:
   StatementKind Kind;
+
 public:
   StatementAST(StatementKind Kind) : Kind(Kind) {}
   StatementKind getKind() const { return Kind; }
+
+  template <typename T>
+  const T *as_cptr() const { return static_cast<const T*>(this); }
   // bool isBlock() { return Kind == BlockStatement; }
   // bool isIfStatement() { return Kind == IfStatement; }
   // bool isWhileStatement() { return Kind == WhileStatement; }
@@ -221,6 +226,7 @@ public:
 
 class IntAST : public ExpressionAST {
   int Value;
+
 public:
   IntAST(int Value) : ExpressionAST(IntExpression), Value(Value) {}
   void dump(const std::string &prefix = "") const override;
@@ -447,6 +453,7 @@ private:
   BlockAST *OuterBlock;
   std::list<std::unique_ptr<StatementAST>> StatementList;
   //std::list<std::unique_ptr<DeclarationAST>> DeclarationList;
+
 public:
   BlockAST(BlockAST *OuterBlock = nullptr)
     : StatementAST(BlockStatement), OuterBlock(OuterBlock) {}
@@ -477,7 +484,6 @@ public:
 };
 
 
-
 class ExprStatementAST : public StatementAST {
   std::unique_ptr<ExpressionAST> Expression;
 public:
@@ -488,6 +494,7 @@ public:
 
   void dump(const std::string &prefix) const override;
 };
+
 
 // class StatementBlockAST : public BlockAST {
 //   size_t ContinueLabel;
@@ -619,6 +626,13 @@ public:
   const StatementAST *getStatement() const { return Statement.get(); }
 
   void dump(const std::string &prefix) const override;
+
+  // Static helper
+  static std::unique_ptr<StatementAST>
+  create(std::unique_ptr<ExpressionAST> Init,
+         std::unique_ptr<ExpressionAST> Condition,
+         std::unique_ptr<ExpressionAST> Post,
+         std::unique_ptr<StatementAST> Statement);
 };
 
 
