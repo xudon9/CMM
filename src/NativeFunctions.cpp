@@ -14,7 +14,7 @@ namespace cvm {
 
 BasicValue Native::Exit(std::list<BasicValue> &Args) {
   if (Args.empty())
-    std::exit(0);
+    std::exit(EXIT_SUCCESS);
   std::exit(Args.front().toInt());
 }
 
@@ -66,11 +66,11 @@ BasicValue Unix::Fork(std::list<BasicValue> &/*Args*/) {
 }
 
 BasicValue Ncurses::GetMaxY(std::list<BasicValue> &/*Args*/) {
-  return ::getmaxy(stdscr);
+  return getmaxy(stdscr);
 }
 
 BasicValue Ncurses::GetMaxX(std::list<BasicValue> &/*Args*/) {
-  return ::getmaxx(stdscr);
+  return getmaxx(stdscr);
 }
 
 BasicValue Ncurses::InitScreen(std::list<BasicValue> &/*Args*/) {
@@ -83,8 +83,7 @@ BasicValue Ncurses::NoEcho(std::list<BasicValue> &/*Args*/) {
 }
 
 BasicValue Ncurses::CursSet(std::list<BasicValue> &Args) {
-  return ::curs_set(Args.empty() || !Args.front().isBool() ?
-                    false : Args.front().BoolVal);
+  return ::curs_set(Args.empty() ? false : Args.front().toBool());
 }
 
 BasicValue Ncurses::Keypad(std::list<BasicValue> &Args) {
@@ -149,6 +148,24 @@ BasicValue Ncurses::InitPair(std::list<BasicValue> &Args) {
 
 BasicValue Ncurses::StartColor(std::list<BasicValue> &/*Args*/) {
   return ::start_color();
+}
+
+BasicValue Ncurses::AttrOn(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return ERR;
+  return attron(Args.front().toInt());
+}
+
+BasicValue Ncurses::AttrOff(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return ERR;
+  return attroff(Args.front().toInt());
+}
+
+BasicValue Ncurses::ColorPair(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0;
+  return static_cast<int>(COLOR_PAIR(Args.front().toInt()));
 }
 
 #endif // defined(__APPLE__) || defined(__linux__)

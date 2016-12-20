@@ -49,6 +49,10 @@ void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["NcGetMaxX"] = cvm::Ncurses::GetMaxX;
   NativeFunctionMap["NcStartColor"] = cvm::Ncurses::StartColor;
   NativeFunctionMap["NcInitPair"] = cvm::Ncurses::InitPair;
+  NativeFunctionMap["NcAttrOn"] = cvm::Ncurses::AttrOn;
+  NativeFunctionMap["NcAttrOff"] = cvm::Ncurses::AttrOff;
+  NativeFunctionMap["NcColorPair"] = cvm::Ncurses::ColorPair;
+
 #endif // defined(__APPLE__) || defined(__linux__)
 }
 

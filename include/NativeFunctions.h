@@ -34,6 +34,7 @@ ADD_FUNCTION(StartColor);
 ADD_FUNCTION(InitPair);
 ADD_FUNCTION(AttrOn);
 ADD_FUNCTION(AttrOff);
+ADD_FUNCTION(ColorPair);
 }
 
 namespace Unix {

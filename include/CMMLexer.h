@@ -113,6 +113,7 @@ private:
   Token LexIdentifier();
   Token LexString();
   Token LexDigit();
+  Token LexChar();
   Token LexInfixOp(int HeadChar);
   void skipLineComment();
   bool skipBlockComment();

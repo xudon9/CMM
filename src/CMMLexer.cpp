@@ -21,6 +21,25 @@ static int hexDigitValue(int C) {
   return C - '0';
 }
 
+// Return true on error
+static bool UnEscapeChar(int &Ch) {
+  switch (Ch) {
+  default:    return true;
+  case 'a':   Ch = '\a'; return false;
+  case 'b':   Ch = '\b'; return false;
+  case 'f':   Ch = '\f'; return false;
+  case 'n':   Ch = '\n'; return false;
+  case 'r':   Ch = '\r'; return false;
+  case 't':   Ch = '\t'; return false;
+  case 'v':   Ch = '\v'; return false;
+  case '?':   Ch = '\?'; return false;
+  case '0':   Ch = '\0'; return false;
+  case '\\':  Ch = '\\'; return false;
+  case '\'':  Ch = '\''; return false;
+  case '\"':  Ch = '\"'; return false;
+  }
+}
+
 /*
 static void UnEscapeLexed(std::string &Str) {
   if (Str.empty()) return;
@@ -83,21 +102,22 @@ Token CMMLexer::LexToken() {
     return Token::Slash;
   }
 
-  case '"': return LexString();
-  case '(': return Token::LParen;
-  case ')': return Token::RParen;
-  case '[': return Token::LBrac;
-  case ']': return Token::RBrac;
-  case '{': return Token::LCurly;
-  case '}': return Token::RCurly;
-  case '+': return Token::Plus;
-  case '-': return Token::Minus;
-  case '*': return Token::Star;
-  case '%': return Token::Percent;
-  case ';': return Token::Semicolon;
-  case ',': return Token::Comma;
-  case '^': return Token::Caret;
-  case '~': return Token::Tilde;
+  case '\'':  return LexChar();
+  case '"':   return LexString();
+  case '(':   return Token::LParen;
+  case ')':   return Token::RParen;
+  case '[':   return Token::LBrac;
+  case ']':   return Token::RBrac;
+  case '{':   return Token::LCurly;
+  case '}':   return Token::RCurly;
+  case '+':   return Token::Plus;
+  case '-':   return Token::Minus;
+  case '*':   return Token::Star;
+  case '%':   return Token::Percent;
+  case ';':   return Token::Semicolon;
+  case ',':   return Token::Comma;
+  case '^':   return Token::Caret;
+  case '~':   return Token::Tilde;
 
   case '=':
     if (peekNextChar() != '=')
@@ -195,9 +215,42 @@ Token CMMLexer::LexIdentifier() {
   if (StrVal == "false") { BoolVal = false; return Token::Boolean; }
 
   if (StrVal.back() == '_')
-    Warning("identifier end with _");
+    Warning(SrcMgr.getLoc(), "identifier end with _");
 
   return Token::Identifier;
+}
+
+// Assume the first ' is eaten
+Token CMMLexer::LexChar() {
+  int CurChar = getNextChar();
+
+  if (CurChar == std::char_traits<char>::eof()) {
+    Error("end of file in char constant");
+    return Token::Error;
+  }
+
+  if (CurChar == '\\') {
+    LocTy CharLoc = SrcMgr.getLoc();
+    CurChar = getNextChar();
+
+    if (CurChar == std::char_traits<char>::eof()) {
+      Error("end of file in char constant");
+      return Token::Error;
+    }
+
+    if (UnEscapeChar(CurChar)) {
+      Warning(CharLoc, "\\" + std::string(1, static_cast<char>(CurChar)) +
+          " is an invalid escaping character");
+    }
+  }
+
+  IntVal = CurChar;
+
+  LocTy QuoteLoc;
+  while (QuoteLoc = SrcMgr.getLoc(), getNextChar() != '\'')
+    Warning(QuoteLoc, "extra character in single quote");
+
+  return Token::Integer;
 }
 
 // Assume the first '"' is eaten
@@ -217,22 +270,19 @@ Token CMMLexer::LexString() {
     }
 
     if (CurChar == '\\') {
-      switch (CurChar = getNextChar()) {
-      default:    StrVal.push_back('\\'); break;
-      case 'a':   CurChar = '\a'; break;
-      case 'b':   CurChar = '\b'; break;
-      case 'f':   CurChar = '\f'; break;
-      case 'n':   CurChar = '\n'; break;
-      case 'r':   CurChar = '\r'; break;
-      case 't':   CurChar = '\t'; break;
-      case 'v':   CurChar = '\v'; break;
-      case '?':   CurChar = '\?'; break;
-      case '0':   CurChar = '\0'; break;
-      case '\\':  CurChar = '\\'; break;
-      case '\'':  CurChar = '\''; break;
-      case '\"':  CurChar = '\"'; break;
-      case std::char_traits<char>::eof():
-        Error("end of file in string constant");
+      LocTy Loc = SrcMgr.getLoc();
+
+      CurChar = getNextChar();
+
+      if (CurChar == std::char_traits<char>::eof()) {
+        Error("end of file in string constant after \\");
+        return Token::Error;
+      }
+
+      if (UnEscapeChar(CurChar)) {
+        Warning(Loc, "\\" + std::string(1, static_cast<char>(CurChar)) +
+            " is an invalid escaping sequence in string literal");
+        StrVal.push_back('\\');
       }
     }
     StrVal.push_back(static_cast<char>(CurChar));
