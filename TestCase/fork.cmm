@@ -1,0 +1,10 @@
+int pid, i;
+
+if ((pid = UnixFork()) == 0)
+    println("Child running, pid =", pid);
+else if (pid > 0)
+    println("Parent running");
+else {
+        println("fork error");
+        exit(-1);
+}

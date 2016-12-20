@@ -4,29 +4,44 @@
 #include "CMMParser.h"
 
 namespace cvm {
+#define ADD_FUNCTION(FUNC) BasicValue FUNC(std::list<BasicValue> &Args);
 
 namespace Native {
-BasicValue Random(std::list<BasicValue> &Args);
-BasicValue Srand(std::list<BasicValue> &Args);
-BasicValue Print(std::list<BasicValue> &Args);
-BasicValue Println(std::list<BasicValue> &Args);
-BasicValue System(std::list<BasicValue> &Args);
-BasicValue Time(std::list<BasicValue> &Args);
+ADD_FUNCTION(Random);
+ADD_FUNCTION(Srand);
+ADD_FUNCTION(Print);
+ADD_FUNCTION(Println);
+ADD_FUNCTION(System);
+ADD_FUNCTION(Time);
+ADD_FUNCTION(Exit);
 }
 
 #if defined(__APPLE__) || defined(__linux__)
 namespace Ncurses {
-BasicValue EndWindow(std::list<BasicValue> &Args);
-BasicValue InitScreen(std::list<BasicValue> &Args);
-BasicValue NoEcho(std::list<BasicValue> &Args);
-BasicValue CursSet(std::list<BasicValue> &Args);
-BasicValue Keypad(std::list<BasicValue> &Args);
-BasicValue Timeout(std::list<BasicValue> &Args);
-BasicValue GetChar(std::list<BasicValue> &Args);
-BasicValue MoveAddChar(std::list<BasicValue> &Args);
-BasicValue MoveAddString(std::list<BasicValue> &Args);
+ADD_FUNCTION(InitScreen);
+ADD_FUNCTION(GetMaxY);
+ADD_FUNCTION(GetMaxX);
+ADD_FUNCTION(EndWindow);
+ADD_FUNCTION(NoEcho);
+ADD_FUNCTION(CursSet);
+ADD_FUNCTION(Keypad);
+ADD_FUNCTION(Timeout);
+ADD_FUNCTION(GetChar);
+ADD_FUNCTION(MoveAddChar);
+ADD_FUNCTION(MoveAddString);
+ADD_FUNCTION(MessageBox);
+ADD_FUNCTION(StartColor);
+ADD_FUNCTION(InitPair);
+ADD_FUNCTION(AttrOn);
+ADD_FUNCTION(AttrOff);
 }
-#endif
+
+namespace Unix {
+ADD_FUNCTION(Fork);
+}
+#endif // defined(__APPLE__) || defined(__linux__)
+
+#undef ADD_FUNCTION
 }
 
 #endif // !NATIVEFUNCTIONS_H

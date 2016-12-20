@@ -31,8 +31,11 @@ void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["rand"] = cvm::Native::Random;
   NativeFunctionMap["srand"] = cvm::Native::Srand;
   NativeFunctionMap["time"] = cvm::Native::Time;
+  NativeFunctionMap["exit"] = cvm::Native::Exit;
 
 #if defined(__APPLE__) || defined(__linux__)
+  NativeFunctionMap["UnixFork"] = cvm::Unix::Fork;
+
   NativeFunctionMap["NcEndWin"] = cvm::Ncurses::EndWindow;
   NativeFunctionMap["NcInitScr"] = cvm::Ncurses::InitScreen;
   NativeFunctionMap["NcNoEcho"] = cvm::Ncurses::NoEcho;
@@ -42,7 +45,11 @@ void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["NcGetCh"] = cvm::Ncurses::GetChar;
   NativeFunctionMap["NcMvAddCh"] = cvm::Ncurses::MoveAddChar;
   NativeFunctionMap["NcMvAddStr"] = cvm::Ncurses::MoveAddString;
-#endif
+  NativeFunctionMap["NcGetMaxY"] = cvm::Ncurses::GetMaxY;
+  NativeFunctionMap["NcGetMaxX"] = cvm::Ncurses::GetMaxX;
+  NativeFunctionMap["NcStartColor"] = cvm::Ncurses::StartColor;
+  NativeFunctionMap["NcInitPair"] = cvm::Ncurses::InitPair;
+#endif // defined(__APPLE__) || defined(__linux__)
 }
 
 void CMMInterpreter::RuntimeError(const std::string &Msg) {
@@ -86,7 +93,7 @@ CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
   case StatementAST::WhileStatement:
     return executeWhileStatement(Env, Stmt->as_cptr<WhileStatementAST>());
   case StatementAST::ForStatement:
-    return  executeForStatement(Env, Stmt->as_cptr<ForStatementAST>());
+    return executeForStatement(Env, Stmt->as_cptr<ForStatementAST>());
   case StatementAST::ContinueStatement:
     return executeContinueStatement(Env, Stmt->as_cptr<ContinueStatementAST>());
   case StatementAST::BreakStatement:

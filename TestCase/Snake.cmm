@@ -3,7 +3,7 @@ int KEY_DOWN = 0x102, KEY_UP = 0x103,
     KEY_LEFT = 0x104, KEY_RIGHT = 0x105;
 int UP = 1, DOWN = ~1, LEFT = 2, RIGHT = ~2;
 
-int width = 80, height = 24;
+int width, height;
 int maxlen = 15;
 string  bg_char = " ";
 string  snake_char = "@";
@@ -151,6 +151,8 @@ void main() {
     bool terminate = false;
 
     init_nc();
+    width = NcGetMaxX() - 2;
+    height = NcGetMaxY() - 2 - 1;
     draw_box(height, width);
 
     headindex = len - 1;

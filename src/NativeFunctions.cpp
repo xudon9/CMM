@@ -6,11 +6,17 @@
 #include <cstdlib>
 
 #if defined(__APPLE__) || defined(__linux__)
+#include <unistd.h>
 #include <ncurses.h>
 #endif
 
 namespace cvm {
 
+BasicValue Native::Exit(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    std::exit(0);
+  std::exit(Args.front().toInt());
+}
 
 BasicValue Native::Print(std::list<BasicValue> &Args) {
   for (auto &Arg : Args) {
@@ -54,6 +60,18 @@ BasicValue Native::Time(std::list<BasicValue> &/*Args*/) {
 }
 
 #if defined(__APPLE__) || defined(__linux__)
+
+BasicValue Unix::Fork(std::list<BasicValue> &/*Args*/) {
+  return ::fork();
+}
+
+BasicValue Ncurses::GetMaxY(std::list<BasicValue> &/*Args*/) {
+  return ::getmaxy(stdscr);
+}
+
+BasicValue Ncurses::GetMaxX(std::list<BasicValue> &/*Args*/) {
+  return ::getmaxx(stdscr);
+}
 
 BasicValue Ncurses::InitScreen(std::list<BasicValue> &/*Args*/) {
   ::initscr();
@@ -113,6 +131,24 @@ BasicValue Ncurses::MoveAddString(std::list<BasicValue> &Args) {
 
 BasicValue Ncurses::EndWindow(std::list<BasicValue> &/*Args*/) {
   return ::endwin();
+}
+
+BasicValue Ncurses::InitPair(std::list<BasicValue> &Args) {
+  if (Args.size() != 3)
+    return ERR;
+
+  auto Iterator = Args.cbegin();
+
+  short PairNo = static_cast<short>(Iterator->toInt());
+  ++Iterator;
+  short FgColor = static_cast<short>(Iterator->toInt());
+  short BgColor = static_cast<short>(Args.back().toInt());
+
+  return ::init_pair(PairNo, FgColor, BgColor);
+}
+
+BasicValue Ncurses::StartColor(std::list<BasicValue> &/*Args*/) {
+  return ::start_color();
 }
 
 #endif // defined(__APPLE__) || defined(__linux__)
