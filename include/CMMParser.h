@@ -37,6 +37,7 @@ private:
   bool parseFunctionDefinition();
   bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);
   bool parseStatement(std::unique_ptr<StatementAST> &Res);
+  bool parseEmptyStatement(std::unique_ptr<StatementAST> &Res);
   bool parseBlock(std::unique_ptr<StatementAST> &Res);
   bool parseTypeSpecifier(cvm::BasicType &Type); //?
   bool parseParameterList(std::list<Parameter> &ParameterList);

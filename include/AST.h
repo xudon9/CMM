@@ -448,7 +448,7 @@ public:
 
 class BlockAST : public StatementAST {
 public:
-  enum BlockKind { UndefinedBlock, FunctionBlock, NormalBlock };
+  //enum BlockKind { UndefinedBlock, FunctionBlock, NormalBlock };
 private:
   BlockAST *OuterBlock;
   std::list<std::unique_ptr<StatementAST>> StatementList;

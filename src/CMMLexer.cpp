@@ -150,7 +150,7 @@ Token CMMLexer::LexToken() {
   }
 
   case '`': case '?': case ':': case '$': case '#':
-  case '\'': case '\\': case '@':
+  case '\\': case '@':
     return LexInfixOp(CurChar);
   }
 }

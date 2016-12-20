@@ -13,7 +13,7 @@ std::string TypeToStr(BasicType Type) {
   case DoubleType:  return "double";
   case StringType:  return "string";
   case VoidType:    return "void";
-  default:          return "badType";
+  default:          return "T";
   }
 }
 
@@ -46,7 +46,7 @@ int BasicValue::toInt() const {
   case IntType:     return IntVal;
   case DoubleType:  return static_cast<int>(DoubleVal);
   case BoolType:    return BoolVal;
-  case StringType:  return std::atoi(StrVal.c_str());
+  case StringType:  return std::stoi(StrVal);
   }
 }
 
@@ -56,7 +56,7 @@ double BasicValue::toDouble() const {
   case IntType:     return static_cast<double>(IntVal);
   case DoubleType:  return DoubleVal;
   case BoolType:    return static_cast<double>(BoolVal);
-  case StringType:  return std::atof(StrVal.c_str());
+  case StringType:  return std::stod(StrVal.c_str());
   }
 }
 
@@ -211,9 +211,7 @@ WhileStatementAST::create(std::unique_ptr<ExpressionAST> Condition,
 
   // Forever
   if (Condition->asBool()) {
-    std::unique_ptr<ExpressionAST> TrueCond(new BoolAST(true));
-    auto *WhileStmt = new WhileStatementAST(std::move(TrueCond),
-                                            std::move(Statement));
+    auto *WhileStmt = new WhileStatementAST(nullptr,std::move(Statement));
     return std::unique_ptr<StatementAST>(WhileStmt);
   }
 
@@ -236,8 +234,7 @@ ForStatementAST::create(std::unique_ptr<ExpressionAST> Init,
 
   // Forever
   if (Condition->asBool()) {
-    std::unique_ptr<ExpressionAST> TrueCond(new BoolAST(true));
-    auto *ForStmt = new ForStatementAST(std::move(Init), std::move(TrueCond),
+    auto *ForStmt = new ForStatementAST(std::move(Init), nullptr,
                                         std::move(Post), std::move(Statement));
     return std::unique_ptr<StatementAST>(ForStmt);
   }
@@ -421,27 +418,27 @@ std::unique_ptr<ExpressionAST>
 BinaryOperatorAST::tryFoldBinOpRelation(Token::TokenKind TokenKind,
                                         std::unique_ptr<ExpressionAST> LHS,
                                         std::unique_ptr<ExpressionAST> RHS) {
-#define TRY_COMPARE(type, Type) do {                                           \
-  if (LHS->is##Type() && RHS->is##Type()) {                                    \
-    type L = LHS->as_cptr<Type##AST>()->getValue();                            \
-    type R = RHS->as_cptr<Type##AST>()->getValue();                            \
-    switch (TokenKind) {                                                       \
-    default:break;                                                             \
-    case Token::Less:                                                          \
-            return std::unique_ptr<BoolAST>(new BoolAST(L < R));               \
-    case Token::LessEqual:                                                     \
-            return std::unique_ptr<BoolAST>(new BoolAST(L <= R));              \
-    case Token::EqualEqual:                                                    \
-            return std::unique_ptr<BoolAST>(new BoolAST(L == R));              \
-    case Token::ExclaimEqual:                                                  \
-            return std::unique_ptr<BoolAST>(new BoolAST(L != R));              \
-    case Token::GreaterEqual:                                                  \
-            return std::unique_ptr<BoolAST>(new BoolAST(L >= R));              \
-    case Token::Greater:                                                       \
-            return std::unique_ptr<BoolAST>(new BoolAST(L > R));               \
+
+#define CASE(TOKEN_KIND, OPERATOR)                                             \
+  case Token::TOKEN_KIND:                                                      \
+    return std::unique_ptr<BoolAST>(new BoolAST(L OPERATOR R))
+
+#define TRY_COMPARE(type, Type)                                                \
+  do {                                                                         \
+    if (LHS->is##Type() && RHS->is##Type()) {                                  \
+      type L = LHS->as_cptr<Type##AST>()->getValue();                          \
+      type R = RHS->as_cptr<Type##AST>()->getValue();                          \
+      switch (TokenKind) {                                                     \
+      default: break;                                                          \
+      CASE(Less, <);                                                           \
+      CASE(LessEqual, <=);                                                     \
+      CASE(EqualEqual, ==);                                                    \
+      CASE(ExclaimEqual, !=);                                                  \
+      CASE(GreaterEqual, >=);                                                  \
+      CASE(Greater, >);                                                        \
+      }                                                                        \
     }                                                                          \
-  }                                                                            \
-} while (0)
+  } while (0)
 
   TRY_COMPARE(int, Int);
   TRY_COMPARE(std::string, String);
@@ -449,6 +446,7 @@ BinaryOperatorAST::tryFoldBinOpRelation(Token::TokenKind TokenKind,
   TRY_COMPARE(bool, Bool);
 
 #undef TRY_COMPARE
+#undef CASE
 
   // TODO: Not very elegant, but this is ok.
   return BinaryOperatorAST::create(TokenKind, std::move(LHS), std::move(RHS));
@@ -669,8 +667,13 @@ void ExprStatementAST::dump(const std::string &prefix) const {
 
 void InfixOpDefinitionAST::dump() const {
   std::cout << "infix " << getLHSName() << " " << getSymbol()
-            << " " << getRHSName() << "\n";
-  Statement->dump();
+            << " " << getRHSName() << " = ";
+  if (Statement) {
+    std::cout << "\n";
+    Statement->dump();
+  } else {
+    std::cout << "(emptyStmt)\n";
+  }
 }
 
 void FunctionDefinitionAST::dump() const {
@@ -680,8 +683,14 @@ void FunctionDefinitionAST::dump() const {
     std::cout << P.toString() << (&P == &ParameterList.back() ? ", " : "");
   }
 
-  std::cout << ")\n";
-  Statement->dump();
+  std::cout << ") => ";
+
+  if (Statement) {
+    std::cout << "\n";
+    Statement->dump();
+  } else {
+    std::cout << "(empty)\n";
+  }
 }
 
 void IfStatementAST::dump(const std::string &prefix) const {
@@ -690,24 +699,33 @@ void IfStatementAST::dump(const std::string &prefix) const {
 
   Condition->dump(prefix + "|   ");
 
-  if (StatementElse) {
-    std::cout << prefix << "|---";
-    StatementThen->dump(prefix + "|   ");
+  std::cout << prefix << "|---";
+  if (StatementThen)
+    StatementThen->dump("|    ");
+  else
+    std::cout << "(emptyThen)\n";
 
-    std::cout << prefix << "`---";
+  std::cout << prefix << "`---";
+  if (StatementElse)
     StatementElse->dump(prefix + "    ");
-  } else {
-    std::cout << prefix << "`---";
-    StatementThen->dump(prefix + "    ");
-  }
+  else
+    std::cout << "(emptyElse)\n";
 }
 
 void WhileStatementAST::dump(const std::string &prefix) const {
   std::cout << "while\n";
   std::cout << prefix << "|---";
-  Condition->dump(prefix + "|   ");
+
+  if (Condition)
+    Condition->dump(prefix + "|   ");
+  else
+    std::cout << "(forever)\n";
+
   std::cout << prefix << "`---";
-  Statement->dump(prefix + "    ");
+  if (Statement)
+    Statement->dump(prefix + "    ");
+  else
+    std::cout << "(empty)";
 }
 
 void ForStatementAST::dump(const std::string &prefix) const {
@@ -732,7 +750,10 @@ void ForStatementAST::dump(const std::string &prefix) const {
     std::cout << "(nullPost)\n";
 
   std::cout << prefix << "`---";
-  Statement->dump(prefix + "    ");
+  if (Statement)
+    Statement->dump(prefix + "    ");
+  else
+    std::cout << "(empty)\n";
 }
 
 void ReturnStatementAST::dump(const std::string &prefix) const {

@@ -24,9 +24,25 @@ void CMMInterpreter::interpret() {
 }
 
 void CMMInterpreter::addNativeFunctions() {
-  NativeFunctionMap["print"] = cvm::NativePrint;
-  NativeFunctionMap["println"] = cvm::NativePrintln;
-  NativeFunctionMap["system"] = cvm::NativeSystem;
+  NativeFunctionMap["print"] = cvm::Native::Print;
+  NativeFunctionMap["println"] = cvm::Native::Println;
+  NativeFunctionMap["system"] = cvm::Native::System;
+  NativeFunctionMap["random"] = cvm::Native::Random;
+  NativeFunctionMap["rand"] = cvm::Native::Random;
+  NativeFunctionMap["srand"] = cvm::Native::Srand;
+  NativeFunctionMap["time"] = cvm::Native::Time;
+
+#if defined(__APPLE__) || defined(__linux__)
+  NativeFunctionMap["NcEndWin"] = cvm::Ncurses::EndWindow;
+  NativeFunctionMap["NcInitScr"] = cvm::Ncurses::InitScreen;
+  NativeFunctionMap["NcNoEcho"] = cvm::Ncurses::NoEcho;
+  NativeFunctionMap["NcCursSet"] = cvm::Ncurses::CursSet;
+  NativeFunctionMap["NcKeypad"] = cvm::Ncurses::Keypad;
+  NativeFunctionMap["NcTimeout"] = cvm::Ncurses::Timeout;
+  NativeFunctionMap["NcGetCh"] = cvm::Ncurses::GetChar;
+  NativeFunctionMap["NcMvAddCh"] = cvm::Ncurses::MoveAddChar;
+  NativeFunctionMap["NcMvAddStr"] = cvm::Ncurses::MoveAddString;
+#endif
 }
 
 void CMMInterpreter::RuntimeError(const std::string &Msg) {
@@ -49,7 +65,8 @@ CMMInterpreter::executeBlock(VariableEnv *OuterEnv, const BlockAST *Block) {
 
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeStatement(VariableEnv *Env, const StatementAST *Stmt) {
-  ExecutionResult Res;
+  if (!Stmt)
+    return ExecutionResult();
 
   switch (Stmt->getKind()) {
   default:
@@ -120,7 +137,7 @@ CMMInterpreter::executeWhileStatement(VariableEnv *Env,
   const ExpressionAST *Condition = WhileStmt->getCondition();
   const StatementAST *Statement = WhileStmt->getStatement();
 
-  while (evaluateExpression(Env, Condition).toBool()) {
+  while (!Condition || evaluateExpression(Env, Condition).toBool()) {
     ExecutionResult Res = executeStatement(Env, Statement);
 
     if (Res.Kind == Res.ReturnStatementResult)
@@ -164,8 +181,8 @@ CMMInterpreter::executeContinueStatement(VariableEnv *Env,
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeDeclarationList(VariableEnv *Env,
                                        const DeclarationListAST *DeclList) {
-  for (auto &Decl : DeclList->getDeclarationList()) {
-    executeDeclaration(Env, Decl.get());
+  for (auto &Declaration : DeclList->getDeclarationList()) {
+    executeDeclaration(Env, Declaration.get());
   }
   return ExecutionResult();
 }
@@ -200,8 +217,8 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
       DimensionList.push_back(Dimension.IntVal);
     }
 
-    Env->VarMap.emplace(std::make_pair(Name, cvm::BasicValue(Type,
-                                                             DimensionList)));
+    Env->VarMap.emplace(std::make_pair(Name,
+                                       cvm::BasicValue(Type, DimensionList)));
   }
 
   // Now it's a normal variable.
@@ -235,16 +252,16 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env,
   default:
     RuntimeError("unknown expression kind");
   case ExpressionAST::IntExpression:
-    return cvm::BasicValue(Expr->as_cptr<IntAST>()->getValue());
+    return Expr->as_cptr<IntAST>()->getValue();
 
   case ExpressionAST::DoubleExpression:
-    return cvm::BasicValue(Expr->as_cptr<DoubleAST>()->getValue());
+    return Expr->as_cptr<DoubleAST>()->getValue();
 
   case ExpressionAST::BoolExpression:
-    return cvm::BasicValue(Expr->as_cptr<BoolAST>()->getValue());
+    return Expr->as_cptr<BoolAST>()->getValue();
 
   case ExpressionAST::StringExpression:
-    return cvm::BasicValue(Expr->as_cptr<StringAST>()->getValue());
+    return Expr->as_cptr<StringAST>()->getValue();
 
   case ExpressionAST::IdentifierExpression:
     return evaluateIdentifierExpr(Env, Expr->as_cptr<IdentifierAST>());
@@ -350,9 +367,9 @@ CMMInterpreter::evaluateUnaryArith(UnaryOperatorAST::OperatorKind OpKind,
     return Operand;
   if (OpKind == UnaryOperatorAST::Minus) {
     if (Operand.isInt())
-      return cvm::BasicValue(-Operand.IntVal);
+      return -Operand.IntVal;
     else
-      return cvm::BasicValue(-Operand.DoubleVal);
+      return -Operand.DoubleVal;
   }
 
   RuntimeError(std::to_string(OpKind) +
@@ -368,7 +385,7 @@ CMMInterpreter::evaluateUnaryLogical(UnaryOperatorAST::OperatorKind OpKind,
     RuntimeError(std::to_string(OpKind) +
         " is not valid unary logical operation kind");
   }
-  return cvm::BasicValue(!Operand.toBool());
+  return !Operand.toBool();
 }
 
 /// \brief Perform unary bitwise operation (~) on value
@@ -382,7 +399,7 @@ CMMInterpreter::evaluateUnaryBitwise(UnaryOperatorAST::OperatorKind OpKind,
   if (!Operand.isInt()) {
     RuntimeError("operand of unary bitwise operation should be int");
   }
-  return cvm::BasicValue(~Operand.IntVal);
+  return ~Operand.IntVal;
 }
 
 cvm::BasicValue
@@ -394,7 +411,7 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
   }
 
   // Is it an index expression?
-  if(Expr->getOpKind() == Expr->Index) {
+  if (Expr->getOpKind() == Expr->Index) {
     return evaluateIndexExpr(Env, Expr->getLHS(), Expr->getRHS());
   }
 
@@ -434,11 +451,12 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
         std::to_string(OpKind) + ")");
   case BinaryOperatorAST::Add:
     if (LHS.isString() || RHS.isString())
-      return cvm::BasicValue(LHS.toString() + RHS.toString());
+      return LHS.toString() + RHS.toString();
     /* fall Through */
   case BinaryOperatorAST::Minus:
   case BinaryOperatorAST::Multiply:
   case BinaryOperatorAST::Division:
+  case BinaryOperatorAST::Modulo:
     return evaluateBinArith(OpKind, LHS, RHS);
 
   case BinaryOperatorAST::LogicalAnd:
@@ -481,18 +499,19 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
       RuntimeError(std::to_string(OpKind) +
           " is not valid binary arithmetic operation kind");
     case BinaryOperatorAST::Add:
-      return cvm::BasicValue(LHS.IntVal + RHS.IntVal);
+      return LHS.IntVal + RHS.IntVal;
     case BinaryOperatorAST::Minus:
-      return cvm::BasicValue(LHS.IntVal + RHS.IntVal);
+      return LHS.IntVal - RHS.IntVal;
     case BinaryOperatorAST::Multiply:
-      return cvm::BasicValue(LHS.IntVal * RHS.IntVal);
-    case BinaryOperatorAST::Division:
-      if (RHS.IntVal == 0) {
-        RuntimeError("int division by zero");
-      }
-      return cvm::BasicValue(LHS.IntVal / RHS.IntVal);
+      return LHS.IntVal * RHS.IntVal;
     case BinaryOperatorAST::Modulo:
-      return cvm::BasicValue(LHS.IntVal % RHS.IntVal);
+      if (RHS.IntVal == 0)
+        RuntimeError("int modulo by zero");
+      return LHS.IntVal % RHS.IntVal;
+    case BinaryOperatorAST::Division:
+      if (RHS.IntVal == 0)
+        RuntimeError("int division by zero");
+      return LHS.IntVal / RHS.IntVal;
     }
   }
 
@@ -502,13 +521,13 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
     RuntimeError(std::to_string(OpKind) +
         " is not a valid binary arithmetic operation kind");
   case BinaryOperatorAST::Add:
-    return cvm::BasicValue(L + R);
+    return L + R;
   case BinaryOperatorAST::Minus:
-    return cvm::BasicValue(L + R);
+    return L + R;
   case BinaryOperatorAST::Multiply:
-    return cvm::BasicValue(L * R);
+    return L * R;
   case BinaryOperatorAST::Division:
-    return cvm::BasicValue(L / R);
+    return L / R;
   case BinaryOperatorAST::Modulo:
     RuntimeError("operands of modulo operator should be int");
   }
@@ -524,9 +543,9 @@ CMMInterpreter::evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
     RuntimeError(std::to_string(OpKind) +
         " is not a valid binary logical operation kind");
   case BinaryOperatorAST::LogicalAnd:
-    return cvm::BasicValue(LHS.toBool() && RHS.toBool());
+    return LHS.toBool() && RHS.toBool();
   case BinaryOperatorAST::LogicalOr:
-    return cvm::BasicValue(LHS.toBool() && RHS.toBool());
+    return LHS.toBool() || RHS.toBool();
   }
 }
 
@@ -536,8 +555,7 @@ CMMInterpreter::evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
                                     cvm::BasicValue LHS, cvm::BasicValue RHS) {
   if (LHS.Type != RHS.Type) {
     if (LHS.isNumeric() && RHS.isNumeric()) {
-      cvm::BasicValue L(LHS.toDouble()), R(RHS.toDouble());
-      return evaluateBinRelation(OpKind, L, R);
+      return evaluateBinRelation(OpKind, LHS.toDouble(), RHS.toDouble());
     }
     RuntimeError("relational operator should apply to identical type");
   }
@@ -547,17 +565,17 @@ CMMInterpreter::evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
     RuntimeError(std::to_string(OpKind) +
         " is not a valid binary relational operation kind");
   case cmm::BinaryOperatorAST::Less:
-    return cvm::BasicValue(LHS < RHS);
+    return LHS < RHS;
   case cmm::BinaryOperatorAST::LessEqual:
-    return cvm::BasicValue(LHS <= RHS);
+    return LHS <= RHS;
   case cmm::BinaryOperatorAST::Equal:
-    return cvm::BasicValue(LHS == RHS);
+    return LHS == RHS;
   case cmm::BinaryOperatorAST::NotEqual:
-    return cvm::BasicValue(LHS != RHS);
+    return LHS != RHS;
   case cmm::BinaryOperatorAST::Greater:
-    return cvm::BasicValue(LHS > RHS);
+    return LHS > RHS;
   case cmm::BinaryOperatorAST::GreaterEqual:
-    return cvm::BasicValue(LHS >= RHS);
+    return LHS >= RHS;
   }
 }
 
@@ -574,15 +592,15 @@ CMMInterpreter::evaluateBinBitwise(BinaryOperatorAST::OperatorKind OpKind,
     RuntimeError(std::to_string(OpKind) +
         " is not a valid binary bitwise operation kind");
   case cmm::BinaryOperatorAST::BitwiseAnd:
-    return cvm::BasicValue(LHS.IntVal & RHS.IntVal);
+    return LHS.IntVal & RHS.IntVal;
   case cmm::BinaryOperatorAST::BitwiseOr:
-    return cvm::BasicValue(LHS.IntVal | RHS.IntVal);
+    return LHS.IntVal | RHS.IntVal;
   case cmm::BinaryOperatorAST::BitwiseXor:
-    return cvm::BasicValue(LHS.IntVal ^ RHS.IntVal);
+    return LHS.IntVal ^ RHS.IntVal;
   case cmm::BinaryOperatorAST::LeftShift:
-    return cvm::BasicValue(LHS.IntVal << RHS.IntVal);
+    return LHS.IntVal << RHS.IntVal;
   case cmm::BinaryOperatorAST::RightShift:
-    return cvm::BasicValue(LHS.IntVal >> RHS.IntVal);
+    return LHS.IntVal >> RHS.IntVal;
   }
 }
 
@@ -669,7 +687,8 @@ CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
   }
 
   ExecutionResult Result = executeStatement(&FuncEnv, Function.getStatement());
-  if (Result.ReturnValue.Type != Function.getType()) {
+  if (Result.Kind == ExecutionResult::ReturnStatementResult &&
+      Result.ReturnValue.Type != Function.getType()) {
     RuntimeError("function `" + Function.getName() + "' ought to return " +
         cvm::TypeToStr(Function.getType()) + ", but got " +
         cvm::TypeToStr(Result.ReturnValue.Type));
@@ -699,3 +718,4 @@ CMMInterpreter::evaluateAssignment(VariableEnv *Env,
   }
   return Variable = Value;
 }
+

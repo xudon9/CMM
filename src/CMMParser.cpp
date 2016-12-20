@@ -9,11 +9,13 @@ bool CMMParser::Parse() {
   Lex();
   while (Lexer.isNot(Token::Eof))
     if (parseTopLevel())
-      break;
+      return true;
 
   std::cout << "************ StatementList:\n";
-  for (auto &S : TopLevelBlock.getStatementList())
+  for (auto &S : TopLevelBlock.getStatementList()) {
     S->dump();
+    std::cout << "\n";
+  }
   std::cout << "------------ Function Definitions:\n";
   for (auto &F : FunctionDefinition)
     F.second.dump();
@@ -257,6 +259,13 @@ bool CMMParser::parseArgumentList(std::list<std::unique_ptr<ExpressionAST>>
   return false;
 }
 
+bool CMMParser::parseEmptyStatement(std::unique_ptr<StatementAST> &Res) {
+  Warning("empty statement");
+  Res = nullptr;
+  Lex(); // eat the semicolon;
+  return false;
+}
+
 bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   switch (getKind()) {
   default:
@@ -268,6 +277,7 @@ bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   case Token::Kw_return:    return parseReturnStatement(Res);
   case Token::Kw_break:     return parseBreakStatement(Res);
   case Token::Kw_continue:  return parseContinueStatement(Res);
+  case Token::Semicolon:    return parseEmptyStatement(Res);
   case Token::Kw_bool:
   case Token::Kw_int:
   case Token::Kw_double:

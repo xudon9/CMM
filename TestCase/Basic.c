@@ -1,14 +1,6 @@
-/*
- * Basic.c
- * Copyright (C) 2016 wang <wang@Yet-Another-MBP>
- *
- * Distributed under terms of the MIT license.
- */
-
-
-
-double foo ;
-double bar = 24;
-foo = 121;
-println(foo);
-println(bar);
+int i;
+for (;(i=i+1)<10 ;println(i))
+;
+println("hello");
+while((i=i-1)>2);
+if (i) ;else 1;
