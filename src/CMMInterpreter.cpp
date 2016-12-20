@@ -25,13 +25,22 @@ void CMMInterpreter::interpret() {
 
 void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["print"] = cvm::Native::Print;
-  NativeFunctionMap["println"] = cvm::Native::Println;
+  NativeFunctionMap["println"] = cvm::Native::PrintLn;
+  NativeFunctionMap["puts"] = cvm::Native::PrintLn;
   NativeFunctionMap["system"] = cvm::Native::System;
   NativeFunctionMap["random"] = cvm::Native::Random;
   NativeFunctionMap["rand"] = cvm::Native::Random;
   NativeFunctionMap["srand"] = cvm::Native::Srand;
   NativeFunctionMap["time"] = cvm::Native::Time;
   NativeFunctionMap["exit"] = cvm::Native::Exit;
+  NativeFunctionMap["toint"] = cvm::Native::ToInt;
+  NativeFunctionMap["todouble"] = cvm::Native::ToDouble;
+  NativeFunctionMap["tostring"] = cvm::Native::ToString;
+  NativeFunctionMap["str"] = cvm::Native::ToString;
+  NativeFunctionMap["tobool"] = cvm::Native::ToBool;
+  NativeFunctionMap["read"] = cvm::Native::Read;
+  NativeFunctionMap["readln"] = cvm::Native::ReadLn;
+  NativeFunctionMap["readint"] = cvm::Native::ReadInt;
 
 #if defined(__APPLE__) || defined(__linux__)
   NativeFunctionMap["UnixFork"] = cvm::Unix::Fork;

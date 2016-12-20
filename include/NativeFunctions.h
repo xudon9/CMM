@@ -10,10 +10,20 @@ namespace Native {
 ADD_FUNCTION(Random);
 ADD_FUNCTION(Srand);
 ADD_FUNCTION(Print);
-ADD_FUNCTION(Println);
+ADD_FUNCTION(PrintLn);
 ADD_FUNCTION(System);
 ADD_FUNCTION(Time);
 ADD_FUNCTION(Exit);
+
+ADD_FUNCTION(ToInt);
+ADD_FUNCTION(ToBool);
+ADD_FUNCTION(ToString);
+ADD_FUNCTION(ToDouble);
+
+ADD_FUNCTION(Read);
+ADD_FUNCTION(ReadLn);
+ADD_FUNCTION(ReadInt);
+
 }
 
 #if defined(__APPLE__) || defined(__linux__)

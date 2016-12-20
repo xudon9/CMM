@@ -7,7 +7,7 @@ using namespace cmm;
 
 bool CMMParser::Parse() {
   Lex();
-  while (Lexer.isNot(Token::Eof))
+  while (!Lexer.isOneOf(Token::Eof, Token::Error))
     if (parseTopLevel())
       return true;
 

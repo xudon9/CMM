@@ -12,6 +12,48 @@
 
 namespace cvm {
 
+BasicValue Native::ReadInt(std::list<BasicValue> &/*Args*/) {
+  int Res;
+  std::cin >> Res;
+  return Res;
+}
+
+BasicValue Native::ReadLn(std::list<BasicValue> &/*Args*/) {
+  std::string Res;
+  std::getline(std::cin, Res);
+  return Res;
+}
+
+BasicValue Native::Read(std::list<BasicValue> &/*Args*/) {
+  std::string Res;
+  std::cin >> Res;
+  return Res;
+}
+
+BasicValue Native::ToInt(std::list<BasicValue> &Args) {
+  if (Args.size() != 1)
+    return 0;
+  return Args.front().toInt();
+}
+
+BasicValue Native::ToBool(std::list<BasicValue> &Args) {
+  if (Args.size() != 1)
+    return false;
+  return Args.front().toBool();
+}
+
+BasicValue Native::ToString(std::list<BasicValue> &Args) {
+  if (Args.size() != 1)
+    return std::string();
+  return Args.front().toString();
+}
+
+BasicValue Native::ToDouble(std::list<BasicValue> &Args) {
+  if (Args.size() != 1)
+    return 0.0;
+  return Args.front().toDouble();
+}
+
 BasicValue Native::Exit(std::list<BasicValue> &Args) {
   if (Args.empty())
     std::exit(EXIT_SUCCESS);
@@ -25,7 +67,7 @@ BasicValue Native::Print(std::list<BasicValue> &Args) {
   return BasicValue();
 }
 
-BasicValue Native::Println(std::list<BasicValue> &Args) {
+BasicValue Native::PrintLn(std::list<BasicValue> &Args) {
   Native::Print(Args);
   std::cout << "\n";
   return BasicValue();
