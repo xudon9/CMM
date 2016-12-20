@@ -5,39 +5,150 @@
  * TODO:
  * 1. command line argument
  * 2. closure
- * 3. functional return
  * 4. ++ -- += ...
  */
 
 #include <cstdlib>
 #include <iostream>
+#include <cstring>
 #include "CMMLexer.h"
 #include "CMMParser.h"
+#include "CMMInterpreter.h"
 
-using namespace cmm;
+static void Error(const char *Name, const char *Message);
 
-static int AsParseInput(SourceMgr &SrcMgr) {
-  CMMParser Parser(SrcMgr);
-  return Parser.Parse();
+static void Usage(const char *Name);
+static int DumpFile(cmm::SourceMgr &SrcMgr);
+static int AsLexInput(cmm::SourceMgr &SrcMgr);
+static int Interpret(cmm::SourceMgr &SrcMgr, bool Verbose = false);
+static int DumpAST(cmm::SourceMgr &SrcMgr);
+
+static bool EqualOneOf(const char *S, const char *S1) {
+  return !std::strcmp(S, S1);
+}
+template <typename... Tn>
+static bool EqualOneOf(const char *S, const char *S1, Tn... Sn) {
+  return EqualOneOf(S, S1) || EqualOneOf(S, Sn...);
 }
 
-static int AsLexInput(SourceMgr &SrcMgr) {
+int main(int argc, char *argv[])
+{
+  enum ActionKind {
+    DefaultAct, LexAct, ParseAct, DebugAct, DumpFileAct
+  } Action = DefaultAct;
+  const char *ProgName = argv[0];
+  const char *Input = nullptr;
+  int Res;
+
+  if (argc < 2 || argc > 3)
+    Error(ProgName, "too few arguments");
+
+  for (int I = 1; I < argc; ++I) {
+    if (argv[I][0] == '-') {
+      if (Action != DefaultAct)
+        Error(ProgName, "too many options");
+
+      if (EqualOneOf(argv[I], "-l", "-L", "-lex", "--lex")) {
+        Action = LexAct;
+        continue;
+      }
+
+      if (EqualOneOf(argv[I], "-f", "-F", "-file", "--file")) {
+        Action = DumpFileAct;
+        continue;
+      }
+
+      if (EqualOneOf(argv[I], "-p", "-P", "-parse", "--parse")) {
+        Action = ParseAct;
+        continue;
+      }
+
+      if (EqualOneOf(argv[I], "-d", "-D", "-debug", "--debug")) {
+        Action = DebugAct;
+        continue;
+      }
+
+      if (EqualOneOf(argv[I], "-h", "-H", "-help", "--help")) {
+        Usage(ProgName);
+        std::exit(EXIT_SUCCESS);
+      }
+
+      std::cerr << ProgName << ": invalid option `" << argv[I] << "'\n\n";
+      Usage(ProgName);
+      std::exit(EXIT_FAILURE);
+    } else {
+      if (Input)
+        Error(ProgName, "too many files specified");
+      Input = argv[I];
+    }
+  }
+
+  if (!Input)
+    Error(ProgName, "no input file");
+
+  cmm::SourceMgr SrcMgr(Input);
+
+  switch (Action) {
+  case DumpFileAct:
+    Res = DumpFile(SrcMgr);
+    break;
+  case DefaultAct:
+    Res = Interpret(SrcMgr);
+    break;
+  case LexAct:
+    Res = AsLexInput(SrcMgr);
+    break;
+  case ParseAct:
+    Res = DumpAST(SrcMgr);
+    break;
+  case DebugAct:
+    Res = Interpret(SrcMgr, true);
+    break;
+  }
+
+  std::exit(Res);
+}
+
+void Error(const char *Name, const char *Message) {
+  std::cerr << Name << ": " << Message << "\n\n";
+  Usage(Name);
+  std::exit(EXIT_FAILURE);
+}
+
+void Usage(const char *Name) {
+  std::cerr << "USAGE: " << Name << " [options] <input file>\n\n"
+      "OPTIONS:\n\n"
+      "  -h  --help       print this usage and exit\n"
+      "  -f  --file       dump a file and exit (for debugging)\n"
+      "  -l  --lex        lex tokens from a CMM source code file\n"
+      "  -p  --parse      parse a CMM source code file and dump AST\n"
+      "  -d  --debug      interpret a file with extra information dumped\n\n"
+      "Report bugs to <hsu@whu.edu.cn>.\n";
+}
+
+int DumpFile(cmm::SourceMgr &SrcMgr) {
+  SrcMgr.dumpFile();
+  return 0;
+}
+
+int AsLexInput(cmm::SourceMgr &SrcMgr) {
+  using namespace cmm;
+  using std::cout;
   CMMLexer Lexer(SrcMgr);
 
-  bool Error = false;
+  bool Err = false;
   while (Lexer.Lex().isNot(Token::Eof)) {
-    using std::cout;
     auto LineCol = SrcMgr.getLineColByLoc(Lexer.getLoc());
     cout << "(Line " << LineCol.first + 1 << ", Col "
          << LineCol.second + 1 << ") ";
 
     switch (Lexer.getKind()) {
     default:
-      cout << "Unknown Token: " << Lexer.getKind();
-      Error = true;
+      cout << "Unknown token: " << Lexer.getKind();
+      Err = true;
       break;
     case Token::Error:
-      Error = true; // error already printed.
+      Err = true; // error already printed.
       break;
     case Token::Identifier:
       cout << "Identifier: " << Lexer.getStrVal(); break;
@@ -48,7 +159,7 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     case Token::Double:
       cout << "Double: " << Lexer.getDoubleVal(); break;
     case Token::Boolean:
-      cout << "Boolean: " << (Lexer.getDoubleVal() ? "True" : "False"); break;
+      cout << "Boolean: " << (Lexer.getBoolVal() ? "True" : "False"); break;
     case Token::InfixOp:
       cout << "InfixOp: " << Lexer.getStrVal(); break;
     case Token::LParen:         cout << "LParen: ("; break;
@@ -94,20 +205,36 @@ static int AsLexInput(SourceMgr &SrcMgr) {
     }
     cout << "\n";
   }
-  return Error;
+  return Err;
 }
 
-int main(int argc, char *argv[])
-{
-  if (argc != 2) {
-    std::cerr << "Usage: " << argv[0] << " file" << std::endl;
-    std::exit(EXIT_FAILURE);
+int Interpret(cmm::SourceMgr &SrcMgr, bool Verbose) {
+  using namespace cmm;
+  CMMParser Parser(SrcMgr);
+
+  int Err = Parser.parse();
+  if (!Err) {
+    if (Verbose) {
+      Parser.dumpAST();
+      std::cout << "Interpreter started...\n";
+    }
+
+    CMMInterpreter Interpreter(Parser.getTopLevelBlock(),
+                               Parser.getFunctionDefinition(),
+                               Parser.getInfixOpDefinition());
+    Interpreter.interpret();
   }
-  SourceMgr SrcMgr(argv[1]);
-#if 1
-  int Res = AsParseInput(SrcMgr);
-#else
-  int Res = AsLexInput(SrcMgr);
-#endif
-  std::exit(Res);
+  return Err;
+}
+
+
+int DumpAST(cmm::SourceMgr &SrcMgr) {
+  using namespace cmm;
+  CMMParser Parser(SrcMgr);
+
+  int Err = Parser.parse();
+  if (!Err) {
+    Parser.dumpAST();
+  }
+  return Err;
 }

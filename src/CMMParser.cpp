@@ -5,31 +5,48 @@
 
 using namespace cmm;
 
-bool CMMParser::Parse() {
+bool CMMParser::parse() {
   Lex();
   while (!Lexer.isOneOf(Token::Eof, Token::Error))
     if (parseTopLevel())
       return true;
+  return false;
+}
 
-  std::cout << "************ StatementList:\n";
-  for (auto &S : TopLevelBlock.getStatementList()) {
-    S->dump();
+
+void CMMParser::dumpAST() const {
+
+  if (FunctionDefinition.empty()) {
+    std::cout << "Note: no user-defined function\n\n";
+  } else {
+    std::cout << "{ Function definitions }\n";
+    for (const auto &F : FunctionDefinition) {
+      F.second.dump();
+      std::cout << "\n";
+    }
     std::cout << "\n";
   }
-  std::cout << "------------ Function Definitions:\n";
-  for (auto &F : FunctionDefinition)
-    F.second.dump();
-  std::cout << "------------ Infix Operator Definitions:\n";
-  for (auto &I : InfixOpDefinition)
-    I.second.dump();
 
-  std::cout << "------------ Running -----------\n";
-  CMMInterpreter interpreter(TopLevelBlock,
-                             FunctionDefinition,
-                             InfixOpDefinition);
-  interpreter.interpret();
+  if (InfixOpDefinition.empty()) {
+    std::cout << "Note: no user-defined infix operator\n\n";
+  } else {
+    std::cout << "{ Infix operators }\n";
+    for (const auto &I : InfixOpDefinition) {
+      I.second.dump();
+      std::cout << "\n";
+    }
+    std::cout << "\n";
+  }
 
-  return false;
+  if (TopLevelBlock.getStatementList().empty()) {
+    std::cout << "Note: statement list is empty\n";
+  } else {
+    std::cout << "{ Statement list AST }\n";
+    for (const auto &S : TopLevelBlock.getStatementList()) {
+      S->dump();
+      std::cout << "\n";
+    }
+  }
 }
 
 bool CMMParser::parseTopLevel() {

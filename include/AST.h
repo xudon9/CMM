@@ -1,7 +1,6 @@
 #ifndef AST_H
 #define AST_H
 
-#include "SourceMgr.h"
 #include "CMMLexer.h"
 #include <string>
 #include <map>
@@ -115,13 +114,13 @@ class Parameter {
   std::string Name;
   //std::unique_ptr<TypeSpecifier> Type;
   cvm::BasicType Type;
-  SourceMgr::LocTy Loc;
+  CMMLexer::LocTy Loc;
 public:
   /*
-  Parameter(const std::string &Name, cvm::BasicType Type, SourceMgr::LocTy Loc)
+  Parameter(const std::string &Name, cvm::BasicType Type, CMMLexer::LocTy Loc)
     : Name(Name), Type(new TypeSpecifier(Type)), Loc(Loc) {}
    */
-  Parameter(const std::string &Name, cvm::BasicType Type, SourceMgr::LocTy Loc)
+  Parameter(const std::string &Name, cvm::BasicType Type, CMMLexer::LocTy Loc)
       : Name(Name), Type(Type), Loc(Loc) {}
 
   std::string toString() const {

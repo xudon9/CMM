@@ -12,6 +12,7 @@ namespace cmm {
 class CMMParser {
 public:
   using LocTy = CMMLexer::LocTy;
+
 private:
   SourceMgr &SrcMgr;
   CMMLexer Lexer;
@@ -21,6 +22,7 @@ private:
   std::map<std::string, int8_t> BinOpPrecedence;
   std::map<std::string, FunctionDefinitionAST> FunctionDefinition;
   std::map<std::string, InfixOpDefinitionAST> InfixOpDefinition;
+
 private:
   Token::TokenKind getKind() { return Lexer.getKind(); }
   Token Lex() { return Lexer.Lex(); }
@@ -64,7 +66,17 @@ private:
 public:
   CMMParser(SourceMgr &SrcMgr)
     : SrcMgr(SrcMgr), Lexer(SrcMgr), CurrentBlock(&TopLevelBlock) {}
-  bool Parse();
+
+  bool parse();
+  void dumpAST() const;
+
+  const BlockAST &getTopLevelBlock() const { return TopLevelBlock; }
+
+  const std::map<std::string, FunctionDefinitionAST> &
+      getFunctionDefinition() const { return FunctionDefinition; };
+
+  const std::map<std::string, InfixOpDefinitionAST> &
+      getInfixOpDefinition() const { return InfixOpDefinition; };
 };
 }
 

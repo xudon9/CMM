@@ -1,7 +1,7 @@
+#include "SourceMgr.h"
 #include <iostream>
 #include <algorithm>
 #include <cassert>
-#include "SourceMgr.h"
 
 using namespace cmm;
 
@@ -68,4 +68,11 @@ std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
   size_t LineIndex = It - LineNoOffsets.cbegin();
   size_t ColIndex = static_cast<size_t>(L - *It);
   return std::make_pair(LineIndex, ColIndex);
+}
+
+void SourceMgr::dumpFile() {
+  int CurChar;
+  while ((CurChar = get()) != std::char_traits<char>::eof()) {
+    std::cout << static_cast<char>(CurChar);
+  }
 }

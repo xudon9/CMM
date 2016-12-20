@@ -38,16 +38,16 @@ private:  /* private data types */
   typedef cvm::BasicValue (*NativeFunction)(std::list<cvm::BasicValue> &);
 
 private:  /*  private member variables  */
-  BlockAST &TopLevelBlock;
-  std::map<std::string, FunctionDefinitionAST> &UserFunctionMap;
-  std::map<std::string, InfixOpDefinitionAST> &InfixOpMap;
+  const BlockAST &TopLevelBlock;
+  const std::map<std::string, FunctionDefinitionAST> &UserFunctionMap;
+  const std::map<std::string, InfixOpDefinitionAST> &InfixOpMap;
   std::map<std::string, NativeFunction> NativeFunctionMap;
   VariableEnv TopLevelEnv;
 
 public:   /* public member functions */
-  CMMInterpreter(BlockAST &Block,
-                 std::map<std::string, FunctionDefinitionAST> &F,
-                 std::map<std::string, InfixOpDefinitionAST> &I)
+  CMMInterpreter(const BlockAST &Block,
+                 const std::map<std::string, FunctionDefinitionAST> &F,
+                 const std::map<std::string, InfixOpDefinitionAST> &I)
       : TopLevelBlock(Block), UserFunctionMap(F), InfixOpMap(I) {
     addNativeFunctions();
   }
@@ -123,9 +123,9 @@ private:  /* private member functions */
   evaluateArgumentList(VariableEnv *Env,
                        const std::list<std::unique_ptr<ExpressionAST>> &Args);
 
-  cvm::BasicValue callNativeFunction(NativeFunction &Function,
+  cvm::BasicValue callNativeFunction(const NativeFunction &Function,
                                      std::list<cvm::BasicValue> &Args);
-  cvm::BasicValue callUserFunction(FunctionDefinitionAST &Function,
+  cvm::BasicValue callUserFunction(const FunctionDefinitionAST &Function,
                                    std::list<cvm::BasicValue> &Args);
 
   std::map<std::string, cvm::BasicValue>::iterator

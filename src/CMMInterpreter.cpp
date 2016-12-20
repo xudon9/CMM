@@ -649,7 +649,7 @@ CMMInterpreter::evaluateArgumentList(VariableEnv *Env, const std::list
 }
 
 cvm::BasicValue
-CMMInterpreter::callNativeFunction(NativeFunction &Function,
+CMMInterpreter::callNativeFunction(const NativeFunction &Function,
                                    std::list<cvm::BasicValue> &Args) {
   return Function(Args);
 }
@@ -663,7 +663,7 @@ CMMInterpreter::evaluateInfixOpExpr(VariableEnv *Env,
     RuntimeError("Infix operator " + Expr->getSymbol() + " is undefined");
   }
 
-  InfixOpDefinitionAST &InfixOpDef = InfixOpIt->second;
+  const InfixOpDefinitionAST &InfixOpDef = InfixOpIt->second;
   VariableEnv InfixOpEnv(&TopLevelEnv);
 
   cvm::BasicValue LHSVal = evaluateExpression(Env, Expr->getLHS());
@@ -681,7 +681,7 @@ CMMInterpreter::evaluateInfixOpExpr(VariableEnv *Env,
 }
 
 cvm::BasicValue
-CMMInterpreter::callUserFunction(FunctionDefinitionAST &Function,
+CMMInterpreter::callUserFunction(const FunctionDefinitionAST &Function,
                                  std::list<cvm::BasicValue> &Args) {
   if (Args.size() != Function.getParameterCount()) {
     RuntimeError("Function `" + Function.getName() + "' expects " +

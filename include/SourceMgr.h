@@ -40,8 +40,8 @@ public:
   int get();
   int peek() { return SourceStream.peek(); };
   void unget() {
-    //SourceStream.unget();
-    SourceStream.seekg(-1, SourceStream.cur);
+    SourceStream.unget();
+    //SourceStream.seekg(-1, SourceStream.cur);
   }
   LocTy getLoc() { return SourceStream.tellg(); }
   void seekLoc(LocTy Loc) { SourceStream.seekg(Loc); }
@@ -52,6 +52,9 @@ public:
   void Warning(const std::string &Msg);
 
   std::pair<size_t, size_t> getLineColByLoc(LocTy Loc) const;
+
+  // for debug
+  void dumpFile();
 };
 
 }

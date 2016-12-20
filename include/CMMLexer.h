@@ -1,8 +1,8 @@
 #ifndef CMMLEXER_H
 #define CMMLEXER_H
 
-#include <string>
 #include "SourceMgr.h"
+#include <string>
 
 namespace cmm {
 
