@@ -77,8 +77,10 @@ bool CMMParser::parseTopLevel() {
 
 /// \brief Parse an infix operator definition
 /// infixOpDefinition ::= Kw_infix Int Id infixOp Id Statement
+/// E.g., infix [12] a@b [=] a * b;
 bool CMMParser::parseInfixOpDefinition() {
   assert(Lexer.is(Token::Kw_infix));
+  LocTy Loc = Lexer.getLoc();
   Lex();  // Eat the 'infix'.
 
   int Precedence;
@@ -87,33 +89,40 @@ bool CMMParser::parseInfixOpDefinition() {
     Precedence = Lexer.getIntVal();
     Lex();  // Eat the int.
   } else {
-    Precedence = 12;
+    Precedence = InfixOpDefinitionAST::DefaultPrecedence;
   }
 
   if (Lexer.isNot(Token::Identifier))
     return Error("left hand operand name for infix operator expected");
   std::string LHS = Lexer.getStrVal();
-  Lex();
+  Lex();  // eat the LHS operand identifier.
 
   if (Lexer.isNot(Token::InfixOp))
     return Error("symbol of infix operator expected");
   std::string Symbol = Lexer.getStrVal();
-  Lex();
+  Lex();  // eat the infix operator.
 
   if (Lexer.isNot(Token::Identifier))
     return Error("right hand operand name for infix operator expected");
   std::string RHS = Lexer.getStrVal();
-  Lex();
+  Lex();  // eat the RHS operand identifier.
 
   std::unique_ptr<StatementAST> Statement;
-  if (parseStatement(Statement))
+  bool Err;
+  if (Lexer.is(Token::Equal)) {
+    Lex();  // eat the '='
+    Err = parseExprStatement(Statement);
+  } else {
+    Err = parseStatement(Statement);
+  }
+  if (Err)
     return true;
 
-  BinOpPrecedence.emplace(std::make_pair(Symbol,
-                                         static_cast<int8_t>(Precedence)));
-  InfixOpDefinition.emplace(std::make_pair(Symbol,
-                                           InfixOpDefinitionAST(Symbol, LHS, RHS,
-                                                                std::move(Statement))));
+  if (BinOpPrecedence.emplace(Symbol, static_cast<int8_t>(Precedence)).second) {
+    Warning(Loc, "infix operator " + Symbol + " overrides another");
+  }
+  InfixOpDefinition.emplace(Symbol, InfixOpDefinitionAST(Symbol, LHS, RHS,
+                                                         std::move(Statement)));
   return false;
 }
 
@@ -140,6 +149,7 @@ bool CMMParser::parseFunctionDefinition() {
 bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
                                         const std::string &Name) {
   assert(Lexer.is(Token::LParen) && "parseFunctionDefinition: unknown token");
+  LocTy Loc = Lexer.getLoc();
   Lex();  // Eat LParen '('.
 
   std::list<Parameter> ParameterList;
@@ -153,20 +163,11 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
   if (parseStatement(Statement))
     return true;
 
-  // for (auto &P : ParameterList) {
-  //   std::cout << P.toString() << std::endl;
-  // }
-  // Statement->dump();
-
-  // Try to create the function.
-  auto It = FunctionDefinition.find(Name);
-  if (It != FunctionDefinition.end())
-    Warning("'" + Name + "' overrides an existing function");
-
-  //std::unique_ptr<TypeSpecifier> Type(new TypeSpecifier(RetType));
-  FunctionDefinition[Name] = FunctionDefinitionAST(Name, RetType,
-                                                   std::move(ParameterList),
-                                                   std::move(Statement));
+  FunctionDefinitionAST FuncDef(Name, RetType, std::move(ParameterList),
+                                std::move(Statement));
+  if (FunctionDefinition.emplace(Name, std::move(FuncDef)).second) {
+    Warning(Loc, "function `" + Name + "' overrides another one");
+  }
   return false;
 }
 
@@ -281,8 +282,10 @@ bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   case Token::Kw_bool:
   case Token::Kw_int:
   case Token::Kw_double:
-  case Token::Kw_void:
+  case Token::Kw_string:
     return parseDeclarationStatement(Res);
+  case Token::Kw_void:
+    return Error("`void' only appears before function definition");
   case Token::LParen:   case Token::Identifier:
   case Token::Double:   case Token::String:
   case Token::Boolean:  case Token::Integer:

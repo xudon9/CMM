@@ -29,8 +29,8 @@ infix y `-` x
     return false;
 }
 
-/********  function definitions ******/
-bool run() {
+/********  function definitions *********/
+bool run(void) {
     int newy = ys[headindex], newx = xs[headindex];
     if (direction == UP)
         newy = newy - 1;

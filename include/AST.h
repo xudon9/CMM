@@ -275,8 +275,10 @@ public:
 };
 
 class InfixOpExprAST : public ExpressionAST {
+private:
   std::string Symbol;
   std::unique_ptr<ExpressionAST> LHS, RHS;
+
 public:
   InfixOpExprAST(const std::string &Symbol,
                  std::unique_ptr<ExpressionAST> LHS,
@@ -503,6 +505,10 @@ public:
 
 
 class InfixOpDefinitionAST {
+public:
+  static const int8_t DefaultPrecedence = 12;
+
+private:
   std::string Symbol;
   std::string LHSName, RHSName;
   std::unique_ptr<StatementAST> Statement;
