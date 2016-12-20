@@ -701,7 +701,7 @@ void IfStatementAST::dump(const std::string &prefix) const {
 
   std::cout << prefix << "|---";
   if (StatementThen)
-    StatementThen->dump("|    ");
+    StatementThen->dump(prefix + "|    ");
   else
     std::cout << "(emptyThen)\n";
 
