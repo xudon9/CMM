@@ -137,9 +137,10 @@ void end_game() {
         NcMvAddCh(t+6, i, '_');
     }
     NcAttrOn(NcColorPair(SCORE_COLOR_PAIR));
-    NcMvAddStr(t+2, (width - strlen(msg)) >> 1 , msg);
+    NcMvAddStr(t+2, (width - strlen(msg)) >> 1, msg);
     NcAttrOff(NcColorPair(SCORE_COLOR_PAIR));
-    NcMvAddStr(t+5, l+12, "Press ENTER to exit...");
+    string tmp = "Press <ENTER> to exit...";
+    NcMvAddStr(t+5, (width - strlen(tmp)) >> 1, tmp);
     for (i = t+1; i <= b; i=i+1) {
         NcMvAddCh(i, l, '|');
         NcMvAddCh(i, r, '|');
@@ -161,7 +162,7 @@ void init_nc() {
     NcKeypad(true);
     NcTimeout(DELAY_TIME);
     NcInitPair(FOOD_COLOR_PAIR, COLOR_RED, COLOR_BLACK);
-    NcInitPair(SNAKE_COLOR_PAIR, COLOR_BLUE, COLOR_BLACK);
+    NcInitPair(SNAKE_COLOR_PAIR, COLOR_YELLOW, COLOR_BLACK);
     NcInitPair(SCORE_COLOR_PAIR, COLOR_CYAN, COLOR_BLACK);
 }
 
@@ -197,16 +198,18 @@ void init_body() {
 /// Pause until receive a SPACE key
 void pause() {
     NcTimeout(-1);
-    //NcMvAddStr( 1, 1, "PAUSED. Press SPACE to continue");
+    NcMvAddStr(height + 3, 2, "PAUSED. Press <SPACE> to continue");
     while (NcGetCh() != ' ')
         ;
     NcTimeout(DELAY_TIME);
-    //NcMvAddStr( 1, 1, "                               ");
+    NcMvAddStr(height + 3, 2, "                               ");
 }
 
 /// Returns true if the user win
 bool eat_food() {
     if (len + 1 == MAXLEN) {
+        len = len + 1;
+        update_score();
         msg = "You win!!! Congratulations  (^_^)";
         return true;
     }

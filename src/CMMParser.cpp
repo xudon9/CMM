@@ -480,7 +480,7 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
 
   LocTy ExlaimLoc;
   bool Dynamic;
-  if (Dynamic = Lexer.is(Token::Exclaim)) {
+  if ((Dynamic = Lexer.is(Token::Exclaim))) {
     ExlaimLoc = Lexer.getLoc();
     Lex();  // eat the '!'
   }
