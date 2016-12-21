@@ -3,7 +3,8 @@
 
 using namespace cmm;
 
-void CMMInterpreter::interpret() {
+int CMMInterpreter::interpret(int Argc, char *Argv[]) {
+  // First run top level statments. 
   for (auto &Stmt : TopLevelBlock.getStatementList()) {
     ExecutionResult Res = executeStatement(&TopLevelEnv, Stmt.get());
 
@@ -11,16 +12,34 @@ void CMMInterpreter::interpret() {
     default:
       RuntimeError("bad execution result code: " + std::to_string(Res.Kind));
     case ExecutionResult::BreakStatementResult:
-      RuntimeError("unbounded break statement");
+      RuntimeError("break statement should be in a loop");
     case ExecutionResult::ContinueStatementResult:
-      RuntimeError("unbounded continue statement");
+      RuntimeError("continue statement should be in a loop");
     case ExecutionResult::ReturnStatementResult:
-      RuntimeError("unbounded return statement with value " +
-          Res.ReturnValue.toString());
+      if (Res.ReturnValue.isInt())
+        return Res.ReturnValue.IntVal;
+      RuntimeError("top level return statement should return integers, but " +
+          cvm::TypeToStr(Res.ReturnValue.Type) + Res.ReturnValue.toString() +
+          " is returned");
     case ExecutionResult::NormalStatementResult:
       break;
     }
   }
+
+  // Invoke main function is there is one
+  auto MainIt = UserFunctionMap.find("main");
+  if (MainIt != UserFunctionMap.end()) {
+    std::list<cvm::BasicValue> Args;
+
+    if (MainIt->second.getParameterCount() == 0)
+      return callUserFunction(MainIt->second, Args).toInt();
+
+    for (int I = 0; I < Argc; ++I)
+      Args.emplace_back(std::string(Argv[I]));
+    return callUserFunction(MainIt->second, Args).toInt();
+  }
+
+  return 0;
 }
 
 void CMMInterpreter::addNativeFunctions() {
@@ -41,6 +60,11 @@ void CMMInterpreter::addNativeFunctions() {
   NativeFunctionMap["read"] = cvm::Native::Read;
   NativeFunctionMap["readln"] = cvm::Native::ReadLn;
   NativeFunctionMap["readint"] = cvm::Native::ReadInt;
+  NativeFunctionMap["sqrt"] = cvm::Native::Sqrt;
+  NativeFunctionMap["pow"] = cvm::Native::Pow;
+  NativeFunctionMap["exp"] = cvm::Native::Exp;
+  NativeFunctionMap["log"] = cvm::Native::Log;
+  NativeFunctionMap["log10"] = cvm::Native::Log10;
 
 #if defined(__APPLE__) || defined(__linux__)
   NativeFunctionMap["UnixFork"] = cvm::Unix::Fork;
@@ -72,13 +96,14 @@ void CMMInterpreter::RuntimeError(const std::string &Msg) {
 
 CMMInterpreter::ExecutionResult
 CMMInterpreter::executeBlock(VariableEnv *OuterEnv, const BlockAST *Block) {
-  ExecutionResult Res;
+
+  ExecutionResult Res;  // Stores last execution result.
   VariableEnv CurrentEnv(OuterEnv);
 
-  for (auto &Statement : Block->getStatementList()) {
-    Res = executeStatement(&CurrentEnv, Statement.get());
+  for (auto &Stmt : Block->getStatementList()) {
+    Res = executeStatement(&CurrentEnv, Stmt.get());
     if (Res.Kind != ExecutionResult::NormalStatementResult)
-      break;
+      return Res;
   }
   return Res;
 }
@@ -131,7 +156,7 @@ CMMInterpreter::executeForStatement(VariableEnv *Env,
                                     const ForStatementAST *ForStmt) {
   const ExpressionAST *Condition = ForStmt->getCondition();
   const ExpressionAST *Post = ForStmt->getPost();
-  const StatementAST *Statement = ForStmt->getStatement();
+  const StatementAST  *Statement = ForStmt->getStatement();
 
   if (const ExpressionAST *Init = ForStmt->getInit()) {
     evaluateExpression(Env, Init);
@@ -213,7 +238,7 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
   const std::string& Name = Decl->getName();
   cvm::BasicType Type = Decl->getType();
 
-  if (Env->contains(Name)) {
+  if (Env->contain(Name)) {
     RuntimeError("variable `" + Decl->getName() +
         "' is already defined in current scope");
   }
@@ -306,7 +331,8 @@ CMMInterpreter::evaluateFunctionCallExpr(VariableEnv *Env,
   auto UserFuncIt = UserFunctionMap.find(FuncCall->getCallee());
   if (UserFuncIt != UserFunctionMap.end()) {
     auto Args(evaluateArgumentList(Env, FuncCall->getArguments()));
-    return callUserFunction(UserFuncIt->second, Args);
+    return callUserFunction(UserFuncIt->second, Args,
+                            FuncCall->isDynamicBound() ? Env : nullptr);
   }
 
   auto NativeFuncIt = NativeFunctionMap.find(FuncCall->getCallee());
@@ -454,7 +480,7 @@ CMMInterpreter::evaluateIndexExpr(VariableEnv *Env,
     RuntimeError("non-int index in index expression");
 
   size_t ArraySize = Base.ArrayPtr->size();
-  if (Index.IntVal < 0 || Index.IntVal >= ArraySize) {
+  if (Index.IntVal < 0 || Index.IntVal >= static_cast<int>(ArraySize)) {
     RuntimeError("index out of range: should within [0," +
         std::to_string(ArraySize) + "); actually got index " +
         std::to_string(Index .IntVal));
@@ -682,27 +708,32 @@ CMMInterpreter::evaluateInfixOpExpr(VariableEnv *Env,
 
 cvm::BasicValue
 CMMInterpreter::callUserFunction(const FunctionDefinitionAST &Function,
-                                 std::list<cvm::BasicValue> &Args) {
+                                 std::list<cvm::BasicValue> &Args,
+                                 VariableEnv *Env) {
   if (Args.size() != Function.getParameterCount()) {
     RuntimeError("Function `" + Function.getName() + "' expects " +
         std::to_string(Function.getParameterCount()) + " parameter(s), " +
         std::to_string(Args.size()) + " argument(s) provided");
   }
 
-  VariableEnv FuncEnv(&TopLevelEnv);
+  VariableEnv FuncEnv(Env ? Env : &TopLevelEnv);
 
   auto It = Function.getParameterList().cbegin();
   auto End = Function.getParameterList().cend();
   for (cvm::BasicValue &Arg : Args) {
-
     if (It->getType() != Arg.Type) {
-      RuntimeError("in function `" + Function.getName() + "', parameter `" +
+      if (Arg.isInt() && It->getType() == cvm::DoubleType) {
+        Arg.DoubleVal = Arg.IntVal;
+        Arg.Type = cvm::DoubleType;
+      } else {
+        RuntimeError("in function `" + Function.getName() + "', parameter `" +
           It->getName() + "' has type " + cvm::TypeToStr(It->getType()) +
-          ", but argument has type " + cvm::TypeToStr(Arg.Type));
+          ", but argument is " + cvm::TypeToStr(Arg.Type));
+      }
     }
 
     if (!It->getName().empty()) // We allow empty parameter name.
-      FuncEnv.VarMap[It->getName()] = Arg;
+      FuncEnv.VarMap.emplace(It->getName(), Arg);
     ++It;
   }
 

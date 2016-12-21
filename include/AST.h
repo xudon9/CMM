@@ -296,14 +296,18 @@ public:
 class FunctionCallAST : public ExpressionAST {
   std::string Callee;
   std::list<std::unique_ptr<ExpressionAST>> Arguments;
+  bool DynamicBound : 1;
 public:
   FunctionCallAST(const std::string &Callee,
-                  std::list<std::unique_ptr<ExpressionAST>> Arguments)
+                  std::list<std::unique_ptr<ExpressionAST>> Arguments,
+                  bool DynamicBound = false)
     : ExpressionAST(FunctionCallExpression), Callee(Callee)
-    , Arguments(std::move(Arguments)) {}
+    , Arguments(std::move(Arguments))
+    , DynamicBound(DynamicBound) {}
 
   const std::string &getCallee() const  { return Callee; }
   const decltype(Arguments) &getArguments() const { return Arguments; }
+  bool isDynamicBound() const { return DynamicBound; }
 
   void dump(const std::string &prefix = "") const override;
 };

@@ -14,28 +14,49 @@ void SourceMgr::dumpError(LocTy L, ErrorKind K,
             << LineCol.second + 1 << "): " << Msg << std::endl;
 }
 
-SourceMgr::SourceMgr(const std::string &SourcePath,
-                             bool DumpInstantly)
-  : SourceStream(SourcePath), DumpInstantly(DumpInstantly) {
+SourceMgr::SourceMgr(const std::string &SourcePath, bool DumpInstantly)
+  : SourceStream(SourcePath), CurrentLoc(0), DumpInstantly(DumpInstantly) {
+
   if (SourceStream.fail()) {
     std::cerr << "Fatal Error: Cannot open file '" << SourcePath
               << "', exited." << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  SourceStream.seekg(0, SourceStream.end);
+  SourceContent.reserve(SourceStream.tellg());
+  SourceStream.seekg(0, SourceStream.beg);
   LineNoOffsets.reserve(ReservedLineNo);
   LineNoOffsets.emplace_back(std::streampos(0));
+
+  int CurChar;
+  size_t Index;
+  for (size_t Offset = 0; (CurChar = SourceStream.get()) !=
+       std::char_traits<char>::eof(); ++Offset) {
+    SourceContent.push_back(static_cast<char>(CurChar));
+
+    if (CurChar == '\n')
+      LineNoOffsets.push_back(Offset);
+  }
+
+  SourceStream.close();
 }
 
 int SourceMgr::get() {
-  int CurChar = SourceStream.get();
-  std::streampos CurPos = SourceStream.tellg();
-  if (CurChar == '\n') {
-    auto It = std::lower_bound(LineNoOffsets.begin(), LineNoOffsets.end(),
-                               CurPos);
-    if (It == LineNoOffsets.cend() || *It != CurPos)
-      LineNoOffsets.insert(It, CurPos);
-  }
-  return CurChar;
+  if (CurrentLoc == SourceContent.size())
+    return std::char_traits<char>::eof();
+  return SourceContent[CurrentLoc++];
+}
+
+int SourceMgr::peek() {
+  if (CurrentLoc == SourceContent.size())
+    return std::char_traits<char>::eof();
+  return SourceContent[CurrentLoc];
+}
+
+void SourceMgr::unget() {
+  if (CurrentLoc > 0)
+    --CurrentLoc;
 }
 
 void SourceMgr::Error(LocTy L, const std::string &Msg) {
@@ -61,8 +82,9 @@ void SourceMgr::Warning(const std::string &Msg) {
 }
 
 std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
+  //std::cout << L << std::endl;
   auto It = std::upper_bound(LineNoOffsets.cbegin(), LineNoOffsets.cend(), L);
-  assert(It >= LineNoOffsets.begin() && It <= LineNoOffsets.end() && 
+  assert(It > LineNoOffsets.begin() && It <= LineNoOffsets.end() && 
          "getLineColByLoc: iterator out of bound");
   --It;
   size_t LineIndex = It - LineNoOffsets.cbegin();

@@ -268,9 +268,9 @@ bool ExpressionAST::asBool() const {
   default:
     return false;
   case IntExpression:
-    return static_cast<bool>(as_cptr<IntAST>()->getValue());
+    return as_cptr<IntAST>()->getValue() != 0;
   case DoubleExpression:
-    return static_cast<bool>(as_cptr<DoubleAST>()->getValue());
+    return as_cptr<DoubleAST>()->getValue() != 0.0;
   case StringExpression:
     return !as_cptr<StringAST>()->getValue().empty();
   case BoolExpression:
@@ -514,19 +514,37 @@ UnaryOperatorAST::tryFoldUnaryOp(OperatorKind OpKind,
 }
 
 void IntAST::dump(const std::string &prefix) const {
-  std::cout << "(int)" << Value << "\n";
+  std::cout << "(int)" << getValue() << "\n";
 }
 
 void BoolAST::dump(const std::string &prefix) const {
-  std::cout << "(bool)" << (Value ? "true" : "false") << "\n";
+  std::cout << "(bool)" << (getValue() ? "true" : "false") << "\n";
 }
 
 void DoubleAST::dump(const std::string &prefix) const {
-  std::cout << "(double)" << Value << "\n";
+  std::cout << "(double)" << getValue() << "\n";
 }
 
 void StringAST::dump(const std::string &prefix) const {
-  std::cout << "(string)" << Value << "\n";
+  std::cout << "(string)\"";
+  for (char C : getValue()) {
+  switch (C) {
+  default:    std::cout << C; break;
+  case '\a': std::cout << "\\a"; break;
+  case '\b': std::cout << "\\b"; break;
+  case '\f': std::cout << "\\f"; break;
+  case '\n': std::cout << "\\n"; break;
+  case '\r': std::cout << "\\r"; break;
+  case '\t': std::cout << "\\t"; break;
+  case '\v': std::cout << "\\v"; break;
+  case '\?': std::cout << "\\?"; break;
+  case '\0': std::cout << "\\0"; break;
+  case '\\': std::cout << "\\\\"; break;
+  case '\'': std::cout << "\\\'"; break;
+  case '\"': std::cout << "\\\""; break;
+  }
+  }
+  std::cout << "\"\n";
 }
 
 void IdentifierAST::dump(const std::string &prefix) const {
@@ -544,7 +562,7 @@ void InfixOpExprAST::dump(const std::string &prefix) const {
 }
 
 void FunctionCallAST::dump(const std::string &prefix) const {
-  std::cout << "(call)" << getCallee() << "\n";
+  std::cout << (isDynamicBound() ? "(DynCall)" : "(Call)") << "\n";
 
   for (const auto &Arg : getArguments()) {
     if (Arg != Arguments.back()) {
@@ -677,10 +695,10 @@ void InfixOpDefinitionAST::dump() const {
 }
 
 void FunctionDefinitionAST::dump() const {
-  std::cout << cvm::TypeToStr(getType()) << " " << Name << "(";
+  std::cout << "Function: " << cvm::TypeToStr(getType()) << " " << Name << "(";
 
   for (const auto &P : getParameterList()) {
-    std::cout << P.toString() << (&P == &ParameterList.back() ? ", " : "");
+    std::cout << P.toString() << (&P == &ParameterList.back() ? "" : ", ");
   }
 
   std::cout << ") => ";

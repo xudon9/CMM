@@ -18,7 +18,7 @@ namespace cmm {
 
 class SourceMgr {
 public:
-  using LocTy = std::streampos;
+  using LocTy = size_t;
   enum class ErrorKind { Error, Warning };
   using ErrorTy = std::tuple<LocTy, ErrorKind, std::string>;
 
@@ -27,6 +27,8 @@ private:
   std::ifstream SourceStream;
   std::vector<LocTy> LineNoOffsets;
   std::vector<ErrorTy> ErrorList;
+  std::string SourceContent;
+  LocTy CurrentLoc;
   bool DumpInstantly : 1;
 
   void dumpError(LocTy L, ErrorKind K, const std::string &Msg) const;
@@ -38,13 +40,10 @@ public:
   /// Functions that simulate member functions of std::fstream
   bool fail() const { return SourceStream.fail(); };
   int get();
-  int peek() { return SourceStream.peek(); };
-  void unget() {
-    SourceStream.unget();
-    //SourceStream.seekg(-1, SourceStream.cur);
-  }
-  LocTy getLoc() { return SourceStream.tellg(); }
-  void seekLoc(LocTy Loc) { SourceStream.seekg(Loc); }
+  int peek();
+  void unget();
+  LocTy getLoc() { return CurrentLoc; }
+  void seekLoc(LocTy Loc) { CurrentLoc = Loc; }
 
   void Error(LocTy L, const std::string &Msg);
   void Error(const std::string &Msg);

@@ -313,12 +313,19 @@ Token CMMLexer::LexDigit() {
   }
 
   // It's a Double, and the dot was eaten
-  unsigned int Frac = 0;
-  unsigned char Scale = 1;
-  while (std::isdigit(peekNextChar())) {
-    Frac = 10 * Frac + (getNextChar() - '0');
+  unsigned int Frac = 0, Scale = 1;
+  int DigitChar;
+  while (std::isdigit(DigitChar = getNextChar())) {
+    if (Scale > 100000) {
+      while (std::isdigit(getNextChar()));
+      break;
+    }
+
+    Frac = 10 * Frac + (DigitChar - '0');
     Scale *= 10;
   }
+  ungetChar();
+
   DoubleVal = IntVal + static_cast<double>(Frac) / Scale;
   return Token::Double;
 }

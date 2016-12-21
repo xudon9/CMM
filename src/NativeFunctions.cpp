@@ -4,6 +4,7 @@
 
 #include <ctime>
 #include <cstdlib>
+#include <cmath>
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
@@ -99,6 +100,36 @@ BasicValue Native::Srand(std::list<BasicValue> &Args) {
 
 BasicValue Native::Time(std::list<BasicValue> &/*Args*/) {
   return static_cast<int>(std::time(nullptr));
+}
+
+BasicValue Native::Sqrt(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0.0;
+  return std::sqrt(Args.front().toDouble());
+}
+
+BasicValue Native::Pow(std::list<BasicValue> &Args) {
+  if (Args.size() != 2)
+    return 0.0;
+  return std::pow(Args.front().toDouble(), Args.back().toDouble());
+}
+
+BasicValue Native::Exp(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0.0;
+  return std::exp(Args.front().toDouble());
+}
+
+BasicValue Native::Log(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0.0;
+  return std::log(Args.front().toDouble());
+}
+
+BasicValue Native::Log10(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0.0;
+  return std::log10(Args.front().toDouble());
 }
 
 #if defined(__APPLE__) || defined(__linux__)

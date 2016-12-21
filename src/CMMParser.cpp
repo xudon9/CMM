@@ -1,8 +1,6 @@
 #include "CMMParser.h"
 #include <cassert>
 
-#include "CMMInterpreter.h" /*ad-hoc ^*/
-
 using namespace cmm;
 
 bool CMMParser::parse() {
@@ -19,29 +17,29 @@ void CMMParser::dumpAST() const {
   if (FunctionDefinition.empty()) {
     std::cout << "Note: no user-defined function\n\n";
   } else {
-    std::cout << "{ Function definitions }\n";
+    std::cout << "{---- Function definitions ----}\n";
     for (const auto &F : FunctionDefinition) {
       F.second.dump();
       std::cout << "\n";
     }
-    std::cout << "\n";
   }
+  std::cout << "\n";
 
   if (InfixOpDefinition.empty()) {
     std::cout << "Note: no user-defined infix operator\n\n";
   } else {
-    std::cout << "{ Infix operators }\n";
+    std::cout << "{-----  Infix operators   -----}\n";
     for (const auto &I : InfixOpDefinition) {
       I.second.dump();
       std::cout << "\n";
     }
-    std::cout << "\n";
   }
+  std::cout << "\n";
 
   if (TopLevelBlock.getStatementList().empty()) {
     std::cout << "Note: statement list is empty\n";
   } else {
-    std::cout << "{ Statement list AST }\n";
+    std::cout << "{----  Statement list AST  ----}\n";
     for (const auto &S : TopLevelBlock.getStatementList()) {
       S->dump();
       std::cout << "\n";
@@ -135,7 +133,8 @@ bool CMMParser::parseInfixOpDefinition() {
   if (Err)
     return true;
 
-  if (BinOpPrecedence.emplace(Symbol, static_cast<int8_t>(Precedence)).second) {
+  if (!BinOpPrecedence.emplace(Symbol,
+                               static_cast<int8_t>(Precedence)).second) {
     Warning(Loc, "infix operator " + Symbol + " overrides another");
   }
   InfixOpDefinition.emplace(Symbol, InfixOpDefinitionAST(Symbol, LHS, RHS,
@@ -182,7 +181,7 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
 
   FunctionDefinitionAST FuncDef(Name, RetType, std::move(ParameterList),
                                 std::move(Statement));
-  if (FunctionDefinition.emplace(Name, std::move(FuncDef)).second) {
+  if (!FunctionDefinition.emplace(Name, std::move(FuncDef)).second) {
     Warning(Loc, "function `" + Name + "' overrides another one");
   }
   return false;
@@ -477,10 +476,17 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
       "parseIdentifierExpression: unknown token");
 
   std::string Identifier = Lexer.getStrVal();
-  Lex(); // eat the identifier
+  Lex();  // eat the identifier
+
+  LocTy ExlaimLoc;
+  bool Dynamic;
+  if (Dynamic = Lexer.is(Token::Exclaim)) {
+    ExlaimLoc = Lexer.getLoc();
+    Lex();  // eat the '!'
+  }
 
   if (Lexer.is(Token::LParen)) {
-    Lex(); // eat the '('
+    Lex();  // eat the '('
 
     std::list<std::unique_ptr<ExpressionAST>> Args;
     if (parseOptionalArgList(Args))
@@ -489,8 +495,10 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
     if (Lexer.isNot(Token::RParen))
       return Error("expect ')' in function call");
     Lex(); // eat the ')'
-    Res.reset(new FunctionCallAST(Identifier, std::move(Args)));
+    Res.reset(new FunctionCallAST(Identifier, std::move(Args), Dynamic));
   } else {
+    if (Dynamic)
+      Warning(ExlaimLoc, "trailing `!' is ignored in identifier");
     Res.reset(new IdentifierAST(Identifier));
   }
 

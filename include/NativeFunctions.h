@@ -24,6 +24,11 @@ ADD_FUNCTION(Read);
 ADD_FUNCTION(ReadLn);
 ADD_FUNCTION(ReadInt);
 
+ADD_FUNCTION(Sqrt);
+ADD_FUNCTION(Pow);
+ADD_FUNCTION(Exp);
+ADD_FUNCTION(Log);
+ADD_FUNCTION(Log10);
 }
 
 #if defined(__APPLE__) || defined(__linux__)

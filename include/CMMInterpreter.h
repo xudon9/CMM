@@ -30,8 +30,8 @@ private:  /* private data types */
   public:
     VariableEnv(VariableEnv *OuterEnv = nullptr) : OuterEnv(OuterEnv) {}
 
-    bool contains(const std::string &Name) const {
-      return VarMap.count(Name) > 0;
+    bool contain(const std::string &Name) const {
+      return VarMap.count(Name) != 0;
     }
   };
 
@@ -52,7 +52,7 @@ public:   /* public member functions */
     addNativeFunctions();
   }
 
-  void interpret();
+  int interpret(int Argc, char *Argv[]);
 
 private:  /* private member functions */
   void addNativeFunctions();
@@ -126,7 +126,8 @@ private:  /* private member functions */
   cvm::BasicValue callNativeFunction(const NativeFunction &Function,
                                      std::list<cvm::BasicValue> &Args);
   cvm::BasicValue callUserFunction(const FunctionDefinitionAST &Function,
-                                   std::list<cvm::BasicValue> &Args);
+                                   std::list<cvm::BasicValue> &Args,
+                                   VariableEnv *Env = nullptr);
 
   std::map<std::string, cvm::BasicValue>::iterator
   searchVariable(VariableEnv *Env, const std::string &Name);

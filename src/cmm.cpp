@@ -3,9 +3,8 @@
  * Copyright (C) 2016 wang <hsu@whu.edu.cn>
  *
  * TODO:
- * 1. command line argument
- * 2. closure
- * 4. ++ -- += ...
+ * 1. ++ -- += -= *=...
+ * 2. short circuit eval
  */
 
 #include <cstdlib>
@@ -20,7 +19,8 @@ static void Error(const char *Name, const char *Message);
 static void Usage(const char *Name);
 static int DumpFile(cmm::SourceMgr &SrcMgr);
 static int AsLexInput(cmm::SourceMgr &SrcMgr);
-static int Interpret(cmm::SourceMgr &SrcMgr, bool Verbose = false);
+static int Interpret(cmm::SourceMgr &SrcMgr, int Argc, char **Argv,
+                     bool Verbose = false);
 static int DumpAST(cmm::SourceMgr &SrcMgr);
 
 static bool EqualOneOf(const char *S, const char *S1) {
@@ -38,48 +38,48 @@ int main(int argc, char *argv[])
   } Action = DefaultAct;
   const char *ProgName = argv[0];
   const char *Input = nullptr;
+  int Index;
   int Res;
 
-  if (argc < 2 || argc > 3)
+  if (argc < 2)
     Error(ProgName, "too few arguments");
 
-  for (int I = 1; I < argc; ++I) {
-    if (argv[I][0] == '-') {
+  for (Index = 1; Index < argc; ++Index) {
+    if (argv[Index][0] == '-') {
       if (Action != DefaultAct)
         Error(ProgName, "too many options");
 
-      if (EqualOneOf(argv[I], "-l", "-L", "-lex", "--lex")) {
+      if (EqualOneOf(argv[Index], "-l", "-L", "-lex", "--lex")) {
         Action = LexAct;
         continue;
       }
 
-      if (EqualOneOf(argv[I], "-f", "-F", "-file", "--file")) {
+      if (EqualOneOf(argv[Index], "-f", "-F", "-file", "--file")) {
         Action = DumpFileAct;
         continue;
       }
 
-      if (EqualOneOf(argv[I], "-p", "-P", "-parse", "--parse")) {
+      if (EqualOneOf(argv[Index], "-p", "-P", "-parse", "--parse")) {
         Action = ParseAct;
         continue;
       }
 
-      if (EqualOneOf(argv[I], "-d", "-D", "-debug", "--debug")) {
+      if (EqualOneOf(argv[Index], "-d", "-D", "-debug", "--debug")) {
         Action = DebugAct;
         continue;
       }
 
-      if (EqualOneOf(argv[I], "-h", "-H", "-help", "--help")) {
+      if (EqualOneOf(argv[Index], "-h", "-H", "-help", "--help")) {
         Usage(ProgName);
         std::exit(EXIT_SUCCESS);
       }
 
-      std::cerr << ProgName << ": invalid option `" << argv[I] << "'\n\n";
+      std::cerr << ProgName << ": invalid option `" << argv[Index] << "'\n\n";
       Usage(ProgName);
       std::exit(EXIT_FAILURE);
     } else {
-      if (Input)
-        Error(ProgName, "too many files specified");
-      Input = argv[I];
+      Input = argv[Index++];
+      break;
     }
   }
 
@@ -93,7 +93,7 @@ int main(int argc, char *argv[])
     Res = DumpFile(SrcMgr);
     break;
   case DefaultAct:
-    Res = Interpret(SrcMgr);
+    Res = Interpret(SrcMgr, argc - Index, argv + Index);
     break;
   case LexAct:
     Res = AsLexInput(SrcMgr);
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
     Res = DumpAST(SrcMgr);
     break;
   case DebugAct:
-    Res = Interpret(SrcMgr, true);
+    Res = Interpret(SrcMgr, argc - Index, argv + Index, true);
     break;
   }
 
@@ -116,7 +116,7 @@ void Error(const char *Name, const char *Message) {
 }
 
 void Usage(const char *Name) {
-  std::cerr << "USAGE: " << Name << " [options] <input file>\n\n"
+  std::cerr << "USAGE: " << Name << " [options] <input file> Args...\n\n"
       "OPTIONS:\n\n"
       "  -h  --help       print this usage and exit\n"
       "  -f  --file       dump a file and exit (for debugging)\n"
@@ -208,7 +208,7 @@ int AsLexInput(cmm::SourceMgr &SrcMgr) {
   return Err;
 }
 
-int Interpret(cmm::SourceMgr &SrcMgr, bool Verbose) {
+int Interpret(cmm::SourceMgr &SrcMgr, int Argc, char **Argv, bool Verbose) {
   using namespace cmm;
   CMMParser Parser(SrcMgr);
 
@@ -216,13 +216,13 @@ int Interpret(cmm::SourceMgr &SrcMgr, bool Verbose) {
   if (!Err) {
     if (Verbose) {
       Parser.dumpAST();
-      std::cout << "Interpreter started...\n";
+      std::cout << "\n\n****** Interpreter started ******\n\n";
     }
 
     CMMInterpreter Interpreter(Parser.getTopLevelBlock(),
                                Parser.getFunctionDefinition(),
                                Parser.getInfixOpDefinition());
-    Interpreter.interpret();
+    Interpreter.interpret(Argc, Argv);
   }
   return Err;
 }
