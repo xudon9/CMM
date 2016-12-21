@@ -6,20 +6,23 @@
  */
 
 ///////////////// constants ///////////////////
-int COLOR_BLACK = 0;	int COLOR_RED = 1;	int COLOR_GREEN = 2;
-int COLOR_YELLOW = 3;	int COLOR_BLUE = 4;	int COLOR_MAGENTA = 5;
-int COLOR_CYAN = 6;	int COLOR_WHITE = 7;
+int COLOR_BLACK = 0;    int COLOR_RED = 1;  int COLOR_GREEN = 2;
+int COLOR_YELLOW = 3;   int COLOR_BLUE = 4; int COLOR_MAGENTA = 5;
+int COLOR_CYAN = 6;     int COLOR_WHITE = 7;
 
 int ESC = 27;
 int KEY_DOWN = 0x102, KEY_UP = 0x103, KEY_LEFT = 0x104, KEY_RIGHT = 0x105;
 int UP = 1, DOWN = ~1, LEFT = 2, RIGHT = ~2;
+int A_BLINK = 1 << 19;
+int A_BOLD = 1 << 21;
 
-int SNAKE_COLOR_PAIR = 1, FOOD_COLOR_PAIR  = 2, SCORE_COLOR_PAIR = 3;
+int SNAKE_COLOR_PAIR = 1, FOOD_COLOR_PAIR  = 2,
+    SCORE_COLOR_PAIR = 3, MSG_COLOR_PAIR = 4;
 
 int DELAY_TIME = 200;
 int INITLEN = 5;
 int MAXLEN = 20;
-int BG_CHAR = ' ', SNAKE_CHAR = 'o', FOOD_CHAR = '$';
+int BG_CHAR = ' ', SNAKE_CHAR = 'O', FOOD_CHAR = '$';
 
 /****============ global variables ==============****/
 int width, height;
@@ -35,16 +38,16 @@ void erase_yx(int y, int x) NcMvAddCh(y, x, BG_CHAR);
 
 void draw_food_yx(int y, int x)
 {
-    NcAttrOn(NcColorPair(FOOD_COLOR_PAIR));
+    NcAttrOn(NcColorPair(FOOD_COLOR_PAIR) | A_BOLD);
     NcMvAddCh(y, x, FOOD_CHAR);
-    NcAttrOff(NcColorPair(FOOD_COLOR_PAIR));
+    NcAttrOff(NcColorPair(FOOD_COLOR_PAIR) | A_BOLD);
 }
 
 void draw_snake_yx(int y, int x)
 {
-    NcAttrOn(NcColorPair(SNAKE_COLOR_PAIR));
+    NcAttrOn(NcColorPair(SNAKE_COLOR_PAIR) | A_BOLD);
     NcMvAddCh(y, x, SNAKE_CHAR);
-    NcAttrOff(NcColorPair(SNAKE_COLOR_PAIR));
+    NcAttrOff(NcColorPair(SNAKE_COLOR_PAIR) | A_BOLD);
 }
 
 void update_score(void)
@@ -79,9 +82,8 @@ bool run(void) {
     else
         newx = newx + 1;
 
-
     if (newy `#` newx) {
-        msg = "Oops, your little snake hitted the wall :(";
+        msg = "Oops, your little snake hitted the wall :-(";
         //NcMvAddStr(10,0,"Y " + newy+ " X " + newx);
         return true;
     }
@@ -93,7 +95,7 @@ bool run(void) {
     int i;
     for (i = headindex @ len; i != headindex; i = i @ len)
         if (newy == ys[i] && newx == xs[i]) {
-            msg = "Ouch! Your snake ran into itself! T_T";
+            msg = "Ouch! Your snake ran into itself! (-_-)";
             return true;
         }
 
@@ -104,7 +106,8 @@ bool run(void) {
     false;
 }
 
-void new_food() {
+void new_food()
+{
     int newy, newx;
     for (;;) {
         newy = random(1, height + 1);
@@ -136,11 +139,16 @@ void end_game() {
             NcMvAddCh(j, i, ' ');
         NcMvAddCh(t+6, i, '_');
     }
-    NcAttrOn(NcColorPair(SCORE_COLOR_PAIR));
+
+    NcAttrOn(NcColorPair(MSG_COLOR_PAIR) | A_BOLD);
     NcMvAddStr(t+2, (width - strlen(msg)) >> 1, msg);
-    NcAttrOff(NcColorPair(SCORE_COLOR_PAIR));
+    NcAttrOff(NcColorPair(MSG_COLOR_PAIR) | A_BOLD);
+
     string tmp = "Press <ENTER> to exit...";
-    NcMvAddStr(t+5, (width - strlen(tmp)) >> 1, tmp);
+    NcAttrOn(A_BLINK);
+    NcMvAddStr(t + 5, (width - strlen(tmp)) >> 1, tmp);
+    NcAttrOff(A_BLINK);
+
     for (i = t+1; i <= b; i=i+1) {
         NcMvAddCh(i, l, '|');
         NcMvAddCh(i, r, '|');
@@ -163,7 +171,8 @@ void init_nc() {
     NcTimeout(DELAY_TIME);
     NcInitPair(FOOD_COLOR_PAIR, COLOR_RED, COLOR_BLACK);
     NcInitPair(SNAKE_COLOR_PAIR, COLOR_YELLOW, COLOR_BLACK);
-    NcInitPair(SCORE_COLOR_PAIR, COLOR_CYAN, COLOR_BLACK);
+    NcInitPair(SCORE_COLOR_PAIR, COLOR_GREEN, COLOR_BLACK);
+    NcInitPair(MSG_COLOR_PAIR, COLOR_CYAN, COLOR_BLACK);
 }
 
 void draw_box(int height, int width) {
@@ -197,12 +206,17 @@ void init_body() {
 
 /// Pause until receive a SPACE key
 void pause() {
+    string info = "PAUSED. Press <SPACE> to continue.";
     NcTimeout(-1);
-    NcMvAddStr(height + 3, 2, "PAUSED. Press <SPACE> to continue");
+    NcAttrOn(A_BLINK | A_BOLD);
+    NcMvAddStr(height + 3, 1, info);
+    NcAttrOff(A_BLINK | A_BOLD);
     while (NcGetCh() != ' ')
         ;
     NcTimeout(DELAY_TIME);
-    NcMvAddStr(height + 3, 2, "                               ");
+    int i, len = strlen(info);
+    for (i = 0; i < len; i = i + 1)
+        NcMvAddCh(height + 3, 1 + i, ' ');
 }
 
 /// Returns true if the user win
@@ -229,7 +243,7 @@ bool eat_food() {
     false;
 }
 
-///// main procedure ///////
+///////  main procedure ///////
 int main()
 {
     int ch;
@@ -248,18 +262,18 @@ int main()
     while (!terminate) {
         ch = NcGetCh();
 
-        if (ch == KEY_UP)
+        if (ch == KEY_UP || ch == 'w')
             newdir = UP;
-        else if (ch == KEY_DOWN)
+        else if (ch == KEY_DOWN || ch == 's')
             newdir = DOWN;
-        else if (ch == KEY_LEFT)
+        else if (ch == KEY_LEFT || ch == 'a')
             newdir = LEFT;
-        else if (ch == KEY_RIGHT)
+        else if (ch == KEY_RIGHT || ch == 'd')
             newdir = RIGHT;
         else if (ch == ' ')
             pause();
         else if (ch == ESC || ch == 'q') {
-            msg = "You terminated the game :-P";
+            msg = "Hmm... You quitted. Bye bye!  \\('_')/";
             break;
         }
 
