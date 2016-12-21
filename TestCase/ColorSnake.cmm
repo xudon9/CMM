@@ -1,0 +1,269 @@
+/*
+ * This is a simple TUI based Snake game,
+ * to show the usage of the CMM intepreter.
+ *
+ * Report bugs to <hsu@whu.edu.cn>
+ */
+
+///////////////// constants ///////////////////
+int COLOR_BLACK = 0;	int COLOR_RED = 1;	int COLOR_GREEN = 2;
+int COLOR_YELLOW = 3;	int COLOR_BLUE = 4;	int COLOR_MAGENTA = 5;
+int COLOR_CYAN = 6;	int COLOR_WHITE = 7;
+
+int ESC = 27;
+int KEY_DOWN = 0x102, KEY_UP = 0x103, KEY_LEFT = 0x104, KEY_RIGHT = 0x105;
+int UP = 1, DOWN = ~1, LEFT = 2, RIGHT = ~2;
+
+int SNAKE_COLOR_PAIR = 1, FOOD_COLOR_PAIR  = 2, SCORE_COLOR_PAIR = 3;
+
+int DELAY_TIME = 200;
+int INITLEN = 5;
+int MAXLEN = 20;
+int BG_CHAR = ' ', SNAKE_CHAR = 'o', FOOD_CHAR = '$';
+
+/****============ global variables ==============****/
+int width, height;
+string msg;
+int ys[MAXLEN], xs[MAXLEN];
+int foody, foodx;
+int len = INITLEN;
+int headindex;
+int direction = RIGHT;
+
+/***** auxiliary functions ********/
+void erase_yx(int y, int x) NcMvAddCh(y, x, BG_CHAR);
+
+void draw_food_yx(int y, int x)
+{
+    NcAttrOn(NcColorPair(FOOD_COLOR_PAIR));
+    NcMvAddCh(y, x, FOOD_CHAR);
+    NcAttrOff(NcColorPair(FOOD_COLOR_PAIR));
+}
+
+void draw_snake_yx(int y, int x)
+{
+    NcAttrOn(NcColorPair(SNAKE_COLOR_PAIR));
+    NcMvAddCh(y, x, SNAKE_CHAR);
+    NcAttrOff(NcColorPair(SNAKE_COLOR_PAIR));
+}
+
+void update_score(void)
+{
+    NcAttrOn(NcColorPair(SCORE_COLOR_PAIR));
+    NcMvAddStr(height + 2, 4, "Your score: " + (len - INITLEN));
+    NcAttrOff(NcColorPair(SCORE_COLOR_PAIR));
+}
+
+/**************  Infix Operators *************/
+
+infix v@m   =  (v + 1) % m;
+infix a :\: b  =  ~a != b;
+infix y `#` x  =  y < 1 || y > height || x < 1 || x > width;
+infix y :-: x {
+    int i;
+    for (i = 0; i < len; i = i + 1)
+        if (ys[i] == y && xs[i] == x) return true;
+    false;
+}
+/********  function definitions *********/
+
+/// return true if the game should end
+bool run(void) {
+    int newy = ys[headindex], newx = xs[headindex];
+    if (direction == UP)
+        newy = newy - 1;
+    else if (direction == DOWN)
+        newy = newy + 1;
+    else if (direction == LEFT)
+        newx = newx - 1;
+    else
+        newx = newx + 1;
+
+
+    if (newy `#` newx) {
+        msg = "Oops, your little snake hitted the wall :(";
+        //NcMvAddStr(10,0,"Y " + newy+ " X " + newx);
+        return true;
+    }
+
+    if (newy == foody && newx == foodx)
+        return eat_food();
+    headindex = headindex @ len;
+
+    int i;
+    for (i = headindex @ len; i != headindex; i = i @ len)
+        if (newy == ys[i] && newx == xs[i]) {
+            msg = "Ouch! Your snake ran into itself! T_T";
+            return true;
+        }
+
+    erase_yx(ys[headindex], xs[headindex]);
+    ys[headindex] = newy;
+    xs[headindex] = newx;
+    draw_snake_yx(ys[headindex], xs[headindex]);
+    false;
+}
+
+void new_food() {
+    int newy, newx;
+    for (;;) {
+        newy = random(1, height + 1);
+        newx = random(1, width + 1);
+        if (!(newy :-: newx))
+            break;
+    }
+    draw_food_yx(newy, newx);
+    foody = newy;
+    foodx = newx;
+}
+
+void end_game() {
+    NcTimeout(-1);
+
+    /*  (t, l)- 46 -(t, r)
+     *    |            |
+     *    |            |
+     *  (b, l)- 46 -(b, r)
+     */
+    int i;
+    int t = (height>>1)-3, b = t + 6;
+    int l = (width>>1)-23, r = l + 46;
+
+    for (i = l; i <= r; i=i+1) {
+        NcMvAddCh(t,   i, '_');
+        int j;
+        for(j = t + 1; j < t + 6; j = j + 1)
+            NcMvAddCh(j, i, ' ');
+        NcMvAddCh(t+6, i, '_');
+    }
+    NcAttrOn(NcColorPair(SCORE_COLOR_PAIR));
+    NcMvAddStr(t+2, (width - strlen(msg)) >> 1 , msg);
+    NcAttrOff(NcColorPair(SCORE_COLOR_PAIR));
+    NcMvAddStr(t+5, l+12, "Press ENTER to exit...");
+    for (i = t+1; i <= b; i=i+1) {
+        NcMvAddCh(i, l, '|');
+        NcMvAddCh(i, r, '|');
+    }
+
+    int ch = 0;
+    while (ch != 'q' && ch != ' ' && ch != '\n' && ch != ESC)
+        ch = NcGetCh();
+    NcEndWin();
+}
+
+/// intialize curses enviroment for the game
+void init_nc() {
+    srand(time(0));
+    NcInitScr();
+    NcStartColor();
+    NcNoEcho();
+    NcCursSet(false);
+    NcKeypad(true);
+    NcTimeout(DELAY_TIME);
+    NcInitPair(FOOD_COLOR_PAIR, COLOR_RED, COLOR_BLACK);
+    NcInitPair(SNAKE_COLOR_PAIR, COLOR_BLUE, COLOR_BLACK);
+    NcInitPair(SCORE_COLOR_PAIR, COLOR_CYAN, COLOR_BLACK);
+}
+
+void draw_box(int height, int width) {
+    int y, x;
+    for (y = 1; y <= height; y = y + 1) {
+        NcMvAddCh(y, 0, '|');
+        NcMvAddCh(y, width + 1, '|');
+    }
+    for (x = 1; x <= width; x = x + 1) {
+        NcMvAddCh(0, x, '_');
+        NcMvAddCh(height + 1, x, '^');
+    }
+    NcMvAddCh(0, 0, '+');
+    NcMvAddCh(0, width + 1, '+');
+    NcMvAddCh(height + 1, 0, '+');
+    NcMvAddCh(height + 1, width + 1, '+');
+}
+
+/// Initialize array of snake body, and draw body,
+/// finally generate a new food.
+void init_body() {
+    int y = 1, x = 0, i;
+    for (i = 0; i < len; i = i + 1) {
+        ys[i] = y;
+        x = x + 1;
+        xs[i] = x;
+        draw_snake_yx(y,x);
+    }
+    new_food();
+}
+
+/// Pause until receive a SPACE key
+void pause() {
+    NcTimeout(-1);
+    //NcMvAddStr( 1, 1, "PAUSED. Press SPACE to continue");
+    while (NcGetCh() != ' ')
+        ;
+    NcTimeout(DELAY_TIME);
+    //NcMvAddStr( 1, 1, "                               ");
+}
+
+/// Returns true if the user win
+bool eat_food() {
+    if (len + 1 == MAXLEN) {
+        msg = "You win!!! Congratulations  (^_^)";
+        return true;
+    }
+
+    int i, newpos = headindex + 1;
+    for (i = len; i > newpos; i = i - 1) {
+        ys[i] = ys[i - 1];
+        xs[i] = xs[i - 1];
+    }
+    ys[newpos] = foody;
+    xs[newpos] = foodx;
+    len = len + 1;
+    update_score();
+    headindex = headindex @ len;
+    draw_snake_yx(ys[headindex], xs[headindex]);
+    new_food();
+    false;
+}
+
+///// main procedure ///////
+int main()
+{
+    int ch;
+    bool terminate = false;
+
+    init_nc();
+    width = NcGetMaxX() - 2;
+    height = NcGetMaxY() - 4;
+    draw_box(height, width);
+
+    headindex = len - 1;
+    init_body();
+    update_score();
+
+    int newdir = direction;
+    while (!terminate) {
+        ch = NcGetCh();
+
+        if (ch == KEY_UP)
+            newdir = UP;
+        else if (ch == KEY_DOWN)
+            newdir = DOWN;
+        else if (ch == KEY_LEFT)
+            newdir = LEFT;
+        else if (ch == KEY_RIGHT)
+            newdir = RIGHT;
+        else if (ch == ' ')
+            pause();
+        else if (ch == ESC || ch == 'q') {
+            msg = "You terminated the game :-P";
+            break;
+        }
+
+        if (newdir :\: direction)
+            direction = newdir;
+        terminate = run();
+    }
+    end_game();
+    return 0;
+}

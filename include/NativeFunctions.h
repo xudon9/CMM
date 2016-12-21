@@ -7,6 +7,7 @@ namespace cvm {
 #define ADD_FUNCTION(FUNC) BasicValue FUNC(std::list<BasicValue> &Args);
 
 namespace Native {
+ADD_FUNCTION(StrLen);
 ADD_FUNCTION(Random);
 ADD_FUNCTION(Srand);
 ADD_FUNCTION(Print);

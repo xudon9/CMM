@@ -8,10 +8,16 @@
 
 #if defined(__APPLE__) || defined(__linux__)
 #include <unistd.h>
-#include <ncurses.h>
+#include <curses.h>
 #endif
 
 namespace cvm {
+
+BasicValue Native::StrLen(std::list<BasicValue> &Args) {
+  if (Args.empty())
+    return 0;
+  return static_cast<int>(Args.front().StrVal.size());
+}
 
 BasicValue Native::ReadInt(std::list<BasicValue> &/*Args*/) {
   int Res;
@@ -182,8 +188,7 @@ BasicValue Ncurses::MoveAddChar(std::list<BasicValue> &Args) {
   ++Iterator;
   int X = Iterator->toInt();
 
-  std::string S = Args.back().toString();
-  char C = S.empty() ? ' ' : S.front();
+  char C = static_cast<char>(Args.back().IntVal);
   return mvaddch(Y, X, C);
 }
 
@@ -197,7 +202,7 @@ BasicValue Ncurses::MoveAddString(std::list<BasicValue> &Args) {
   ++Iterator;
   int X = Iterator->toInt();
 
-  const char *S = Args.back().toString().c_str();
+  const char *S = Args.back().StrVal.c_str();
   return mvaddstr(Y, X, S);
 }
 

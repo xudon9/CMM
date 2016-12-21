@@ -43,6 +43,7 @@ int CMMInterpreter::interpret(int Argc, char *Argv[]) {
 }
 
 void CMMInterpreter::addNativeFunctions() {
+  NativeFunctionMap["strlen"] = cvm::Native::StrLen;
   NativeFunctionMap["print"] = cvm::Native::Print;
   NativeFunctionMap["println"] = cvm::Native::PrintLn;
   NativeFunctionMap["puts"] = cvm::Native::PrintLn;
