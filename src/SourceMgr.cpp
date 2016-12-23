@@ -67,7 +67,7 @@ void SourceMgr::Error(LocTy L, const std::string &Msg) {
 }
 
 void SourceMgr::Error(const std::string &Msg) {
-  Error(SourceStream.tellg(), Msg);
+  Error(CurrentLoc, Msg);
 }
 
 void SourceMgr::Warning(LocTy L, const std::string &Msg) {
@@ -78,7 +78,7 @@ void SourceMgr::Warning(LocTy L, const std::string &Msg) {
 }
 
 void SourceMgr::Warning(const std::string &Msg) {
-  Warning(SourceStream.tellg(), Msg);
+  Warning(CurrentLoc, Msg);
 }
 
 std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
@@ -88,7 +88,7 @@ std::pair<size_t, size_t> SourceMgr::getLineColByLoc(LocTy L) const {
          "getLineColByLoc: iterator out of bound");
   --It;
   size_t LineIndex = It - LineNoOffsets.cbegin();
-  size_t ColIndex = static_cast<size_t>(L - *It);
+  size_t ColIndex = L - *It;
   return std::make_pair(LineIndex, ColIndex);
 }
 

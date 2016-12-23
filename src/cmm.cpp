@@ -14,7 +14,7 @@
 #include "CMMParser.h"
 #include "CMMInterpreter.h"
 
-static void Error(const char *Name, const char *Message);
+static void Error(const char *Name, const char *Msg);
 
 static void Usage(const char *Name);
 static int DumpFile(cmm::SourceMgr &SrcMgr);
@@ -89,6 +89,8 @@ int main(int argc, char *argv[])
   cmm::SourceMgr SrcMgr(Input);
 
   switch (Action) {
+  default:
+    Res = EXIT_FAILURE;
   case DumpFileAct:
     Res = DumpFile(SrcMgr);
     break;
@@ -106,7 +108,7 @@ int main(int argc, char *argv[])
     break;
   }
 
-  std::exit(Res);
+  return Res;
 }
 
 void Error(const char *Name, const char *Message) {
@@ -128,7 +130,7 @@ void Usage(const char *Name) {
 
 int DumpFile(cmm::SourceMgr &SrcMgr) {
   SrcMgr.dumpFile();
-  return 0;
+  return EXIT_SUCCESS;
 }
 
 int AsLexInput(cmm::SourceMgr &SrcMgr) {
@@ -222,7 +224,7 @@ int Interpret(cmm::SourceMgr &SrcMgr, int Argc, char **Argv, bool Verbose) {
     CMMInterpreter Interpreter(Parser.getTopLevelBlock(),
                                Parser.getFunctionDefinition(),
                                Parser.getInfixOpDefinition());
-    Interpreter.interpret(Argc, Argv);
+    Err = Interpreter.interpret(Argc, Argv);
   }
   return Err;
 }

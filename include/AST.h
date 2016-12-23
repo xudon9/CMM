@@ -39,9 +39,8 @@ public:
 
   BasicValue(BasicType T);
   BasicValue(BasicType T, const std::list<int> &DimensionList);
-
-private:
-  // Private constructor
+  BasicValue(BasicType T, std::shared_ptr<std::vector<BasicValue>> P);
+  // This should not used by user directly!
   BasicValue(BasicType Type,
              std::list<int>::const_iterator It,
              std::list<int>::const_iterator End);

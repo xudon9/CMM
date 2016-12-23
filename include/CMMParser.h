@@ -34,7 +34,7 @@ private:
 
   int8_t getBinOpPrecedence();
 
-  bool parseTopLevel(); //TODO
+  bool parseTopLevel();
   bool parseInfixOpDefinition();
   bool parseFunctionDefinition();
   bool parseFunctionDefinition(cvm::BasicType Type, const std::string &Name);

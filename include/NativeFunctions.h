@@ -4,10 +4,12 @@
 #include "CMMParser.h"
 
 namespace cvm {
-#define ADD_FUNCTION(FUNC) BasicValue FUNC(std::list<BasicValue> &Args);
+#define ADD_FUNCTION(FUNC) BasicValue FUNC(std::list<BasicValue> &Args)
 
 namespace Native {
-ADD_FUNCTION(StrLen);
+ADD_FUNCTION(TypeOf);
+ADD_FUNCTION(Length);
+ADD_FUNCTION(StrLength);
 ADD_FUNCTION(Random);
 ADD_FUNCTION(Srand);
 ADD_FUNCTION(Print);

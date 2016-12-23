@@ -4,7 +4,7 @@
 using namespace cmm;
 
 int CMMInterpreter::interpret(int Argc, char *Argv[]) {
-  // First run top level statments. 
+  // First run top level statements.
   for (auto &Stmt : TopLevelBlock.getStatementList()) {
     ExecutionResult Res = executeStatement(&TopLevelEnv, Stmt.get());
 
@@ -34,8 +34,11 @@ int CMMInterpreter::interpret(int Argc, char *Argv[]) {
     if (MainIt->second.getParameterCount() == 0)
       return callUserFunction(MainIt->second, Args).toInt();
 
+    auto ArgsPtr = std::make_shared<std::vector<cvm::BasicValue>>();
+    ArgsPtr->reserve(static_cast<size_t>(Argc));
     for (int I = 0; I < Argc; ++I)
-      Args.emplace_back(std::string(Argv[I]));
+      ArgsPtr->emplace_back(std::string(Argv[I]));
+    Args.emplace_back(cvm::StringType, ArgsPtr);
     return callUserFunction(MainIt->second, Args).toInt();
   }
 
@@ -43,7 +46,9 @@ int CMMInterpreter::interpret(int Argc, char *Argv[]) {
 }
 
 void CMMInterpreter::addNativeFunctions() {
-  NativeFunctionMap["strlen"] = cvm::Native::StrLen;
+  NativeFunctionMap["typeof"] = cvm::Native::TypeOf;
+  NativeFunctionMap["len"] = cvm::Native::Length;
+  NativeFunctionMap["strlen"] = cvm::Native::StrLength;
   NativeFunctionMap["print"] = cvm::Native::Print;
   NativeFunctionMap["println"] = cvm::Native::PrintLn;
   NativeFunctionMap["puts"] = cvm::Native::PrintLn;

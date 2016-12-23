@@ -37,8 +37,15 @@ BasicValue::BasicValue(BasicType T,
     return;
 
   int N = *I++;
-  ArrayPtr = std::make_shared<std::vector<BasicValue>>(N, BasicValue(T, I, E));
+  ArrayPtr = std::make_shared<std::vector<BasicValue>>();
+  ArrayPtr->reserve(N);
+  for (size_t Idx = 0; Idx < N; ++Idx)
+    ArrayPtr->emplace_back(T, I, E);
 }
+
+BasicValue::BasicValue(BasicType T,
+                       std::shared_ptr<std::vector<BasicValue>> P)
+    : Type(T), ArrayPtr(P) {}
 
 int BasicValue::toInt() const {
   switch (Type) {

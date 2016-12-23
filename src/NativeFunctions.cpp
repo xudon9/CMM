@@ -13,7 +13,26 @@
 
 namespace cvm {
 
-BasicValue Native::StrLen(std::list<BasicValue> &Args) {
+BasicValue
+Native::TypeOf(std::list<BasicValue, std::allocator<BasicValue>> &Args) {
+  if (Args.empty())
+    return std::string("Nil");
+  return TypeToStr(Args.front().Type);
+}
+
+BasicValue
+Native::Length(std::list<BasicValue, std::allocator<BasicValue>> &Args) {
+  if (Args.empty())
+    return 0;
+  const BasicValue &Arg = Args.front();
+  if (Arg.isArray())
+    return static_cast<int>(Arg.ArrayPtr->size());
+  if (Arg.isString())
+    return static_cast<int>(Arg.StrVal.size());
+  return 0;
+}
+
+BasicValue Native::StrLength(std::list<BasicValue> &Args) {
   if (Args.empty())
     return 0;
   return static_cast<int>(Args.front().StrVal.size());
