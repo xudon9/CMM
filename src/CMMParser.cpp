@@ -715,7 +715,8 @@ bool CMMParser::parseDeclarationStatement(cvm::BasicType Type,
     }
 
     // Emit
-    DeclList->addDeclaration(Name, std::move(InitExpr), std::move(CountExprList));
+    DeclList->addDeclaration(Name,
+                             std::move(InitExpr), std::move(CountExprList));
 
     if (Lexer.isNot(Token::Comma))
       break;

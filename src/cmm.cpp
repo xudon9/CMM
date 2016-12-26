@@ -4,7 +4,6 @@
  *
  * TODO:
  * 1. ++ -- += -= *=...
- * 2. short circuit eval
  */
 
 #include <cstdlib>

@@ -91,6 +91,12 @@ private:  /* private member functions */
   cvm::BasicValue &evaluateAssignment(VariableEnv *Env,
                                       const ExpressionAST *RefExpr,
                                       const ExpressionAST *VarExpr);
+  cvm::BasicValue evaluateLogicalAnd(VariableEnv *Env,
+                                     const ExpressionAST *LHS,
+                                     const ExpressionAST *RHS);
+  cvm::BasicValue evaluateLogicalOr(VariableEnv *Env,
+                                    const ExpressionAST *LHS,
+                                    const ExpressionAST *RHS);
   cvm::BasicValue evaluateFunctionCallExpr(VariableEnv *Env,
                                            const FunctionCallAST *FuncCall);
   cvm::BasicValue evaluateInfixOpExpr(VariableEnv *Env,
@@ -110,8 +116,6 @@ private:  /* private member functions */
   cvm::BasicValue evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
                                      cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
-                                   cvm::BasicValue LHS, cvm::BasicValue RHS);
-  cvm::BasicValue evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
                                    cvm::BasicValue LHS, cvm::BasicValue RHS);
   cvm::BasicValue evaluateBinRelation(BinaryOperatorAST::OperatorKind OpKind,
                                       cvm::BasicValue LHS, cvm::BasicValue RHS);

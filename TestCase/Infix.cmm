@@ -1,0 +1,23 @@
+/*
+ * Infix.c
+ * Copyright (C) 2016 wang <wang@Yet-Another-MBP>
+ *
+ * Distributed under terms of the MIT license.
+ */
+
+infix a@b
+    if (a>b) a; else b;
+
+print("Input a: ");
+int a = readint();
+
+print("Input b: ");
+int b = readint();
+
+println("Max:", a @ b);
+
+///////////////////////////////////
+
+infix 12 x:+ y = x+y;
+println("1 + 2 * 2 + 3 => ", 1 + 2 * 2 + 3);
+println("1:+ 2 * 2:+ 3 => ", 1:+ 2 * 2:+ 3);

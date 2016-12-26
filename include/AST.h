@@ -17,7 +17,7 @@ std::string TypeToStr(BasicType Type);
 
 class BasicValue {
 public:
-  // Public member variables
+  /// Public member variables
   BasicType Type;
 
   std::string StrVal;
@@ -30,7 +30,7 @@ public:
   std::shared_ptr<std::vector<BasicValue>> ArrayPtr;
 
 public:
-  // Public constructors
+  /// Public constructors
   BasicValue() : Type(VoidType) {}
   BasicValue(const std::string &S) : Type(StringType), StrVal(S) {}
   BasicValue(int I) : Type(IntType), IntVal(I) {}
@@ -111,7 +111,7 @@ public:
 
 class Parameter {
   std::string Name;
-  //std::unique_ptr<TypeSpecifier> Type;
+  // std::unique_ptr<TypeSpecifier> Type;
   cvm::BasicType Type;
   CMMLexer::LocTy Loc;
 public:
@@ -144,7 +144,7 @@ class FunctionType : public DerivedType {
 class AST {
 public:
   virtual ~AST() {};
-  virtual void dump(const std::string &prefix = "") const {};
+  virtual void dump(const std::string &prefix = "") const = 0;
 };
 
 class ExpressionAST : public AST {
@@ -188,7 +188,6 @@ public:
   double asDouble() const;
   std::string asString() const;
 };
-
 
 
 
@@ -333,13 +332,14 @@ public:
     : ExpressionAST(BinaryOperatorExpression)
     , OpKind(OpKind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
 
+  // bool isLogical() const;
   OperatorKind getOpKind() const { return OpKind; }
   ExpressionAST *getLHS() const { return LHS.get(); }
   ExpressionAST *getRHS() const { return RHS.get(); }
 
   void dump(const std::string &prefix = "") const override;
 
-  // Static utilities
+  /// Static utilities
   static std::unique_ptr<ExpressionAST>
     create(Token::TokenKind TokenKind,
            std::unique_ptr<ExpressionAST> LHS,
@@ -389,7 +389,7 @@ public:
 
   void dump(const std::string &prefix = "") const override;
 
-  // Static utilities
+  /// Static utilities
   static std::unique_ptr<ExpressionAST>
   tryFoldUnaryOp(OperatorKind OpKind, std::unique_ptr<ExpressionAST> Operand);
 };
@@ -397,7 +397,7 @@ public:
 
 class DeclarationAST : public StatementAST {
   std::string Name;
-  //std::unique_ptr<TypeSpecifier> Type;
+  // std::unique_ptr<TypeSpecifier> Type;
   cvm::BasicType Type;
   std::unique_ptr<ExpressionAST> Initializer;
   std::list<std::unique_ptr<ExpressionAST>> ElementCountList;

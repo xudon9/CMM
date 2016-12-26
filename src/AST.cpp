@@ -154,6 +154,10 @@ bool BasicValue::operator>=(const BasicValue &RHS) const {
 
 namespace cmm {
 
+// bool BinaryOperatorAST::isLogical() const {
+//   return getOpKind() == LogicalAnd || getOpKind() == LogicalOr;
+// }
+
 std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
     Token::TokenKind TokenKind,
     std::unique_ptr<ExpressionAST> LHS, std::unique_ptr<ExpressionAST> RHS) {

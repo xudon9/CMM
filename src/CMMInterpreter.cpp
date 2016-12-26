@@ -457,19 +457,21 @@ CMMInterpreter::evaluateUnaryBitwise(UnaryOperatorAST::OperatorKind OpKind,
 cvm::BasicValue
 CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
                                      const BinaryOperatorAST *Expr) {
-  // Is it an assignment?
-  if (Expr->getOpKind() == Expr->Assign) {
+  switch (Expr->getOpKind()) {
+  default: {
+    cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
+    cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
+    return evaluateBinaryCalc(Expr->getOpKind(), LHS, RHS);
+  }
+  case BinaryOperatorAST::Assign:
     return evaluateAssignment(Env, Expr->getLHS(), Expr->getRHS());
-  }
-
-  // Is it an index expression?
-  if (Expr->getOpKind() == Expr->Index) {
+  case BinaryOperatorAST::Index:
     return evaluateIndexExpr(Env, Expr->getLHS(), Expr->getRHS());
+  case BinaryOperatorAST::LogicalAnd:
+    return evaluateLogicalAnd(Env, Expr->getLHS(), Expr->getRHS());
+  case BinaryOperatorAST::LogicalOr:
+    return evaluateLogicalOr(Env, Expr->getLHS(), Expr->getRHS());
   }
-
-  cvm::BasicValue LHS = evaluateExpression(Env, Expr->getLHS());
-  cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
-  return evaluateBinaryCalc(Expr->getOpKind(), LHS, RHS);
 }
 
 cvm::BasicValue &
@@ -511,10 +513,6 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Modulo:
     return evaluateBinArith(OpKind, LHS, RHS);
 
-  case BinaryOperatorAST::LogicalAnd:
-  case BinaryOperatorAST::LogicalOr:
-    return evaluateBinLogic(OpKind, LHS, RHS);
-
   case BinaryOperatorAST::Less:
   case BinaryOperatorAST::LessEqual:
   case BinaryOperatorAST::Equal:
@@ -530,9 +528,12 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::RightShift:
     return evaluateBinBitwise(OpKind, LHS, RHS);
 
+  case BinaryOperatorAST::LogicalAnd:
+  case BinaryOperatorAST::LogicalOr:
   case BinaryOperatorAST::Assign:
   case BinaryOperatorAST::Index:
-    RuntimeError("assignment/index should be handled in evaluateBinaryOpExpr");
+    RuntimeError("assignment/index/logicalBinOp "
+                     "should be handled in evaluateBinaryOpExpr");
   }
   return cvm::BasicValue(); // Make the compiler happy.
 }
@@ -586,19 +587,24 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
   return cvm::BasicValue(); // Make the compiler happy.
 }
 
-/// \brief Perform binary arithmetic operation (&&, ||) on values
+/// \brief Perform binary logical and (&&) on expressions
+/// It's a special case because its short circuit feature
 cvm::BasicValue
-CMMInterpreter::evaluateBinLogic(BinaryOperatorAST::OperatorKind OpKind,
-                                 cvm::BasicValue LHS, cvm::BasicValue RHS) {
-  switch (OpKind) {
-  default:
-    RuntimeError(std::to_string(OpKind) +
-        " is not a valid binary logical operation kind");
-  case BinaryOperatorAST::LogicalAnd:
-    return LHS.toBool() && RHS.toBool();
-  case BinaryOperatorAST::LogicalOr:
-    return LHS.toBool() || RHS.toBool();
-  }
+CMMInterpreter::evaluateLogicalAnd(VariableEnv *Env,
+                                   const ExpressionAST *LHS,
+                                   const ExpressionAST *RHS) {
+  return evaluateExpression(Env, LHS).toBool() &&
+      evaluateExpression(Env, RHS).toBool();
+}
+
+/// \brief Perform binary logical or (||) on expressions
+/// It's a special case because its short circuit feature
+cvm::BasicValue
+CMMInterpreter::evaluateLogicalOr(VariableEnv *Env,
+                                   const ExpressionAST *LHS,
+                                   const ExpressionAST *RHS) {
+  return evaluateExpression(Env, LHS).toBool() ||
+      evaluateExpression(Env, RHS).toBool();
 }
 
 /// \brief Perform binary relational operation (<, <=, ==, !=, >, >=) on values
