@@ -246,6 +246,12 @@ Token CMMLexer::LexChar() {
 
   IntVal = CurChar;
 
+  if (CurChar == '\'') {
+    Warning("no character in single quote, treat as '\\0'");
+    IntVal = '\0';
+    return Token::Integer;
+  }
+
   LocTy QuoteLoc;
   while (QuoteLoc = SrcMgr.getLoc(), getNextChar() != '\'')
     Warning(QuoteLoc, "extra character in single quote");

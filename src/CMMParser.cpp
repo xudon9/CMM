@@ -11,7 +11,6 @@ bool CMMParser::parse() {
   return false;
 }
 
-
 void CMMParser::dumpAST() const {
 
   if (FunctionDefinition.empty()) {
@@ -47,6 +46,11 @@ void CMMParser::dumpAST() const {
   }
 }
 
+/// \brief Parse top level entities.
+/// TopLevel ::= infixOperatorDefinition
+/// TopLevel ::= functionDeclaration
+/// TopLevel ::= DeclarationStatement
+/// TopLevel ::= Statement
 bool CMMParser::parseTopLevel() {
   switch (getKind()) {
   default: {
@@ -90,8 +94,9 @@ bool CMMParser::parseTopLevel() {
   }
 }
 
-/// \brief Parse an infix operator definition
-/// infixOpDefinition ::= Kw_infix Int Id infixOp Id Statement
+/// \brief Parse an infix operator definition.
+/// infixOpDefinition ::= Kw_infix [Integer] Id infixOp Id Statement
+/// infixOpDefinition ::= Kw_infix [Integer] Id infixOp Id ["="] ExprStatement
 /// E.g., infix [12] a@b [=] a * b;
 bool CMMParser::parseInfixOpDefinition() {
   assert(Lexer.is(Token::Kw_infix));
@@ -142,9 +147,9 @@ bool CMMParser::parseInfixOpDefinition() {
   return false;
 }
 
-/// \brief Parse a function definition
-/// functionDefinition ::= type identifier ( ) Statement
-/// functionDefinition ::= type identifier ( parameterList ) Statement
+/// \brief Parse a function definition.
+/// functionDefinition ::= typeSpecifier identifier _functionDefinition
+/// functionDefinition ::= typeSpecifier identifier _functionDefinition
 bool CMMParser::parseFunctionDefinition() {
   cvm::BasicType RetType;
   if (parseTypeSpecifier(RetType))
@@ -159,9 +164,9 @@ bool CMMParser::parseFunctionDefinition() {
   return parseFunctionDefinition(RetType, Identifier);
 }
 
-/// \brief Parse a function definition
-/// functionDefinition ::= ( ) Statement
-/// functionDefinition ::= ( parameterList ) Statement
+/// \brief Parse a function definition body.
+/// _functionDefinition ::= "(" ")" Statement
+/// _functionDefinition ::= "(" parameterList ")" Statement
 bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
                                         const std::string &Name) {
   assert(Lexer.is(Token::LParen) && "parseFunctionDefinition: unknown token");
@@ -188,8 +193,8 @@ bool CMMParser::parseFunctionDefinition(cvm::BasicType RetType,
 }
 
 /// \brief Parse a parameter list
-/// parameterList ::= void
-/// parameterList ::= TypeSpecifier Identifier (, TypeSpecifier Identifier)*
+/// parameterList ::= "void"
+/// parameterList ::= TypeSpecifier Identifier ("," TypeSpecifier Identifier)*
 bool CMMParser::parseParameterList(std::list<Parameter> &ParameterList) {
   if (Lexer.is(Token::Kw_void)) {
     Lex();
@@ -219,8 +224,8 @@ bool CMMParser::parseParameterList(std::list<Parameter> &ParameterList) {
   return false;
 }
 
-/// \brief Parse a block as a statement
-/// block ::= { statement* } ;
+/// \brief Parse a block as a statement.
+/// block ::= "{" statement* "}"
 bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
   CurrentBlock = new BlockAST(CurrentBlock);
   Res.reset(CurrentBlock);
@@ -242,6 +247,8 @@ bool CMMParser::parseBlock(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse a typeSpecifier.
+/// typeSpecifier ::= "bool" | "int" | "double" | "void" | "string"
 bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   switch (getKind()) {
   default:                return Error("unknown type specifier");
@@ -255,6 +262,9 @@ bool CMMParser::parseTypeSpecifier(cvm::BasicType &Type) {
   return false;
 }
 
+/// \brief Parse an optional argument list.
+/// OptionalArgList ::= epsilon
+/// OptionalArgList ::= argumentList
 bool CMMParser::parseOptionalArgList(std::list<std::unique_ptr<ExpressionAST>>
                                      &ArgList) {
   if (Lexer.is(Token::RParen))
@@ -262,6 +272,8 @@ bool CMMParser::parseOptionalArgList(std::list<std::unique_ptr<ExpressionAST>>
   return parseArgumentList(ArgList);
 }
 
+/// \brief Parse an argument list.
+/// argumentList ::= Expression ("," Expression)*
 bool CMMParser::parseArgumentList(std::list<std::unique_ptr<ExpressionAST>>
                                   &ArgList) {
   for (;;) {
@@ -276,6 +288,8 @@ bool CMMParser::parseArgumentList(std::list<std::unique_ptr<ExpressionAST>>
   return false;
 }
 
+/// \brief Parse an empty statement.
+/// EmptyStatement ::= ";"
 bool CMMParser::parseEmptyStatement(std::unique_ptr<StatementAST> &Res) {
   Warning("empty statement");
   Res = nullptr;
@@ -283,6 +297,17 @@ bool CMMParser::parseEmptyStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// \brief Parse a statement
+/// Statement ::= Block
+/// Statement ::= IfStatement
+/// Statement ::= WhileStatement
+/// Statement ::= ForStatement
+/// Statement ::= ReturnStatement
+/// Statement ::= BreakStatement
+/// Statement ::= ContinueStatement
+/// Statement ::= EmptyStatement
+/// Statement ::= DeclarationStatement
+/// Statement ::= ExprStatement
 bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   switch (getKind()) {
   default:
@@ -311,6 +336,8 @@ bool CMMParser::parseStatement(std::unique_ptr<StatementAST> &Res) {
   }
 }
 
+/// \brief Parse an expression.
+/// expression ::= primaryExpr BinOpRHS*
 bool CMMParser::parseExpression(std::unique_ptr<ExpressionAST> &Res) {
   return parsePrimaryExpression(Res) || parseBinOpRHS(1, Res);
 }
@@ -353,7 +380,7 @@ int8_t CMMParser::getBinOpPrecedence() {
 }
 
 /// \brief Parse a paren expression and return it.
-/// parenExpr ::= (expr)
+/// parenExpr ::= "(" expression ")"
 bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
   Lex(); // eat the '('.
   if (parseExpression(Res))
@@ -367,9 +394,9 @@ bool CMMParser::parseParenExpression(std::unique_ptr<ExpressionAST> &Res) {
 /// \brief Parse a primary expression and return it.
 ///  primaryExpr ::= parenExpr
 ///  primaryExpr ::= identifierExpr
-///  primaryExpr ::= identifierExpr ('[' Expr ']')+
+///  primaryExpr ::= identifierExpr ("[" Expression "]")+
 ///  primaryExpr ::= constantExpr
-///  primaryExpr ::= ~,+,-,! primaryExpr
+///  primaryExpr ::= "~","+","-","!" primaryExpr
 bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   UnaryOperatorAST::OperatorKind UnaryOpKind;
   std::unique_ptr<ExpressionAST> Operand;
@@ -420,6 +447,8 @@ bool CMMParser::parsePrimaryExpression(std::unique_ptr<ExpressionAST> &Res) {
   return false;
 }
 
+/// \brief Parse the right hand side of a binary expression
+/// if the current binOp's precedence is greater or equal to ExprPrec.
 bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
                               std::unique_ptr<ExpressionAST> &Res) {
   std::unique_ptr<ExpressionAST> RHS;
@@ -470,7 +499,7 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
 
 /// \brief Parse an identifier expression
 /// identifierExpression ::= identifier
-/// identifierExpression ::= identifier  '('  [argumentList]  ')'
+/// identifierExpression ::= identifier  "("  optionalArgList  ")"
 bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   assert(Lexer.is(Token::Identifier) &&
       "parseIdentifierExpression: unknown token");
@@ -478,10 +507,10 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
   std::string Identifier = Lexer.getStrVal();
   Lex();  // eat the identifier
 
-  LocTy ExlaimLoc;
+  LocTy ExclaimLoc;
   bool Dynamic;
   if ((Dynamic = Lexer.is(Token::Exclaim))) {
-    ExlaimLoc = Lexer.getLoc();
+    ExclaimLoc = Lexer.getLoc();
     Lex();  // eat the '!'
   }
 
@@ -498,7 +527,7 @@ bool CMMParser::parseIdentifierExpression(std::unique_ptr<ExpressionAST> &Res) {
     Res.reset(new FunctionCallAST(Identifier, std::move(Args), Dynamic));
   } else {
     if (Dynamic)
-      Warning(ExlaimLoc, "trailing `!' is ignored in identifier");
+      Warning(ExclaimLoc, "trailing `!' is ignored in identifier");
     Res.reset(new IdentifierAST(Identifier));
   }
 
@@ -523,8 +552,8 @@ bool CMMParser::parseConstantExpression(std::unique_ptr<ExpressionAST> &Res) {
 }
 
 /// \brief Parse an if statement.
-/// ifStatement ::= "if"  "(" expr  ")"  statement
-/// ifStatement ::= "if"  "(" expr  ")"  statement  "else"  statement
+/// ifStatement ::= "if"  "(" Expr ")"  Statement
+/// ifStatement ::= "if"  "(" Expr ")"  Statement  "else"  Statement
 bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> StatementThen, StatementElse;
@@ -558,8 +587,8 @@ bool CMMParser::parseIfStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
-/// \brief Parse a for statement
-/// forStatement ::= "for"  "("  expr  ";"  expr  ";"  expr  ")"  statement
+/// \brief Parse a for statement.
+/// forStatement ::= "for"  "("  Expr  ";"  Expr  ";"  Expr  ")"  Statement
 bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Init, Condition, Post;
   std::unique_ptr<StatementAST> Statement;
@@ -597,7 +626,7 @@ bool CMMParser::parseForStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse a while statement.
-/// whileStatement ::= "while"  "("  expr  ")"  statement
+/// whileStatement ::= "while"  "("  Expression  ")"  Statement
 bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Condition;
   std::unique_ptr<StatementAST> Statement;
@@ -625,7 +654,7 @@ bool CMMParser::parseWhileStatement(std::unique_ptr<StatementAST> &Res) {
 }
 
 /// \brief Parse an expression statement.
-/// exprStatement ::= expression ";"
+/// exprStatement ::= Expression ";"
 bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> Expression;
   if (parseExpression(Expression))
@@ -639,7 +668,7 @@ bool CMMParser::parseExprStatement(std::unique_ptr<StatementAST> &Res) {
 
 /// \brief Parse a return statement.
 /// returnStatement ::= "return" ";"
-/// returnStatement ::= "return" Expr ";"
+/// returnStatement ::= "return" Expression ";"
 bool CMMParser::parseReturnStatement(std::unique_ptr<StatementAST> &Res) {
   std::unique_ptr<ExpressionAST> ReturnValue;
 
@@ -679,6 +708,7 @@ bool CMMParser::parseContinueStatement(std::unique_ptr<StatementAST> &Res) {
   return false;
 }
 
+/// DeclarationStatement ::= TypeSpecifier _DeclarationStatement
 bool CMMParser::parseDeclarationStatement(std::unique_ptr<StatementAST> &Res) {
   cvm::BasicType Type;
   if (parseTypeSpecifier(Type))
@@ -686,6 +716,10 @@ bool CMMParser::parseDeclarationStatement(std::unique_ptr<StatementAST> &Res) {
   return parseDeclarationStatement(Type, Res);
 }
 
+/// \brief Parse a declaration (auxiliary)
+/// _DeclarationStatement ::= SingleDeclaration+
+/// SingleDeclaration ::= identifier "=" Expression
+/// SingleDeclaration ::= identifier ("[" Expression "]")+
 bool CMMParser::parseDeclarationStatement(cvm::BasicType Type,
                                           std::unique_ptr<StatementAST> &Res) {
   auto DeclList = new DeclarationListAST(Type);

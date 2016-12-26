@@ -9,8 +9,21 @@ void SourceMgr::dumpError(LocTy L, ErrorKind K,
                               const std::string &Msg) const {
   auto LineCol = getLineColByLoc(L);
 
-  std::cerr << (K == ErrorKind::Error ? "Error" : "Warning")
-            << " at (Line " << LineCol.first + 1 << ", Col "
+  const char *Head = K == ErrorKind::Error ? "Error" : "Warning";
+
+#if defined(__APPLE__) || defined(__linux__)
+  const char *StartColor = K == ErrorKind::Error ? "\033[1;31m" : "\033[1;33m";
+  const char *EndColor = "\033[0m";
+  std::cout << StartColor;
+#endif // defined(__APPLE__) || defined(__linux__)
+
+  std::cout << Head;
+
+#if defined(__APPLE__) || defined(__linux__)
+  std::cout << EndColor;
+#endif // defined(__APPLE__) || defined(__linux__)
+
+  std::cerr << " at (Line " << LineCol.first + 1 << ", Col "
             << LineCol.second + 1 << "): " << Msg << std::endl;
 }
 
