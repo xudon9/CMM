@@ -1,0 +1,42 @@
+/**
+ * IF-ELSE 测试
+ * 2010-11-13
+ * 邱忠磊
+ * 
+ * IF-ELSE 测试 主要是：
+ * 1.条件判断
+ * 2.语句执行
+ * 3.IF-ELSE 嵌套
+ */
+
+int a;
+a=1;
+if(a * 5 == 5)
+{
+  double r ;
+  r = 2.0;
+  if(r)
+  {
+	println(r);
+  }
+}
+else
+{
+   a=5;
+   println(a);
+} 
+
+//if 嵌套
+int aa = 3;
+if(aa < 4)
+	if(2 < aa)
+		if(aa != 3)
+			println(aa);
+		else
+			println(aa-2);
+
+
+/*output:
+2.0
+1
+*///:~

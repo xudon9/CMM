@@ -14,13 +14,13 @@ void SourceMgr::dumpError(LocTy L, ErrorKind K,
 #if defined(__APPLE__) || defined(__linux__)
   const char *StartColor = K == ErrorKind::Error ? "\033[1;31m" : "\033[1;33m";
   const char *EndColor = "\033[0m";
-  std::cout << StartColor;
+  std::cerr << StartColor;
 #endif // defined(__APPLE__) || defined(__linux__)
 
-  std::cout << Head;
+  std::cerr << Head;
 
 #if defined(__APPLE__) || defined(__linux__)
-  std::cout << EndColor;
+  std::cerr << EndColor;
 #endif // defined(__APPLE__) || defined(__linux__)
 
   std::cerr << " at (Line " << LineCol.first + 1 << ", Col "

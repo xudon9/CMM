@@ -1,5 +1,6 @@
 #include "CMMInterpreter.h"
 #include "NativeFunctions.h"
+#include <cmath>
 
 using namespace cmm;
 
@@ -96,7 +97,18 @@ void CMMInterpreter::addNativeFunctions() {
 }
 
 void CMMInterpreter::RuntimeError(const std::string &Msg) {
-  std::cerr << "Runtime Error: " << Msg << std::endl;
+#if defined(__APPLE__) || defined(__linux__)
+  const char *StartColor = "\033[1;31m";
+  const char *EndColor = "\033[0m";
+  std::cerr << StartColor;
+#endif // defined(__APPLE__) || defined(__linux__)
+
+  std::cerr << "CMM Runtime Error: ";
+
+#if defined(__APPLE__) || defined(__linux__)
+  std::cerr << EndColor;
+#endif // defined(__APPLE__) || defined(__linux__)
+  std::cerr << Msg << std::endl;
   std::exit(EXIT_FAILURE);
 }
 
@@ -576,13 +588,14 @@ CMMInterpreter::evaluateBinArith(BinaryOperatorAST::OperatorKind OpKind,
   case BinaryOperatorAST::Add:
     return L + R;
   case BinaryOperatorAST::Minus:
-    return L + R;
+    return L - R;
   case BinaryOperatorAST::Multiply:
     return L * R;
   case BinaryOperatorAST::Division:
     return L / R;
   case BinaryOperatorAST::Modulo:
-    RuntimeError("operands of modulo operator should be int");
+    //RuntimeError("operands of modulo operator should be int");
+    return std::fmod(L, R);
   }
   return cvm::BasicValue(); // Make the compiler happy.
 }

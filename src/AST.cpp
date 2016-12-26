@@ -369,7 +369,7 @@ BinaryOperatorAST::tryFoldBinOpArith(Token::TokenKind TokenKind,
                                      std::unique_ptr<ExpressionAST> LHS,
                                      std::unique_ptr<ExpressionAST> RHS) {
 
-  if (LHS->isInt() || RHS->isInt()) {
+  if (LHS->isInt() && RHS->isInt()) {
     int Value;
     int L = LHS->as_cptr<IntAST>()->getValue();
     int R = RHS->as_cptr<IntAST>()->getValue();
