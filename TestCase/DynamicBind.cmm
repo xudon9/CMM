@@ -1,0 +1,10 @@
+int var = 1234;
+
+void foo() { println(var); }
+
+void main() {
+    string var = "Hello";
+
+    foo();
+    foo!();
+}
