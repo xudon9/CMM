@@ -1,8 +1,6 @@
 #include "AST.h"
-#include <string>
 #include <numeric>
 #include <cmath>
-#include <limits>
 
 namespace cvm {
 
@@ -77,13 +75,20 @@ bool BasicValue::toBool() const {
   }
 }
 
-std::string BasicValue::toString() const {
+std::string BasicValue::toString(decltype(ArrayPtr) P) const {
   if (isArray()) {
+    if (P == ArrayPtr)
+      return "[...]";
+
+    if (P == nullptr)
+      P = ArrayPtr;
+
     return "[" +
-        std::accumulate(ArrayPtr->begin() + 1, ArrayPtr->end(),
-                        ArrayPtr->front().toString(),
-                        [](std::string S, BasicValue &X) {
-                          return S + ", " + X.toString();
+        std::accumulate(ArrayPtr->begin() + 1,
+                        ArrayPtr->end(),
+                        ArrayPtr->front().toString(P),
+                        [P](std::string S, BasicValue &X) {
+                          return S + ", " + X.toString(P);
                         }) + "]";
   }
 

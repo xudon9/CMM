@@ -273,8 +273,8 @@ CMMInterpreter::executeDeclaration(VariableEnv *Env,
       }
 
       if (Dimension.IntVal <= 0) {
-        RuntimeError("index range should greater than zero, " +
-            std::to_string(Dimension.IntVal) + " provided");
+        RuntimeError("dimension of array `" + Name + "' declared to be " +
+            std::to_string(Dimension.IntVal) + "; positive number expected");
       }
 
       DimensionList.push_back(Dimension.IntVal);

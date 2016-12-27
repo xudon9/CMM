@@ -57,7 +57,7 @@ public:
   int toInt() const;
   double toDouble() const;
   bool toBool() const ;
-  std::string toString() const;
+  std::string toString(decltype(ArrayPtr) P = nullptr) const;
 
   bool operator<(const BasicValue &RHS) const;
   bool operator<=(const BasicValue &RHS) const;
