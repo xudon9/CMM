@@ -1,6 +1,7 @@
 #include "AST.h"
 #include <numeric>
 #include <cmath>
+#include <limits>
 
 namespace cvm {
 
