@@ -299,10 +299,23 @@ Token CMMLexer::LexDigit() {
   int HeadChar = getNextChar();
   IntVal = 0;
 
+  LocTy DigitStartLoc = getLoc();
+
   if (HeadChar == '0' && (peekNextChar() == 'x' || peekNextChar() == 'X')) {
     getNextChar();
     do {
-      IntVal = 16 * IntVal + hexDigitValue(getNextChar());
+      int NewIntVal = 16 * IntVal + hexDigitValue(getNextChar());
+
+      if (NewIntVal < 0) {
+        Warning(DigitStartLoc, "hexadecimal integer literal is too large");
+
+        while (std::isxdigit(getNextChar())) ;
+        ungetChar();
+
+        break;
+      }
+
+      IntVal = NewIntVal;
     } while (std::isxdigit(peekNextChar()));
     return Token::Integer;
   }
@@ -310,8 +323,20 @@ Token CMMLexer::LexDigit() {
   // It's a Double or Decimal Integer
   ungetChar();
   do {
-    IntVal = 10 * IntVal + (getNextChar() - '0');
+    int NewIntVal = 10 * IntVal + (getNextChar() - '0');
+
+    if (NewIntVal < 0) {
+      Warning(DigitStartLoc, "decimal integer literal is too large");
+
+      while (std::isdigit(getNextChar()));
+      ungetChar();
+
+      break;
+    }
+
+    IntVal = NewIntVal;
   } while (std::isdigit(peekNextChar()));
+
 
   if (getNextChar() != '.') { // Eat the dot
     ungetChar();
@@ -321,8 +346,10 @@ Token CMMLexer::LexDigit() {
   // It's a Double, and the dot was eaten
   unsigned int Frac = 0, Scale = 1;
   int DigitChar;
+
   while (std::isdigit(DigitChar = getNextChar())) {
     if (Scale > 100000) {
+      Warning(DigitStartLoc, "long floating number may lost precision");
       while (std::isdigit(getNextChar()));
       break;
     }
