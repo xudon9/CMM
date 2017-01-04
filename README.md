@@ -164,7 +164,8 @@ void main() {
 ###垃圾回收
 CMM 采用引用计数算法进行垃圾回收。
 
-我们的 C++ 实现方法是：采用 std::shared_ptr&lt;T&gt; 智能指针代表引用。当指针被赋值时，它指向的原对象计数减 1，新指向的对象计数加 1。
+我们的 C++ 实现方法是：采用 std::shared_ptr&lt;T&gt; 智能指针代表引用。
+当指针被赋值时，它指向的原对象计数减 1，新指向的对象计数加 1。
 当引用计数减到 0 时，对象被析构。
 
 众所周知，引用计数算法有一个明显的缺陷：对象之间循环引用时，脱离引用范围的环形对象无法回收。
@@ -201,6 +202,15 @@ else
     bar();
 ```
 会被解释器简化成等价于 `bar();` 的代码。
+
+###调用库函数
+一门语言强大与否，和它是否有充足的库调用有紧密联系。
+CMM 语言可以很方便地增加系统调用/库函数调用，步骤如下：
+
+1. 在 NativeFunctions.h 增加一行 `ADD_FUNCTION(xxx)`，它是一个展开后得到函数原型的宏；
+2. 在 NativeFunctions.cpp 里写一个包装函数，把库函数封装起来，得到一个接收 `cvm::BaiscValue` 列表并返回
+   这种类型的函数
+3. 在 Interpreter.cpp 中向 NativeFunctionMap 注册该函数
 
 ##3. The Editor
 
@@ -250,6 +260,57 @@ bool void string infix
 |+ (加法) - (减法)                            |  10  |
 |&#42; (乘法) / (除法) % (取余)               |  11  |
 |用户自定义双目操作符的默认优先级             |  12  |
+
+###CMM 内置函数
+下面函数可用于任何平台：
+
+```
+typeof
+len
+strlen
+print
+println (等同于 puts)
+system
+random
+rand
+srand
+time
+exit
+toint
+todouble
+tostring (等同于 str)
+tobool
+read
+readln
+readint
+sqrt
+pow
+exp
+log
+log10
+```
+
+下面函数只可用于 Linux 和 macOS:
+
+```
+UnixFork
+NcEndWin
+NcInitScr
+NcNoEcho
+NcCursSet
+NcKeypad
+NcTimeout
+NcGetCh
+NcMvAddCh
+NcMvAddStr
+NcGetMaxY
+NcGetMaxX
+NcStartColor
+NcInitPair
+NcAttrOn
+NcAttrOff
+NcColorPair
+```
 
 ###<a name="bnf"></a>CMM语言语法
 
