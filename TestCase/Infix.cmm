@@ -5,6 +5,7 @@
  * Distributed under terms of the MIT license.
  */
 
+/** a@b returns the greater one **/
 infix a@b
     if (a>b) a; else b;
 
@@ -18,6 +19,6 @@ println("Max:", a @ b);
 
 ///////////////////////////////////
 
-infix 12 x:+ y = x+y;
+infix 12 x:+ y = x + y;
 println("1 + 2 * 2 + 3 => ", 1 + 2 * 2 + 3);
 println("1:+ 2 * 2:+ 3 => ", 1:+ 2 * 2:+ 3);

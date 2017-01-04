@@ -244,10 +244,18 @@ bool eat_food() {
 }
 
 ///////  main procedure ///////
-int main()
+int main(string args)
 {
     int ch;
     bool terminate = false;
+
+    if (len(args) > 0) {
+        len = toint(args[0]);
+        if (len < 1 || len >= 20) {
+            puts("Init length should less than 20! exited");
+            return -1;
+        }
+    }
 
     init_nc();
     width = NcGetMaxX() - 2;

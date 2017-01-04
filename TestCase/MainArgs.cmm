@@ -1,5 +1,7 @@
 void main(string args) {
     int i;
+    if (len(args) == 0)
+        puts("您没有输入任何额外的命令行参数！");
     for (i = 0; i < len(args); i = i + 1)
-        println("第", i, "个参数为", args[i]);
+        println("第", i+1, "个参数为", args[i]);
 }

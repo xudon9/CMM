@@ -1,0 +1,7 @@
+bool foo() { println("hello"); return true; }
+bool bar() { println("world"); return false; }
+
+for (;;) {
+    if (foo() || bar())
+    break;
+}
