@@ -32,14 +32,11 @@ The grammar of CMM is not exact identical to what is required in the task specif
 All required syntax are supported by our implementation, in the meanwhile, many new features
 are supported. The detailed grammar can be checkout out at section [CMM Grammar BNF](#bnf).
 
-### Basic Syntax
+### Basic Grammar
 基础语法与C语言很相似，下面是几个值得注意的地方：
-The basic syntax of CMM is very similar to C. Here are some points worthy to know:
 
-+ Empty statements are allowed (namely a single semicolon as statement). A warning message
-will be generated upon empty statements;
-+ Like C, the expressions in `for` loops may be omitted. E.g., a common way to write a infinite
-loop is `for (;;) {}`
++ 允许空语句，即一个单独的分号作为语句，但是会给出警告
++ 和 C 一样， for 语句中的三个表达式都可以省略，例如常见的一种写死循环的方法就是 `for (;;) {}`
 + 逻辑运算具有短路逻辑，以下面代码为例：
 
 ```C
@@ -244,41 +241,39 @@ bool void string infix
 当前编辑文件未保存则提示保存。
 弹出 terminal 进行编译。
 
-### Error Message
+### 错误、警告列表
 编译出的错误、警告分别呈现在列表当中。
 列表包含错误的行、列和错误信息。
 双击某行可以自动跳转到源码中的错误位置。
 
 
 -------------------------------------------------
-## Appendixes
-
-### The precedence of operators in CMM
-|                   Operator                    |Precedence|
+## 附录
+### CMM双目运算符优先级表
+|                   运算符                    |优先级|
 |:-------------------------------------------:|:----:|
-| = (assignment)                                |   1  |
-|&#124;&#124; (logical or)                        |   2  |
-|&amp;&amp; (logical and)                          |   3  |
-|&#124; (bitwise or)                              |   4  |
-|^ (bitwise exclusive or)                                 |   5  |
-|&amp; (bitwise and)                               |   6  |
-|== (equal to) != (not equal to)                        |   7  |
-|< (less than) <= (less or equal than) > (greater than) >= (greater or equal than)|   8  |
-|<< (bitwise leftshift) >> (bitwise rightshift)          |   9  |
-|+ (addition) - (substraction)                            |  10  |
-|&#42; (multiplication) / (division) % (modulo)               |  11  |
-|The default precedence of user-defined binary operators             |  12  |
+| = (赋值操作)                                |   1  |
+|&#124;&#124; (逻辑或)                        |   2  |
+|&amp;&amp; (逻辑与)                          |   3  |
+|&#124; (按位或)                              |   4  |
+|^ (按位异或)                                 |   5  |
+|&amp; (按位与)                               |   6  |
+|== (相等) != (不相等)                        |   7  |
+|< (小于) <= (小于等于) > (大于) >= (大于等于)|   8  |
+|<< (按位算数左移) >> (按位算数右移)          |   9  |
+|+ (加法) - (减法)                            |  10  |
+|&#42; (乘法) / (除法) % (取余)               |  11  |
+|用户自定义双目操作符的默认优先级             |  12  |
 
-### CMM Built-in functions
-
-Those functions are always available in CMM regardless of the operating system:
+### CMM 内置函数
+下面函数可用于任何平台：
 
 ```
 typeof
 len
 strlen
 print
-println (alias of puts)
+println (等同于 puts)
 system
 random
 rand
@@ -287,7 +282,7 @@ time
 exit
 toint
 todouble
-tostring (alias of str)
+tostring (等同于 str)
 tobool
 read
 readln
@@ -298,7 +293,6 @@ exp
 log
 log10
 ```
-
 The following functions are only available under Linux and macOS:
 
 ```
