@@ -194,18 +194,22 @@ void main() {
     foo!();  // Dynamic binding
 }
 ```
+
 The output would be: `1234  Hello`
 
 ## 2. The Interpreter
 ### Garbage Collection
-CMM 采用引用计数算法进行垃圾回收。
+CMM do garbeage collection by the reference counting algorithm.
 
-我们的 C++ 实现方法是：采用 std::shared_ptr&lt;T&gt; 智能指针代表引用。
-当指针被赋值时，它指向的原对象计数减 1，新指向的对象计数加 1。
-当引用计数减到 0 时，对象被析构。
+Out implementation is pretty straightforward: all new objects are created by
+`std::make_shared` and save them with smart pointer `std::shared_ptr<T>` in C++11, which
+automatically manages the reference count and delete the object when refcount decreases to 0.
 
-众所周知，引用计数算法有一个明显的缺陷：对象之间循环引用时，脱离引用范围的环形对象无法回收。
-例如：
+It is publicly known that there's a problem with reference counting algorithm: When objects
+reference form a cycle, and the cycle cannot be used directly or indirectly from top level,
+then they are leaked forever. We did not solve the problem and suggest avoid it in CMM.
+
+A cycle reference example:
 
 ```C++
 {
@@ -219,9 +223,9 @@ CMM 采用引用计数算法进行垃圾回收。
  */
 ```
 
-### 编译优化
-CMM 解释器实现了两种常见编译优化算法的简单版本。
-#### 常量折叠(Constant folding)
+### Optimization
+CMM implemented two simple optimization.
+#### Constant folding
 *常量折叠*指在编译时期简化常数的过程，常数在表示式中仅仅代表一个简单的数值。
 
 CMM 解释器中，`print(1 + 2 * 3)` 将不会被转换成一个复杂的语法树，
