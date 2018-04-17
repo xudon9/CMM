@@ -12,7 +12,7 @@ the intepreter core;
 + Its corss-platform. We have tested it under macOS, Linux, and Windows;
 + No parser generators (e.g. Bison, Antlr) were used. The lexer and parser were
 purely hand-written for more flexibiliy and more user-friendly error message;
-+ A GUI code editor was provided to let users edit and run CMM scripts more friendly.
++ A GUI code editor was provided to let users edit and run CMM scripts more conveniently.
 
 | Modules \ OS | Windows | Linux  | macOS |
 |:---------------------:|:-------:|:------:|:-----:|
@@ -50,7 +50,7 @@ if (foo() || bar)
 ```
 The output will be "hello".
 
-### Type System and Arrays
+### Type System & Arrays
 There are 4 primitive types in CMM: `int`, `double`, `bool`, `string`.
 The declaration of arrays are similar to C. The following statement
 > Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>N</sub>]
@@ -70,7 +70,7 @@ can store array of that type;
 + All operands of logical operators will be converted to boolean values. E.g., numerisc zeros
 and empty strings are `false`, otherwise `true`.
 
-### 'main' Function & Command Line Arguments
+### The 'main' Function & Command Line Arguments
 `main` function are optional in CMM. If the programmer defined such a function, then it will
 be invoked after all top-level statements and definitions executed.
 
@@ -113,23 +113,26 @@ By enter command `cmm MainArgs.cmm how are you`, the output on screen will be
 2 you
 ```
 
-### 默认返回值
-此特性模仿自 Scala 语言。函数体或中缀操作符语句内的最后被执行的表达式被当做它的返回值。
+### Default Return Value
+In many languages like Scala and Ruby, the value of last statement or expression
+that was executed in a function will be the default return value of it.
+In CMM the we implemented the same feature.
 
-例如，求两个整数的最大值可以以这种简洁的方式书写：
+E.g., a function that returns the maximum value can be written as:
 
 ```
 int max(int a, int b) {
     if (a>b) a; else b;
 }
 ```
-甚至更简单些：
+
+Or even more concise:
 
 ```
 int max(int a, int b) if (a>b) a; else b;
 ```
 
-### 自定义操作符
+### User-Defined Operators
 此特性模仿自 Haskell 语言。
 与 C++ 中的操作符重载不同，自定义操作符允许用户使用新的符号作为中缀运算符，并且可以指定其优先级。其语法是：
 > infix [优先级] 左操作数 运算符 右操作数 语句块
