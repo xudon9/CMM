@@ -18,7 +18,7 @@ purely hand-written for more flexibiliy and more user-friendly error message;
 |:---------------------:|:-------:|:------:|:-----:|
 |    CMM Language core   |   ✅    |   ✅   |  ✅   |
 |    math library        |   ✅    |   ✅   |  ✅   |
-|    multiprocessing             |   ❌    |   ✅   |  ✅   |
+|    multiprocessing     |   ❌    |   ✅   |  ✅   |
 |    Ncurses library     |   ❌    |   ✅   |  ✅   |
 |    GUI code editor     | Not tested  | Not tested |  ✅   |
 
@@ -95,7 +95,7 @@ int main(string args)
 In this example, the `args` of is a string array (remember that T arrays are subtype of T).
 The length of command line arguments can be calculated by function `len`.
 
-Say we have a file `MainArgs.cmm` with following contents
+Say we have a file `MainArgs.cmm` with following contents:
 
 ```
 void main(string args) {
@@ -105,7 +105,7 @@ void main(string args) {
 }
 ```
 
-By enter command `cmm MainArgs.cmm how are you`, the output on screen will be
+By enter command `cmm MainArgs.cmm how are you`, the output on the screen will be
 
 ```
 0 how
@@ -133,13 +133,19 @@ int max(int a, int b) if (a>b) a; else b;
 ```
 
 ### User-Defined Operators
-此特性模仿自 Haskell 语言。
-与 C++ 中的操作符重载不同，自定义操作符允许用户使用新的符号作为中缀运算符，并且可以指定其优先级。其语法是：
-> infix [优先级] 左操作数 运算符 右操作数 语句块
+Haskell allow its user to create new operators. In CMM we have a similar feature.
 
-其中优先级是可选的，缺省值优先级 12。运算符以``\@#$:`?``中某个字符开始，后面可以接任意多个特殊字符。
+Unlike the overloading of operators in C++, which allows users to define the behaviours
+of operators on specific type, we let users use new symbols to create infix (binary)
+operators and define the precedence. The definition of a customed operator is:
 
-下面是一个例子，定义符号`:+:`为求区间内所有整数之和”：
+> infix [precedence] left-hand-side-operand operator-symbol  right-hand-side block
+
+the precedence is optional and default to be 12. The operator symbol may begin with
+a character in ``\@#$:`?``, and followed by arbitrary number of special characters.
+
+Here's an example that defines an operator :+: which sums the natural numbers up
+in range [lhs, rhs]:
 
 ```
 infix low:+:high {
@@ -150,11 +156,14 @@ infix low:+:high {
     sum;
 }
 ```
-则表达式`1:+:100`的值为 5050。
-当语句块本身是一个表达式时，可以使用一种更接近数学的格式写，它更直观：
-> infix [优先级] 左操作数 运算符 右操作数 = 表达式;
 
-例如定义优先级为 12 的幂运算：``infix 12 x`^y = pow(x, y);``
+Then expresseion `1 :+: 100` will be evaluated to 5050.
+
+When the block itself is an expression, we can express it in a more natural way:
+
+> infix [precedence] lhs operator-symbol rhs = expression;
+
+E.g., define a power operator with precedence 12: ``infix 12 x`^y = pow(x, y);``
 
 ### 动态绑定(Dynamic Binding)
 此特性模仿自 Lisp 语言。
