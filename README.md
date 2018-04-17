@@ -8,11 +8,11 @@ Group Memers: Xudong Wang, Puxuan Yu.
 ## 0. Overview
 
 + The project was implemented in C++11. No 3rd party libraries are used in
-the intepreter core.
-
-+ 跨平台，已测试平台包括 macOS、Linux、Windows；
-+ 没有使用语法生成工具，词法器和语法分期全部采用手写；
-+ 我们为之编写了一个专用代码编辑器，方便地编辑和运行 CMM 脚本；
+the intepreter core;
++ Its corss-platform. We have tested in macOS, Linux, and Windows;
++ No parser generator (e.g. Bison, Antlr) were used. The lexer and parser were
+purely hand-written for more flexibiliy and more user-friendly error message;
++ A GUI code editor was provided to let users edit and run CMM scripts more friendly.
 
 | 功能或模块 \ 操作系统 | Windows | Linux  | macOS |
 |:---------------------:|:-------:|:------:|:-----:|
