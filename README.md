@@ -2,32 +2,32 @@
 
 Dec. 27, 2016
 
-Group Memers: Xudong Wang, Puxuan Yu.
+Group Members: Xudong Wang (hsu [AT] whu.edu.cn), Puxuan Yu(pxyuwhu [AT] gmail.com).
 
 
 ## 0. Overview
 
 + The project was implemented in C++11. No 3rd party libraries are used in
-the intepreter core;
-+ Its corss-platform. We have tested it under macOS, Linux, and Windows;
+the interpreter core;
++ It is a cross-platform interpreter. We have tested it under macOS, Linux, and Windows;
 + No parser generators (e.g. Bison, Antlr) were used. The lexer and parser were
-purely hand-written for more flexibiliy and more user-friendly error message;
+purely hand-written for more flexibility and more user-friendly error message;
 + A GUI code editor was provided to let users edit and run CMM scripts more conveniently.
 
-| Modules \ OS | Windows | Linux  | macOS |
-|:---------------------:|:-------:|:------:|:-----:|
-|    CMM Language core   |   ✅    |   ✅   |  ✅   |
-|    math library        |   ✅    |   ✅   |  ✅   |
-|    multiprocessing     |   ❌    |   ✅   |  ✅   |
-|    Ncurses library     |   ❌    |   ✅   |  ✅   |
-|    GUI code editor     | Not tested  | Not tested |  ✅   |
+| Modules \ OS    | Windows| Linux | macOS |
+|:---------------:|:------:|:-----:|:-----:|
+|CMM Language core|   ✅    |   ✅   |  ✅   |
+|math library     |   ✅    |   ✅   |  ✅   |
+|multiprocessing  |   ❌    |   ✅   |  ✅   |
+|Ncurses library  |   ❌    |   ✅   |  ✅   |
+|GUI code editor  | Not tested  | Not tested |  ✅   |
 
 To show you that CMM is somewhat a useful language that can create relative non-trivial
-programs, we implemeted a console [snake game in CMM](#snake).
+programs, we implemented a console [snake game in CMM](#snake).
 This is also a good example for you to get familiar with the CMM grammar.
 
 ## 1. Language Design
-The laguagewe implemented, named CMM, has a grammar similar to C family languages,
+The language we implemented, named CMM, has a grammar similar to C family languages,
     but its internal mechanism is close to Python. Some features from Haskell, Scala, and
     Lisp are also borrowed.
 
@@ -58,7 +58,7 @@ There are 4 primitive types in CMM: `int`, `double`, `bool`, `string`.
 The declaration of arrays are similar to C. The following statement
 > Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>N</sub>]
 
-delcares an N-dimensional array of type T with name Identifier. Its valid range
+declares an N-dimensional array of type T with name Identifier. Its valid range
 of the i<sup>th</sup> index is [0, Expr<sub>i</sub> - 1].
 
 **Note:** Different from the required of the assignment and the rule in C89, the declaration
@@ -70,7 +70,7 @@ Implicit Conversion Rules:
 + If any operator of `+` is a string, then another operand will be converted to string;
 + Arrays of type T are considered to be a subtype of T. That is to say, a variable of type T
 can store array of that type;
-+ All operands of logical operators will be converted to boolean values. E.g., numerisc zeros
++ All operands of logical operators will be converted to boolean values. E.g., numeric zeros
 and empty strings are `false`, otherwise `true`.
 
 ### The 'main' Function & Command Line Arguments
@@ -140,7 +140,7 @@ Haskell allow its user to create new operators. In CMM we have a similar feature
 
 Unlike the overloading of operators in C++, which allows users to define the behaviours
 of operators on specific type, we let users use new symbols to create infix (binary)
-operators and define the precedence. The definition of a customed operator is:
+operators and define the precedence. The definition of a custom operator is:
 
 > infix [precedence] left-hand-side-operand operator-symbol  right-hand-side block
 
@@ -148,7 +148,7 @@ the precedence is optional and default to be 12. The operator symbol may begin w
 a character in ``\@#$:`?``, and followed by arbitrary number of special characters.
 
 Here's an example that defines an operator :+: which sums the natural numbers up
-in range [lhs, rhs]:
+in range [LHS, RHS]:
 
 ```
 infix low:+:high {
@@ -160,17 +160,17 @@ infix low:+:high {
 }
 ```
 
-Then expresseion `1 :+: 100` will be evaluated to 5050.
+Then expression `1 :+: 100` will be evaluated to 5050.
 
 When the block itself is an expression, we can express it in a more natural way:
 
-> infix [precedence] lhs operator-symbol rhs = expression;
+> infix [precedence] <lhs> <operator-symbol> <rhs> = <expression>;
 
 E.g., define a power operator with precedence 12: ``infix 12 x`^y = pow(x, y);``
 
 ### Dynamic Binding
 Dynamic Binding is a feature similar to that in Emacs-Lisp.
-Firstly, there're two concept that should be known before we go into detial:
+Firstly, there're two concept that should be known before we go into detail:
 _Lexical binding_ and _Dynamic binding_.
 
 + When you call a function with lexical binding, free variables in that function will
@@ -180,7 +180,7 @@ because all bindings can be decided at compile time.
 the environment where the function is invoked.
 
 In CMM, functions called are by default static, which is also the choice of most
-programming languages. If you want to force the intepreter to do a dynamic binding,
+programming languages. If you want to force the interpreter to do a dynamic binding,
 you can add a "!" between the function name and left parenthesis at call point.
 
 An example:
@@ -202,11 +202,11 @@ The output would be: `1234  Hello`
 
 ## 2. The Interpreter
 ### Garbage Collection
-CMM do garbeage collection by the reference counting algorithm.
+CMM do garbage collection by the reference counting algorithm.
 
 Out implementation is pretty straightforward: all new objects are created by
 `std::make_shared` and save them with smart pointer `std::shared_ptr<T>` in C++11, which
-automatically manages the reference count and delete the object when refcount decreases to 0.
+automatically manages the reference count and delete the object when ref-count decreases to 0.
 
 It is publicly known that there's a problem with reference counting algorithm: When objects
 reference form a cycle, and the cycle cannot be used directly or indirectly from top level,
@@ -267,7 +267,7 @@ It takes as input an array of `cvm::BaiscValue` and returns a `cvm::BasicValue`;
 ### Line Number Display
 Display a line number at the left side and high light current line.
 
-### Hightlight for Keywords
+### Highlight for Keywords
 The reserved words in CMM are:
 
 ```
@@ -331,7 +331,7 @@ A glance at the program written in CMM
 |== (equal to) != (not equal to)                        |   7  |
 |< (less than) <= (less or equal than) > (greater than) >= (greater or equal than)|   8  |
 |<< (bitwise leftshift) >> (bitwise rightshift)          |   9  |
-|+ (addition) - (substraction)                            |  10  |
+|+ (addition) - (subtraction)                            |  10  |
 |&#42; (multiplication) / (division) % (modulo)               |  11  |
 |The default precedence of user-defined binary operators             |  12  |
 
