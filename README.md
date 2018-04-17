@@ -58,22 +58,29 @@ The declaration of arrays are similar to C. The following statement
 delcares an N-dimensional array of type T with name Identifier. Its valid range
 of the i<sup>th</sup> index is [0, Expr<sub>i</sub> - 1].
 
-**注意：** 与标准原始要求不同的，Expr 不需要是常量表达式。
+**Note:** Different from the required of the assignment and the rule in C89, the declaration
+of arrays do not require size expression to be constant.
 
-隐式转换规则：
+Implicit Conversion Rules:
 
-+ `int` 与 `double` 操作时，会被提升为 `double`
-+ 与字符串相加的操作数会被转换为字符串
-+ 元素类型为 T 的数组可以直接赋值给 T 类型变量（即 T 类型变量提升为 T 类型数组）
-+ 逻辑运算符将所有操作数转换为布尔值。整数和浮点数的 0 以及空字符串 `""` 视为 `false`，否则为 `true`
++ When operand of a operator are `int` and `double`, the integer will be promoted to `double`;
++ If any operator of `+` is a string, then another operand will be converted to string;
++ Arrays of type T are considered to be a subtype of T. That is to say, a variable of type T
+can store array of that type;
++ All operands of logical operators will be converted to boolean values. E.g., numerisc zeros
+and empty strings are `false`, otherwise `true`.
 
-### main 函数与命令行参数
-CMM 语言可以定义一个可选的 main 函数。如果 main 函数存在，那么在顶层语句运行结束后再开始运行 main 函数。
+### 'main' Function & Command Line Arguments
+`main` function are optional in CMM. If the programmer defined such a function, then it will
+be invoked after all top-level statements and definitions executed.
 
-main 函数的参数列表可为空，或单个`string`类型的形参。
-它可以返回任意类型 (推荐返回`int`或`void`)，其他类型将会动态转成整数返回给操作系统。返回 0 代表程序执行成功，任意非零值表示失败。
+The parameter list of `main` can be empty, or it can take a `string` as input.
 
-下面是 main 函数的合法定义的一个简单例子：
+The `main` function may return arbitrary type (although `int` and `void` are recommended).
+returned value will be converted to integers and be will returned to the operating system.
+As a convention, a zero value indicates successful execution. Non-zero values means failure.
+
+Here's a simple example of a valid definition of the main function:
 
 ```
 int main(string args)
