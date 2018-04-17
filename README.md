@@ -33,14 +33,13 @@ All required syntax are supported by our implementation, in the meanwhile, many 
 are supported. The detailed grammar can be checkout out at section [CMM Grammar BNF](#bnf).
 
 ### Basic Syntax
-基础语法与C语言很相似，下面是几个值得注意的地方：
 The basic syntax of CMM is very similar to C. Here are some points worthy to know:
 
 + Empty statements are allowed (namely a single semicolon as statement). A warning message
 will be generated upon empty statements;
 + Like C, the expressions in `for` loops may be omitted. E.g., a common way to write a infinite
 loop is `for (;;) {}`
-+ 逻辑运算具有短路逻辑，以下面代码为例：
++ Boolean logic operators are short-circuited. Consider the following snippet:
 
 ```C
 bool foo() { println("hello"); return true; }
@@ -49,13 +48,14 @@ bool bar() { println("world"); return false; }
 if (foo() || bar)
     ;
 ```
-只会打印出 "hello"
+The output will be "hello".
 
-### 类型系统与数组
-CMM 语言包括四种基本数据类型：`int`，`double`，`bool`，`string`。数组声明方式与C语言相同，语句
-> Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>n</sub>]
-
-声明了一个元素类型为 T 的 n 维数组，名为 Identifier。他的第 i 维下标的有效范围是 [0, Expr<sub>i</sub> - 1]。
+### Typing System and Arrays
+There are 4 primitive types in CMM: `int`, `double`, `bool`, `string`.
+The declaration of arrays are similar to C. The following statement
+> Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>N</sub>]
+delcares an N-dimensional array of type T with name Identifier. Its valid range
+of the i<sup>th<sup> index is [0, Expr<sub>i</sub> - 1].
 
 **注意：**与标准原始要求不同的，Expr 不需要是常量表达式。
 
