@@ -32,10 +32,7 @@ The grammar of CMM is not exact identical to what is required in the task specif
 All required syntax are supported by our implementation, in the meanwhile, many new features
 are supported. The detailed grammar can be checkout out at section [CMM Grammar BNF](#bnf).
 
-我们的 CMM 语言的语法与任务书要求并不完全一致，
-在大体兼容原有语法的基础上增加了很多新特性。详情见附录 一节。
-
-###基础语法
+### Basic Grammar
 基础语法与C语言很相似，下面是几个值得注意的地方：
 
 + 允许空语句，即一个单独的分号作为语句，但是会给出警告
@@ -51,7 +48,7 @@ if (foo() || bar)
 ```
 只会打印出 "hello"
 
-###类型系统与数组
+### 类型系统与数组
 CMM 语言包括四种基本数据类型：`int`，`double`，`bool`，`string`。数组声明方式与C语言相同，语句
 > Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>n</sub>]
 
@@ -66,7 +63,7 @@ CMM 语言包括四种基本数据类型：`int`，`double`，`bool`，`string`�
 + 元素类型为 T 的数组可以直接赋值给 T 类型变量（即 T 类型变量提升为 T 类型数组）
 + 逻辑运算符将所有操作数转换为布尔值。整数和浮点数的 0 以及空字符串 `""` 视为 `false`，否则为 `true`
 
-###main 函数与命令行参数
+### main 函数与命令行参数
 CMM 语言可以定义一个可选的 main 函数。如果 main 函数存在，那么在顶层语句运行结束后再开始运行 main 函数。
 
 main 函数的参数列表可为空，或单个`string`类型的形参。
@@ -102,7 +99,7 @@ void main(string args) {
 1 are
 2 you
 ```
-###默认返回值
+### 默认返回值
 此特性模仿自 Scala 语言。函数体或中缀操作符语句内的最后被执行的表达式被当做它的返回值。
 
 例如，求两个整数的最大值可以以这种简洁的方式书写：
@@ -118,7 +115,7 @@ int max(int a, int b) {
 int max(int a, int b) if (a>b) a; else b;
 ```
 
-###自定义操作符
+### 自定义操作符
 此特性模仿自 Haskell 语言。
 与 C++ 中的操作符重载不同，自定义操作符允许用户使用新的符号作为中缀运算符，并且可以指定其优先级。其语法是：
 > infix [优先级] 左操作数 运算符 右操作数 语句块
@@ -142,7 +139,7 @@ infix low:+:high {
 
 例如定义优先级为 12 的幂运算：``infix 12 x`^y = pow(x, y);``
 
-###动态绑定(Dynamic Binding)
+### 动态绑定(Dynamic Binding)
 此特性模仿自 Lisp 语言。
 首先介绍两个概念：_Lexical binding_ 和 _Dynamic binding_。
 
@@ -167,8 +164,8 @@ void main() {
 ```
 输出结果是：`1234  Hello`
 
-##2. The Interpreter
-###垃圾回收
+## 2. The Interpreter
+### 垃圾回收
 CMM 采用引用计数算法进行垃圾回收。
 
 我们的 C++ 实现方法是：采用 std::shared_ptr&lt;T&gt; 智能指针代表引用。
@@ -190,14 +187,14 @@ CMM 采用引用计数算法进行垃圾回收。
  */
 ```
 
-###编译优化
+### 编译优化
 CMM 解释器实现了两种常见编译优化算法的简单版本。
-####常量折叠(Constant folding)
+#### 常量折叠(Constant folding)
 *常量折叠*指在编译时期简化常数的过程，常数在表示式中仅仅代表一个简单的数值。
 
 CMM 解释器中，`print(1 + 2 * 3)` 将不会被转换成一个复杂的语法树，
 而是被折叠为等价于 `print(7)` 这样的简单调用。
-####死代码消除(Dead code elimination)
+#### 死代码消除(Dead code elimination)
 *死代码消除*值移除对程序运行结果没有任何影响的代码。
 
 CMM 解释器实现了一些最基本的死代码消除算法。例如下面的 CMM 代码：
@@ -210,7 +207,7 @@ else
 ```
 会被解释器简化成等价于 `bar();` 的代码。
 
-###调用库函数
+### 调用库函数
 一门语言强大与否，和它是否有充足的库调用有紧密联系。
 CMM 语言可以很方便地增加系统调用/库函数调用，步骤如下：
 
@@ -219,12 +216,12 @@ CMM 语言可以很方便地增加系统调用/库函数调用，步骤如下：
    这种类型的函数
 3. 在 Interpreter.cpp 中向 NativeFunctionMap 注册该函数
 
-##3. The Editor
+## 3. The Editor
 
-###行号显示
+### 行号显示
 当前编辑行高亮
 
-###保留关键字高亮
+### 保留关键字高亮
 以下是CMM的保留字：
 
 ```
@@ -233,26 +230,26 @@ bool void string infix
 ```
 注：`do` 关键字暂时没有用到
 
-###文件I/O
+### 文件I/O
 
-####新建文件/打开文件(C+N/C+O)
+#### 新建文件/打开文件(C+N/C+O)
 如果当前有编辑后未保存的文件会提示保存。
-####保存文件(C+S)
+#### 保存文件(C+S)
 默认为“保存”选项，新创建的文件则为“另存为”选项。
 
-###一键运行(C+R)
+### 一键运行(C+R)
 当前编辑文件未保存则提示保存。
 弹出 terminal 进行编译。
 
-###错误、警告列表
+### 错误、警告列表
 编译出的错误、警告分别呈现在列表当中。
 列表包含错误的行、列和错误信息。
 双击某行可以自动跳转到源码中的错误位置。
 
 
 -------------------------------------------------
-##附录
-###CMM双目运算符优先级表
+## 附录
+### CMM双目运算符优先级表
 |                   运算符                    |优先级|
 |:-------------------------------------------:|:----:|
 | = (赋值操作)                                |   1  |
@@ -268,7 +265,7 @@ bool void string infix
 |&#42; (乘法) / (除法) % (取余)               |  11  |
 |用户自定义双目操作符的默认优先级             |  12  |
 
-###CMM 内置函数
+### CMM 内置函数
 下面函数可用于任何平台：
 
 ```
