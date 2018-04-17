@@ -10,22 +10,20 @@ Group Memers: Xudong Wang, Puxuan Yu.
 + The project was implemented in C++11. No 3rd party libraries are used in
 the intepreter core;
 + Its corss-platform. We have tested in macOS, Linux, and Windows;
-+ No parser generator (e.g. Bison, Antlr) were used. The lexer and parser were
++ No parser generators (e.g. Bison, Antlr) were used. The lexer and parser were
 purely hand-written for more flexibiliy and more user-friendly error message;
 + A GUI code editor was provided to let users edit and run CMM scripts more friendly.
 
-| 功能或模块 \ 操作系统 | Windows | Linux  | macOS |
+| Modules \ OS | Windows | Linux  | macOS |
 |:---------------------:|:-------:|:------:|:-----:|
-|    CMM 语言基础功能   |   ✅    |   ✅   |  ✅   |
-|    math 库调用        |   ✅    |   ✅   |  ✅   |
-|    多进程             |   ❌    |   ✅   |  ✅   |
-|    Ncurses 库调用     |   ❌    |   ✅   |  ✅   |
-|    GUI 文本编辑器     | 未测试  | 未测试 |  ✅   |
+|    CMM Language core   |   ✅    |   ✅   |  ✅   |
+|    math library        |   ✅    |   ✅   |  ✅   |
+|    multiprocessing             |   ❌    |   ✅   |  ✅   |
+|    Ncurses library     |   ❌    |   ✅   |  ✅   |
+|    GUI code editor     | Not tested  | Not tested |  ✅   |
 
 
-
-
-##1. Language Design
+## 1. Language Design
 我们小组实现的 CMM 语言，是一种有着 C 家族语言语法、内部解释机制接近 Python 的动态脚本语言。
 另外也模仿了 Haskell 语言、Scala 语言、Lisp 语言的一些特性。
 
