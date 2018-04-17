@@ -2,14 +2,11 @@
 
 Dec. 27, 2016
 
-Group Memers: Xudong Wang, Puxuan Yu.
+小组成员：王旭东、余璞轩、任屹
 
 
-## 0. Overview
-
-+ The project was implemented in C++11. No 3rd party libraries are used in
-the intepreter core.
-
+##0. Overview
++ 使用 C++11 开发，解释器本身只使用标准 C++ 库；
 + 跨平台，已测试平台包括 macOS、Linux、Windows；
 + 没有使用语法生成工具，词法器和语法分期全部采用手写；
 + 我们为之编写了一个专用代码编辑器，方便地编辑和运行 CMM 脚本；
