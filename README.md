@@ -290,6 +290,18 @@ Compilation errors and warnings are presented in the list.
 The list contains incorrect rows, columns, and error messages.
 Double-clicking on a line automatically jumps to the wrong location in the source code.
 
+## 4. Screen Shots
+Help message:
+![help message](https://gitee.com/whst/cmm/raw/master/images/Help.png)
+
+Lexer test:
+![Lexer output](https://gitee.com/whst/cmm/raw/master/images/Lex.png)
+
+AST Dump:
+![parser output](https://gitee.com/whst/cmm/raw/master/images/AST.png)
+
+Console Snake game written in CMM!
+![Snake Game](https://gitee.com/whst/cmm/raw/master/images/Snake.gif)
 
 -------------------------------------------------
 ## Appendixes
