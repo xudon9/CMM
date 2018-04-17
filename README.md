@@ -165,16 +165,22 @@ When the block itself is an expression, we can express it in a more natural way:
 
 E.g., define a power operator with precedence 12: ``infix 12 x`^y = pow(x, y);``
 
-### 动态绑定(Dynamic Binding)
-此特性模仿自 Lisp 语言。
-首先介绍两个概念：_Lexical binding_ 和 _Dynamic binding_。
+### Dynamic Binding
+Dynamic Binding is a feature similar to that in Emacs-Lisp.
+Firstly, there're two concept that should be known before we go into detial:
+_Lexical binding_ and _Dynamic binding_.
 
-+ Lexical binding 指调用函数时，对于函数内未定义的标识符，在函数**定义处**的环境中查找。由于函数定义处是确定的，因此这种绑定方式也叫静态绑定(Static binding)。
-+ Dynamic binding 则指对于函数内未定义的标识符，在函数**调用处**的环境中查找。
++ When you call a function with lexical binding, free variables in that function will
+be looked up in the environment of its definition. It is also called "static binding"
+because all bindings can be decided at compile time.
++ Dynamic binding means free variables in functions will be looked up for definition from
+the environment where the function is invoked.
 
-在 CMM 语言中，调用函数时默认使用静态绑定，这也是大多数语言的选择。
-如果想强制使用动态绑定，可通过在调用函数时在函数名后加感叹号“!”来实现。
-例：
+In CMM, functions called are by default static, which is also the choice of most
+programming languages. If you want to force the intepreter to do a dynamic binding,
+you can add a "!" between the function name and left parenthesis at call point.
+
+An example:
 
 ```
 int var = 1234;
@@ -188,10 +194,10 @@ void main() {
     foo!();  // Dynamic binding
 }
 ```
-输出结果是：`1234  Hello`
+The output would be: `1234  Hello`
 
 ## 2. The Interpreter
-### 垃圾回收
+### Garbage Collection
 CMM 采用引用计数算法进行垃圾回收。
 
 我们的 C++ 实现方法是：采用 std::shared_ptr&lt;T&gt; 智能指针代表引用。
