@@ -86,15 +86,16 @@ Here's a simple example of a valid definition of the main function:
 int main(string args)
 {
     if (len(args) < 1)
-        retrun -1;
+        return -1;
     println("Hello " + args[0]);
     return 0;
 }
 ```
 
-其中`string`类型的参数是一个包含命令行参数的数组，参数个数可用`len`函数计算得到。
+In this example, the `args` of is a string array (remember that T arrays are subtype of T).
+The length of command line arguments can be calculated by function `len`.
 
-例如，假设有文件 `MainArgs.cmm` 代码如下:
+Say we have a file `MainArgs.cmm` with following contents
 
 ```
 void main(string args) {
@@ -103,13 +104,15 @@ void main(string args) {
         println(i, args[i]);
 }
 ```
-执行命令 `cmm MainArgs.cmm how are you` 的结果为:
+
+By enter command `cmm MainArgs.cmm how are you`, the output on screen will be
 
 ```
 0 how
 1 are
 2 you
 ```
+
 ### 默认返回值
 此特性模仿自 Scala 语言。函数体或中缀操作符语句内的最后被执行的表达式被当做它的返回值。
 
