@@ -22,6 +22,9 @@ purely hand-written for more flexibiliy and more user-friendly error message;
 |    Ncurses library     |   ❌    |   ✅   |  ✅   |
 |    GUI code editor     | Not tested  | Not tested |  ✅   |
 
+To show you that CMM is somewhat a useful language that can create relative non-trivial
+programs, we implemeted a console [snake game in CMM](#snake).
+This is also a good example for you to get familiar with the CMM grammar.
 
 ## 1. Language Design
 The laguagewe implemented, named CMM, has a grammar similar to C family languages,
@@ -292,16 +295,26 @@ Double-clicking on a line automatically jumps to the wrong location in the sourc
 
 ## 4. Screen Shots
 Help message:
+
 ![help message](https://gitee.com/whst/cmm/raw/master/images/Help.png)
 
 Lexer test:
+
 ![Lexer output](https://gitee.com/whst/cmm/raw/master/images/Lex.png)
 
 AST Dump:
+
 ![parser output](https://gitee.com/whst/cmm/raw/master/images/AST.png)
 
+<a name="snake"></a>
 Console Snake game written in CMM!
+
 ![Snake Game](https://gitee.com/whst/cmm/raw/master/images/Snake.gif)
+
+A glance at the program written in CMM
+
+![Snake Code](https://gitee.com/whst/cmm/raw/master/images/SnakeCode.png)
+
 
 -------------------------------------------------
 ## Appendixes
