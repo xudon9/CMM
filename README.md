@@ -248,43 +248,47 @@ will be replaced by a simple `bar()` invocation.
 
 
 ### 调用库函数
-一门语言强大与否，和它是否有充足的库调用有紧密联系。
-CMM 语言可以很方便地增加系统调用/库函数调用，步骤如下：
+Whether a language is expressive or not is largely related to
+whether it has sufficient library.
+Users of CMM language can easily add system calls/library
+function calls, as follows:
 
-1. 在 NativeFunctions.h 增加一行 `ADD_FUNCTION(xxx)`，它是一个展开后得到函数原型的宏；
-2. 在 NativeFunctions.cpp 里写一个包装函数，把库函数封装起来，得到一个接收 `cvm::BaiscValue` 列表并返回
-   这种类型的函数
-3. 在 Interpreter.cpp 中向 NativeFunctionMap 注册该函数
+1. Add a line `ADD_FUNCTION(xxx)` in NativeFunctions.h, which is macro that expands to
+the function prototype;
+Write a wrapper function in NativeFunctions.cpp which wraps the library function:
+It takes as input an array of `cvm::BaiscValue` and returns a `cvm::BasicValue`;
+3. Register this function in NativeFunctionMap (in Interpreter.cpp)
 
 ## 3. The Editor
 
-### 行号显示
-当前编辑行高亮
+### Line Number Display
+Display a line number at the left side and high light current line.
 
-### 保留关键字高亮
-以下是CMM的保留字：
+### Hightlight for Keywords
+The reserved words in CMM are:
 
 ```
 if else for while do break continue return int double
 bool void string infix
 ```
-注：`do` 关键字暂时没有用到
+Note: `do` is not yet used.
 
-### 文件I/O
+### File I/O
 
-#### 新建文件/打开文件(C+N/C+O)
-如果当前有编辑后未保存的文件会提示保存。
-#### 保存文件(C+S)
-默认为“保存”选项，新创建的文件则为“另存为”选项。
+#### Create File / Open File (C+N/C+O)
+If files are edited and not saved. When existing, a dialog will pop up
+to confirm.
+#### Save File (C+S)
+The default is the Save option, and the newly created file is the Save As option.
 
-### 一键运行(C+R)
-当前编辑文件未保存则提示保存。
-弹出 terminal 进行编译。
+### Run Script (C+R)
+If the current editing file is not saved, you are prompted to save it.
+On clicking the run button, terminal will started to compile and run.
 
 ### Error Message
-编译出的错误、警告分别呈现在列表当中。
-列表包含错误的行、列和错误信息。
-双击某行可以自动跳转到源码中的错误位置。
+Compilation errors and warnings are presented in the list.
+The list contains incorrect rows, columns, and error messages.
+Double-clicking on a line automatically jumps to the wrong location in the source code.
 
 
 -------------------------------------------------
