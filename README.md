@@ -50,14 +50,15 @@ if (foo() || bar)
 ```
 The output will be "hello".
 
-### Typing System and Arrays
+### Type System and Arrays
 There are 4 primitive types in CMM: `int`, `double`, `bool`, `string`.
 The declaration of arrays are similar to C. The following statement
 > Type Identifier [Expr<sub>1</sub>][Expr<sub>2</sub>]...[Expr<sub>N</sub>]
-delcares an N-dimensional array of type T with name Identifier. Its valid range
-of the i<sup>th<sup> index is [0, Expr<sub>i</sub> - 1].
 
-**注意：**与标准原始要求不同的，Expr 不需要是常量表达式。
+delcares an N-dimensional array of type T with name Identifier. Its valid range
+of the i<sup>th</sup> index is [0, Expr<sub>i</sub> - 1].
+
+**注意：** 与标准原始要求不同的，Expr 不需要是常量表达式。
 
 隐式转换规则：
 
