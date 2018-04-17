@@ -247,7 +247,7 @@ else
 will be replaced by a simple `bar()` invocation.
 
 
-### 调用库函数
+### Add built-in Functions
 Whether a language is expressive or not is largely related to
 whether it has sufficient library.
 Users of CMM language can easily add system calls/library
