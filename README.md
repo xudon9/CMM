@@ -225,23 +225,27 @@ A cycle reference example:
 
 ### Optimization
 CMM implemented two simple optimization.
-#### Constant folding
-*常量折叠*指在编译时期简化常数的过程，常数在表示式中仅仅代表一个简单的数值。
 
-CMM 解释器中，`print(1 + 2 * 3)` 将不会被转换成一个复杂的语法树，
-而是被折叠为等价于 `print(7)` 这样的简单调用。
-#### 死代码消除(Dead code elimination)
-*死代码消除*值移除对程序运行结果没有任何影响的代码。
+#### Constant Folding
+*Constant folding* evaluate the value of constant expressions at compile time
+as much as possible. We implemented a simple folding algorithm which, during the
+creation of abstract syntax tree.
 
-CMM 解释器实现了一些最基本的死代码消除算法。例如下面的 CMM 代码：
+In CMM, statement `print(1 + 2 * 3)` will not be converted to a complex AST.
+Instead, its AST will be equivalent to the one of `print(7)`.
 
+#### Dead Code Elimination
+*Dead Code Elimination* removes blocks in program which are unreachable.
+
+In our implementation we did that for the most obvious dead code. This snippet
 ```
 if ("hora" && 0.0)
     foo();
 else
     bar();
 ```
-会被解释器简化成等价于 `bar();` 的代码。
+will be replaced by a simple `bar()` invocation.
+
 
 ### 调用库函数
 一门语言强大与否，和它是否有充足的库调用有紧密联系。
