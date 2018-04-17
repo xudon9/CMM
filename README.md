@@ -9,7 +9,7 @@ Group Memers: Xudong Wang, Puxuan Yu.
 
 + The project was implemented in C++11. No 3rd party libraries are used in
 the intepreter core;
-+ Its corss-platform. We have tested in macOS, Linux, and Windows;
++ Its corss-platform. We have tested it under macOS, Linux, and Windows;
 + No parser generators (e.g. Bison, Antlr) were used. The lexer and parser were
 purely hand-written for more flexibiliy and more user-friendly error message;
 + A GUI code editor was provided to let users edit and run CMM scripts more friendly.
@@ -24,11 +24,16 @@ purely hand-written for more flexibiliy and more user-friendly error message;
 
 
 ## 1. Language Design
-我们小组实现的 CMM 语言，是一种有着 C 家族语言语法、内部解释机制接近 Python 的动态脚本语言。
-另外也模仿了 Haskell 语言、Scala 语言、Lisp 语言的一些特性。
+The laguagewe implemented, named CMM, has a grammar similar to C family languages,
+    but its internal mechanism is close to Python. Some features from Haskell, Scala, and
+    Lisp are also borrowed.
+
+The grammar of CMM is not exact identical to what is required in the task specification.
+All required syntax are supported by our implementation, in the meanwhile, many new features
+are supported. The detailed grammar can be checkout out at section [CMM Grammar BNF](#bnf).
 
 我们的 CMM 语言的语法与任务书要求并不完全一致，
-在大体兼容原有语法的基础上增加了很多新特性。详情见附录 [CMM语言语法](#bnf)一节。
+在大体兼容原有语法的基础上增加了很多新特性。详情见附录 一节。
 
 ###基础语法
 基础语法与C语言很相似，下面是几个值得注意的地方：
@@ -314,7 +319,7 @@ NcAttrOff
 NcColorPair
 ```
 
-###<a name="bnf"></a>CMM语言语法
+### <a name="bnf"></a>CMM Grammar BNF
 
 ```
 Program ::= TopLevel*
