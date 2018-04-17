@@ -2,8 +2,10 @@
 
 Dec. 27, 2016
 
-Group Members: Xudong Wang (hsu [AT] whu.edu.cn), Puxuan Yu(pxyuwhu [AT] gmail.com).
+Group Members: Xudong Wang (hsu [AT] whu.edu.cn), Puxuan Yu (pxyuwhu [AT] gmail.com).
 
+This project is for the course "Compiler Implementation Practice" in International
+School of Software, Wuhan University.
 
 ## 0. Overview
 
