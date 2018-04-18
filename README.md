@@ -2,9 +2,12 @@
 
 Dec. 27, 2016
 
-Group Members: Xudong Wang (hsu [AT] whu.edu.cn), Puxuan Yu (pxyuwhu [AT] gmail.com).
+Group Members:
+* Xudong Wang (hsu [AT] whu.edu.cn): Language core, built-in functions, test cases
+* Puxuan Yu (pxyuwhu [AT] gmail.com): GUI code editor
+* Yi Ren
 
-This project is for the course "Compiler Implementation Practice" in International
+This project is for the course "Compiler Implementation Practice" at International
 School of Software, Wuhan University.
 
 ## 0. Overview
@@ -16,22 +19,24 @@ the interpreter core;
 purely hand-written for more flexibility and more user-friendly error message;
 + A GUI code editor was provided to let users edit and run CMM scripts more conveniently.
 
-| Modules \ OS    | Windows| Linux | macOS |
-|:---------------:|:------:|:-----:|:-----:|
-|CMM Language core|   ✅    |   ✅   |  ✅   |
-|math library     |   ✅    |   ✅   |  ✅   |
-|multiprocessing  |   ❌    |   ✅   |  ✅   |
-|Ncurses library  |   ❌    |   ✅   |  ✅   |
-|GUI code editor  | Not tested  | Not tested |  ✅   |
+| Modules \ OS    |  Windows |  Linux   | macOS |
+|:---------------:|:--------:|:--------:|:-----:|
+|CMM Language core|    ✅     |    ✅     |  ✅    |
+|math library     |    ✅     |    ✅     |  ✅    |
+|multiprocessing  |    ❌     |    ✅     |  ✅    |
+|Ncurses library  |    ❌     |    ✅     |  ✅    |
+|GUI code editor  |Not tested|Not tested|  ✅    |
 
-To show you that CMM is somewhat a useful language that can create relative non-trivial
-programs, we implemented a console [snake game in CMM](#snake).
-This is also a good example for you to get familiar with the CMM grammar.
+To show you that CMM is a somewhat useful language that can create relatively
+non-trivial pieces of code, **we implemented a console [snake game](#snake) in purely CMM**.
+
+This also serves as a good example for you to get familiar with the CMM grammar
+quickly.
 
 ## 1. Language Design
 The language we implemented, named CMM, has a grammar similar to C family languages,
-    but its internal mechanism is close to Python. Some features from Haskell, Scala, and
-    Lisp are also borrowed.
+but its internal mechanism is close to Python. Some features from Haskell, Scala, and
+Lisp are also borrowed.
 
 The grammar of CMM is not exact identical to what is required in the task specification.
 All required syntax are supported by our implementation, in the meanwhile, many new features
