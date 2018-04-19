@@ -305,22 +305,22 @@ Help message:
 
 ![help message](https://gitee.com/whst/cmm/raw/master/images/Help.png)
 
-Lexer test:
+Tokens Dump:
 
-![Lexer output](https://gitee.com/whst/cmm/raw/master/images/Lex.png)
+![Lexer output](https://raw.githubusercontent.com/whst/cmm/master/images/Lex.png)
 
 AST Dump:
 
-![parser output](https://gitee.com/whst/cmm/raw/master/images/AST.png)
+![parser output](https://raw.githubusercontent.com/whst/cmm/master/images/AST.png)
 
 <a name="snake"></a>
 Console Snake game written in CMM!
 
-![Snake Game](https://gitee.com/whst/cmm/raw/master/images/Snake.gif)
+![Snake Game](https://raw.githubusercontent.com/whst/cmm/master/images/Snake.gif)
 
 A glance at the program written in CMM
 
-![Snake Code](https://gitee.com/whst/cmm/raw/master/images/SnakeCode.png)
+![Snake Code](https://raw.githubusercontent.com/whst/cmm/master/images/SnakeCode.png)
 
 
 -------------------------------------------------
