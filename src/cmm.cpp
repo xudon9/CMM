@@ -1,6 +1,6 @@
 /*
  * cmm.cpp
- * Copyright (C) 2016 wang <hsu@whu.edu.cn>
+ * Copyright (C) 2016 wang <hsu [AT] whu [DOT] edu [DOT] cn>
  *
  * TODO:
  * 1. ++ -- += -= *=...
@@ -117,14 +117,16 @@ void Error(const char *Name, const char *Message) {
 }
 
 void Usage(const char *Name) {
-  std::cerr << "USAGE: " << Name << " [options] <input file> Args...\n\n"
-      "OPTIONS:\n\n"
-      "  -h  --help       print this usage and exit\n"
-      "  -f  --file       dump a file and exit (for debugging)\n"
-      "  -l  --lex        lex tokens from a CMM source code file\n"
-      "  -p  --parse      parse a CMM source code file and dump AST\n"
-      "  -d  --debug      interpret a file with extra information dumped\n\n"
-      "Report bugs to <hsu@whu.edu.cn>.\n";
+  std::cerr
+      << "USAGE: " << Name
+      << " [options] <input file> Args...\n\n"
+         "OPTIONS:\n\n"
+         "  -h  --help       print this usage and exit\n"
+         "  -f  --file       dump a file and exit (for debugging)\n"
+         "  -l  --lex        lex tokens from a CMM source code file\n"
+         "  -p  --parse      parse a CMM source code file and dump AST\n"
+         "  -d  --debug      interpret a file with extra information dumped\n\n"
+         "Report bugs to <hsu [at] whu [dot] edu [dot] cn>.\n";
 }
 
 int DumpFile(cmm::SourceMgr &SrcMgr) {
