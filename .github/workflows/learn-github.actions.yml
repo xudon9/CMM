@@ -10,7 +10,7 @@ jobs:
         with:
           node-version: '14'
       - run: npm install -g bats
-      - run:| 
+      - run: | 
           FILES=$(pwd)
           echo ${FILES}
           [ ! -z $FILES ] && echo "Files are present" || echo "Files are not present"
