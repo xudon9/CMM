@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
+        with:
+            fetch-depth: 0
       - name: ubuntu-setup
         run: |
           sudo apt-get update
@@ -16,5 +18,5 @@ jobs:
         run: |
           git branch
           git log -n 5 --format="%h %B"
-          echo "git-clang-format --diff --commit ${{github.base_ref}}"
+          echo "git-clang-format --diff --commit ${{github.event.pull_resquest.base.sha}}"
           git-clang-format --diff --commit ${{github.event.pull_resquest.base.sha}}
