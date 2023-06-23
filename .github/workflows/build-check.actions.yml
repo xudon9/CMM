@@ -17,6 +17,6 @@ jobs:
       - name: format-check
         run: |
           git branch
-          MSG="Please format your changes as below (e.g., with command \`git-clang-format --commit ${{github.event.pull_request.base.sha}}\`), then commit and push the changes."
+          MSG="Please format your code changes to the style that clang-format accepts (e.g., using command \`git-clang-format --commit ${{github.event.pull_request.base.sha}}\`)"
           DIFF=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
           if [[ -n "${DIFF}" ]]; then echo "${MSG}"; echo "${DIFF}"; exit 1; fi
