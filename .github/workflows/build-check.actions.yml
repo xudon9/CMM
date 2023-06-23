@@ -20,4 +20,4 @@ jobs:
           git log -n 5 --format="%h %B"
           echo "git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}"
           diff=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
-          [ -z "${diff}" ] || { echo "Please format your changes with clang-format:\n${diff}"; exit 1 }
+          if [ -n "${diff}" ]; then echo "Please format your changes with clang-format:\n${diff}"; exit 1; fi
