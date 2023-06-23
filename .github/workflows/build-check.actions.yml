@@ -14,6 +14,7 @@ jobs:
           sudo apt-get install clang-format
       - name: format-check
         run: |
+          git branch
           git log -n 5 --format="%h %B"
           echo "git-clang-format --diff --commit ${{github.base_ref}}"
-          git-clang-format --diff --commit ${{github.base_ref}}
+          git-clang-format --diff --commit upstream/${{github.base_ref}}
