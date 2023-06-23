@@ -19,4 +19,4 @@ jobs:
           git branch
           MSG="Found style error. Please format your changes to bellow (or with command \`git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}\`):"
           DIFF=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
-          if [ -n "${diff}" ]; then echo "${MSG}" "${DIFF}"; exit 1; fi
+          if [ -n "${DIFF}" ]; then echo "${MSG}" "${DIFF}"; exit 1; fi
