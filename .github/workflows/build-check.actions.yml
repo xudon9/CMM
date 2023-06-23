@@ -1,5 +1,5 @@
 name: build-check
-run-name: PR of ${{ github.actor }}
+run-name: ${{ github.actor }} is learning GitHub Actions
 on: [push, pull_request]
 
 jobs:
@@ -7,16 +7,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
-        with:
-            fetch-depth: 2
       - name: ubuntu-setup
         run: |
           sudo apt-get update
-          # sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get install clang-format
       - name: format-check
         run: |
-          git branch
-          MSG="Please format your code changes to the style that clang-format accepts (e.g., using command \`git-clang-format --commit ${{github.event.pull_request.base.sha}}\`)"
-          DIFF=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
-          if [[ -n "${DIFF}" ]]; then echo "${MSG}"; echo "${DIFF}"; exit 1; fi
+          git log -n 5 --format="%h %B"
+          git-clang-format --diff upstream/${{github.base_ref}}
