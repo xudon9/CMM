@@ -8,15 +8,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-            fetch-depth: 0
+            fetch-depth: 2
       - name: ubuntu-setup
         run: |
           sudo apt-get update
-          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          # sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
           sudo apt-get install clang-format
       - name: format-check
         run: |
           git branch
           git log -n 5 --format="%h %B"
           echo "git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}"
-          git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}
+          diff=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
+          [ -z "${diff}" ] || { echo "Please format your changes with clang-format:\n${diff}"; exit 1 }
