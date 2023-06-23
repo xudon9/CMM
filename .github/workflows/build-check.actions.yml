@@ -8,7 +8,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-            fetch-depth: 2
+            fetch-depth: 1
       - name: ubuntu-setup
         run: |
           sudo apt-get update
@@ -17,7 +17,6 @@ jobs:
       - name: format-check
         run: |
           git branch
-          git log -n 5 --format="%h %B"
-          echo "git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}"
-          diff=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
-          if [ -n "${diff}" ]; then echo "Please format your changes with clang-format:\n${diff}"; exit 1; fi
+          MSG="Found style error. Please format your changes to bellow (or with command \`git-clang-format --diff --commit ${{github.event.pull_request.base.sha}}\`):"
+          DIFF=$(git-clang-format --quiet --diff --commit ${{github.event.pull_request.base.sha}})
+          if [ -n "${diff}" ]; then echo "${MSG}" "${DIFF}"; exit 1; fi
