@@ -154,7 +154,7 @@ int AsLexInput(cmm::SourceMgr &SrcMgr) {
       Err = true; // error already printed.
       break;
     case Token::Identifier:
-      cout << "Identifier: " << Lexer.getStrVal(); break;
+      cout << "Identifier: " << Lexer.getStrVal();  break;
     case Token::String:
       cout << "String: " << Lexer.getStrVal(); break;
     case Token::Integer:
