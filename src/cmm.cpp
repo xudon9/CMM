@@ -165,7 +165,9 @@ int AsLexInput(cmm::SourceMgr &SrcMgr) {
       cout << "Boolean: " << (Lexer.getBoolVal() ? "True" : "False"); break;
     case Token::InfixOp:
       cout << "InfixOp: " << Lexer.getStrVal(); break;
-    case Token::LParen:         cout << "LParen: ("; break;
+    case Token::LParen:
+      cout << "LParen: (";
+      break;
     case Token::RParen:         cout << "RParen: )"; break;
     case Token::LBrac:          cout << "LBrac: ["; break;
     case Token::RBrac:          cout << "RBrac: ]"; break;
@@ -204,7 +206,9 @@ int AsLexInput(cmm::SourceMgr &SrcMgr) {
     case Token::Kw_bool:        cout << "Keyword: bool"; break;
     case Token::Kw_void:        cout << "Keyword: void"; break;
     case Token::Kw_return:      cout << "Keyword: return"; break;
-    case Token::Kw_infix:       cout << "Keyword: infix"; break;
+    case Token::Kw_infix:
+      cout << "Keyword: infix";
+      break;
     }
     cout << "\n";
   }
