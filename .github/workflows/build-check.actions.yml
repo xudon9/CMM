@@ -15,4 +15,5 @@ jobs:
       - name: format-check
         run: |
           git log -n 5 --format="%h %B"
-          git-clang-format --diff ${{github.base_ref}}
+          echo "git-clang-format --diff --commit ${{github.base_ref}}"
+          git-clang-format --diff --commit ${{github.base_ref}}
