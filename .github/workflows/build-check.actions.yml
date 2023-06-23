@@ -1,5 +1,5 @@
 name: build-check
-run-name: ${{ github.actor }} is learning GitHub Actions
+run-name: PR of ${{ github.actor }}
 on: [push, pull_request]
 
 jobs:
@@ -15,4 +15,4 @@ jobs:
       - name: format-check
         run: |
           git log -n 5 --format="%h %B"
-          git-clang-format --diff upstream/${{github.base_ref}}
+          git-clang-format --diff ${{github.base_ref}}
