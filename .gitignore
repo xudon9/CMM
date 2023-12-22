@@ -22,3 +22,7 @@ build
 .idea
 
 cmake-build-debug
+
+# zig
+zig-cache/
+zig-out/
