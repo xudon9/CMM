@@ -189,7 +189,6 @@ std::unique_ptr<ExpressionAST> BinaryOperatorAST::create(
   case Token::Caret:          OpKind = BinaryOperatorAST::BitwiseXor; break;
   case Token::LessLess:       OpKind = BinaryOperatorAST::LeftShift; break;
   case Token::GreaterGreater: OpKind = BinaryOperatorAST::RightShift; break;
-  case Token::Equal:          OpKind = BinaryOperatorAST::Assign; break;
   }
   return std::unique_ptr<ExpressionAST>(new BinaryOperatorAST(OpKind,
                                                               std::move(LHS),
@@ -615,7 +614,6 @@ void BinaryOperatorAST::dump(const std::string &prefix) const
   case BitwiseXor:    OperatorSymbol = "Xor"; break;
   case LeftShift:     OperatorSymbol = "LShift"; break;
   case RightShift:    OperatorSymbol = "RShift"; break;
-  case Assign:        OperatorSymbol = "Assign"; break;
   case GreaterEqual:  OperatorSymbol = "GreaterEq"; break;
   case Index:         OperatorSymbol = "At"; break;
   }
@@ -805,6 +803,57 @@ void BreakStatementAST::dump(const std::string &/*prefix*/) const {
 
 void ContinueStatementAST::dump(const std::string &/*prefix*/) const {
   std::cout << "continue\n";
+}
+
+std::unique_ptr<ExpressionAST>
+AssignExprAST::create(Token::TokenKind TokenKind,
+                      std::unique_ptr<ExpressionAST> LHS,
+                      std::unique_ptr<ExpressionAST> RHS) {
+  AssignExprAST::OperatorKind OpKind;
+  switch (TokenKind) {
+  default: return nullptr;
+  case Token::Equal:                OpKind = AssignExprAST::Assign; break;
+  case Token::PlusEqual:            OpKind = AssignExprAST::AddAssign; break;
+  case Token::MinusEqual:           OpKind = AssignExprAST::MinusAssign; break;
+  case Token::StarEqual:            OpKind = AssignExprAST::MultiplyAssign; break;
+  case Token::SlashEqual:           OpKind = AssignExprAST::DivisionAssign; break;
+  case Token::PercentEqual:         OpKind = AssignExprAST::ModuloAssign; break;
+  case Token::LessLessEqual:        OpKind = AssignExprAST::LeftShiftAssign; break;
+  case Token::GreaterGreaterEqual:  OpKind = AssignExprAST::RightShiftAssign; break;
+  case Token::AmpEqual:             OpKind = AssignExprAST::BitwiseAndAssign; break;
+  case Token::PipeEqual:            OpKind = AssignExprAST::BitwiseOrAssign; break;
+  case Token::CaretEqual:           OpKind = AssignExprAST::BitwiseXorAssign; break;
+  }
+  return std::unique_ptr<ExpressionAST>(new AssignExprAST(OpKind,
+                                                          std::move(LHS),
+                                                          std::move(RHS)));
+}
+
+void AssignExprAST::dump(const std::string &prefix) const {
+  std::string OperatorSymbol;
+
+  switch (getOpKind()) {
+  default: break;
+  case Assign:            OperatorSymbol = "Assign"; break;
+  case AddAssign:         OperatorSymbol = "AddAssign"; break;
+  case MinusAssign:       OperatorSymbol = "SubAssign"; break;
+  case MultiplyAssign:    OperatorSymbol = "MulAssign"; break;
+  case DivisionAssign:    OperatorSymbol = "DivAssign"; break;
+  case ModuloAssign:      OperatorSymbol = "ModAssign"; break;
+  case LeftShiftAssign:   OperatorSymbol = "LShiftAssign"; break;
+  case RightShiftAssign:  OperatorSymbol = "RShiftAssign"; break;
+  case BitwiseAndAssign:  OperatorSymbol = "BitAndAssign"; break;
+  case BitwiseOrAssign:   OperatorSymbol = "BitOrAssign"; break;
+  case BitwiseXorAssign:  OperatorSymbol = "XorAssign"; break;
+  }
+
+  std::cout << OperatorSymbol << "\n";
+
+  std::cout << prefix << "|---";
+  LHS->dump(prefix + "|   ");
+
+  std::cout << prefix << "`---";
+  RHS->dump(prefix + "    ");
 }
 
 }

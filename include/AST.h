@@ -158,7 +158,8 @@ public:
     FunctionCallExpression,
     InfixOpExpression,
     BinaryOperatorExpression,
-    UnaryOperatorExpression
+    UnaryOperatorExpression,
+    AssignExpression
   };
 private:
   ExpressionKind Kind;
@@ -318,7 +319,7 @@ public:
     LogicalAnd, LogicalOr,                    /* logical */
     Less, LessEqual, Equal, NotEqual, Greater, GreaterEqual, /* relational */
     BitwiseAnd, BitwiseOr, BitwiseXor, LeftShift, RightShift, /* bitwise */
-    Assign /**, Comma**/, Index
+    Index
   };
 
 private:
@@ -392,6 +393,37 @@ public:
   /// Static utilities
   static std::unique_ptr<ExpressionAST>
   tryFoldUnaryOp(OperatorKind OpKind, std::unique_ptr<ExpressionAST> Operand);
+};
+
+
+class AssignExprAST : public ExpressionAST {
+public:
+  enum OperatorKind {
+    Assign,
+    AddAssign, MinusAssign, MultiplyAssign, DivisionAssign, ModuloAssign,
+    LeftShiftAssign, RightShiftAssign,
+    BitwiseAndAssign, BitwiseOrAssign, BitwiseXorAssign
+  };
+private:
+  OperatorKind OpKind;
+  std::unique_ptr<ExpressionAST> LHS, RHS;
+public:
+  AssignExprAST(OperatorKind OpKind,
+                std::unique_ptr<ExpressionAST> LHS,
+                std::unique_ptr<ExpressionAST> RHS)
+      : ExpressionAST(AssignExpression)
+      , OpKind(OpKind), LHS(std::move(LHS)), RHS(std::move(RHS)) {}
+
+  OperatorKind getOpKind() const { return OpKind; }
+  ExpressionAST *getLHS() const { return LHS.get(); }
+  ExpressionAST *getRHS() const { return RHS.get(); }
+
+  void dump(const std::string &prefix = "") const override;
+
+  static std::unique_ptr<ExpressionAST>
+  create(Token::TokenKind TokenKind,
+         std::unique_ptr<ExpressionAST> LHS,
+         std::unique_ptr<ExpressionAST> RHS);
 };
 
 

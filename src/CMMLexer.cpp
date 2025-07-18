@@ -98,6 +98,9 @@ Token CMMLexer::LexToken() {
       skipBlockComment();
       return LexToken();
     }
+    if (NextChar == '=') {
+      return Token::SlashEqual;
+    }
     ungetChar();
     return Token::Slash;
   }
@@ -110,13 +113,33 @@ Token CMMLexer::LexToken() {
   case ']':   return Token::RBrac;
   case '{':   return Token::LCurly;
   case '}':   return Token::RCurly;
-  case '+':   return Token::Plus;
-  case '-':   return Token::Minus;
-  case '*':   return Token::Star;
-  case '%':   return Token::Percent;
+  case '+':
+    if (peekNextChar() != '=')
+      return Token::Plus;
+    getNextChar();
+    return Token::PlusEqual;
+  case '-':
+    if (peekNextChar() != '=')
+      return Token::Minus;
+    getNextChar();
+    return Token::MinusEqual;
+  case '*':
+    if (peekNextChar() != '=')
+      return Token::Star;
+    getNextChar();
+    return Token::StarEqual;
+  case '%':
+    if (peekNextChar() != '=')
+      return Token::Percent;
+    getNextChar();
+    return Token::PercentEqual;
   case ';':   return Token::Semicolon;
   case ',':   return Token::Comma;
-  case '^':   return Token::Caret;
+  case '^':
+    if (peekNextChar() != '=')
+      return Token::Caret;
+    getNextChar();
+    return Token::CaretEqual;
   case '~':   return Token::Tilde;
 
   case '=':
@@ -132,21 +155,36 @@ Token CMMLexer::LexToken() {
     return Token::ExclaimEqual;
 
   case '&':
-    if (peekNextChar() != '&')
-      return Token::Amp;
-    getNextChar();
-    return Token::AmpAmp;
+    if (peekNextChar() == '&') {
+      getNextChar();
+      return Token::AmpAmp;
+    }
+    if (peekNextChar() == '=') {
+      getNextChar();
+      return Token::AmpEqual;
+    }
+    return Token::Amp;
 
   case '|':
-    if (peekNextChar() != '|')
-      return Token::Pipe;
-    getNextChar();
-    return Token::PipePipe;
+    if (peekNextChar() == '|') {
+      getNextChar();
+      return Token::PipePipe;
+    }
+    if (peekNextChar() == '=') {
+      getNextChar();
+      return Token::PipeEqual;
+    }
+    return Token::Pipe;
 
   case '<': {
     int NextChar = getNextChar();
-    if (NextChar == '<')
+    if (NextChar == '<') {
+      if (peekNextChar() == '=') {
+        getNextChar();
+        return Token::LessLessEqual;
+      }
       return Token::LessLess;
+    }
     if (NextChar == '=')
       return Token::LessEqual;
     ungetChar();
@@ -155,8 +193,13 @@ Token CMMLexer::LexToken() {
 
   case '>': {
     int NextChar = getNextChar();
-    if (NextChar == '>')
+    if (NextChar == '>') {
+      if (peekNextChar() == '=') {
+        getNextChar();
+        return Token::GreaterGreaterEqual;
+      }
       return Token::GreaterGreater;
+    }
     if (NextChar == '=')
       return Token::GreaterEqual;
     ungetChar();

@@ -345,7 +345,18 @@ bool CMMParser::parseExpression(std::unique_ptr<ExpressionAST> &Res) {
 int8_t CMMParser::getBinOpPrecedence() {
   switch (getKind()) {
   default:              return -1;
-  case Token::Equal:    return 1;
+  case Token::Equal:
+  case Token::PlusEqual:
+  case Token::MinusEqual:
+  case Token::StarEqual:
+  case Token::SlashEqual:
+  case Token::PercentEqual:
+  case Token::LessLessEqual:
+  case Token::GreaterGreaterEqual:
+  case Token::AmpEqual:
+  case Token::PipeEqual:
+  case Token::CaretEqual:
+    return 1;
   case Token::PipePipe: return 2;
   case Token::AmpAmp:   return 3;
   case Token::Pipe:     return 4;
@@ -454,12 +465,15 @@ bool CMMParser::parseBinOpRHS(int8_t ExprPrec,
   std::unique_ptr<ExpressionAST> RHS;
 
   // Handle assignment expression first.
-  if (Lexer.getTok().is(Token::Equal)) {
+  if (Lexer.isOneOf(Token::Equal, Token::PlusEqual, Token::MinusEqual,
+                    Token::StarEqual, Token::SlashEqual, Token::PercentEqual,
+                    Token::LessLessEqual, Token::GreaterGreaterEqual,
+                    Token::AmpEqual, Token::PipeEqual, Token::CaretEqual)) {
+    Token::TokenKind OpKind = getKind();
     Lex();
     if (parseExpression(RHS))
       return true;
-    Res = BinaryOperatorAST::create(Token::Equal,
-                                    std::move(Res), std::move(RHS));
+    Res = AssignExprAST::create(OpKind, std::move(Res), std::move(RHS));
     return false;
   }
   for (;;) {

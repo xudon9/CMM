@@ -340,6 +340,9 @@ CMMInterpreter::evaluateExpression(VariableEnv *Env,
 
   case ExpressionAST::UnaryOperatorExpression:
     return evaluateUnaryOpExpr(Env, Expr->as_cptr<UnaryOperatorAST>());
+
+  case ExpressionAST::AssignExpression:
+    return evaluateAssignExpr(Env, Expr->as_cptr<AssignExprAST>());
   }
 }
 
@@ -380,8 +383,6 @@ CMMInterpreter::evaluateLvalueExpr(VariableEnv *Env,
 
     if (BinOpExpr->getOpKind() == BinaryOperatorAST::Index)
       return evaluateIndexExpr(Env, BinOpExpr->getLHS(), BinOpExpr->getRHS());
-    if (BinOpExpr->getOpKind() == BinaryOperatorAST::Assign)
-      return evaluateAssignment(Env, BinOpExpr->getLHS(), BinOpExpr->getRHS());
 
     RuntimeError("try to evaluate a rvalue binOpExpr as lvalue");
   }
@@ -475,8 +476,6 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
     cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
     return evaluateBinaryCalc(Expr->getOpKind(), LHS, RHS);
   }
-  case BinaryOperatorAST::Assign:
-    return evaluateAssignment(Env, Expr->getLHS(), Expr->getRHS());
   case BinaryOperatorAST::Index:
     return evaluateIndexExpr(Env, Expr->getLHS(), Expr->getRHS());
   case BinaryOperatorAST::LogicalAnd:
@@ -485,6 +484,53 @@ CMMInterpreter::evaluateBinaryOpExpr(VariableEnv *Env,
     return evaluateLogicalOr(Env, Expr->getLHS(), Expr->getRHS());
   }
 }
+
+cvm::BasicValue
+CMMInterpreter::evaluateAssignExpr(VariableEnv *Env,
+                                   const AssignExprAST *Expr) {
+  cvm::BasicValue &LHS = evaluateLvalueExpr(Env, Expr->getLHS());
+  cvm::BasicValue RHS = evaluateExpression(Env, Expr->getRHS());
+
+  if (LHS.isArray()) {
+    RuntimeError("cannot assign value to array directly");
+  }
+
+  switch (Expr->getOpKind()) {
+  case AssignExprAST::Assign:
+    if (LHS.Type != RHS.Type) {
+      if (LHS.isDouble() && RHS.isInt()) {
+        LHS.DoubleVal = RHS.IntVal;
+        return LHS;
+      } else {
+        RuntimeError("assignment to " + cvm::TypeToStr(LHS.Type) +
+            " variable with " + cvm::TypeToStr(RHS.Type) + " expression");
+      }
+    }
+    return LHS = RHS;
+  case AssignExprAST::AddAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::Add, LHS, RHS);
+  case AssignExprAST::MinusAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::Minus, LHS, RHS);
+  case AssignExprAST::MultiplyAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::Multiply, LHS, RHS);
+  case AssignExprAST::DivisionAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::Division, LHS, RHS);
+  case AssignExprAST::ModuloAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::Modulo, LHS, RHS);
+  case AssignExprAST::LeftShiftAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::LeftShift, LHS, RHS);
+  case AssignExprAST::RightShiftAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::RightShift, LHS, RHS);
+  case AssignExprAST::BitwiseAndAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::BitwiseAnd, LHS, RHS);
+  case AssignExprAST::BitwiseOrAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::BitwiseOr, LHS, RHS);
+  case AssignExprAST::BitwiseXorAssign:
+    return LHS = evaluateBinaryCalc(BinaryOperatorAST::BitwiseXor, LHS, RHS);
+  }
+  return cvm::BasicValue(); // Make the compiler happy.
+}
+
 
 cvm::BasicValue &
 CMMInterpreter::evaluateIndexExpr(VariableEnv *Env,
@@ -542,8 +588,6 @@ CMMInterpreter::evaluateBinaryCalc(BinaryOperatorAST::OperatorKind OpKind,
 
   case BinaryOperatorAST::LogicalAnd:
   case BinaryOperatorAST::LogicalOr:
-  case BinaryOperatorAST::Assign:
-  case BinaryOperatorAST::Index:
     RuntimeError("assignment/index/logicalBinOp "
                      "should be handled in evaluateBinaryOpExpr");
   }
@@ -770,28 +814,5 @@ CMMInterpreter::callUserFunction(const FunctionDefinitionAST &Function,
         cvm::TypeToStr(Result.ReturnValue.Type));
   }
   return Result.ReturnValue;
-}
-
-cvm::BasicValue &
-CMMInterpreter::evaluateAssignment(VariableEnv *Env,
-                                   const ExpressionAST *RefExpr,
-                                   const ExpressionAST *ValExpr) {
-  cvm::BasicValue &Variable = evaluateLvalueExpr(Env, RefExpr);
-  cvm::BasicValue Value = evaluateExpression(Env, ValExpr);
-
-  if (Variable.isArray()) {
-    RuntimeError("cannot assign value to array directly");
-  }
-
-  if (Variable.Type != Value.Type) {
-    if (Variable.isDouble() && Value.isInt()) {
-      Variable.DoubleVal = Value.IntVal;
-      return Variable;
-    } else {
-      RuntimeError("assignment to " + cvm::TypeToStr(Variable.Type) +
-          " variable with " + cvm::TypeToStr(Value.Type) + " expression");
-    }
-  }
-  return Variable = Value;
 }
 
